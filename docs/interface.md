@@ -44,3 +44,9 @@ Die angezeigten Profile sind Beispiele. Es gibt keine Verbindung zu Buffer oder 
 Unveränderte Titel, Labels und Notizen bleiben exakt erhalten, auch bei CR/LF, Rand-Leerzeichen oder vorhandenen doppelten Labels. Erst eine ausdrückliche Labelbearbeitung normalisiert diese Eingabe. Label-Optionswerte werden HTML-escaped als JSON transportiert; der leere All-Labels-Sentinel ist davon getrennt.
 
 Undo verwendet den aktuellen Snapshot mit seiner Revision. Nur bestätigte Löschungen erhalten kurzzeitig eine storegebundene kanonische Ergänzung für dieselbe ID; maximal 100 Einträge/60 Sekunden, Leeren bei erfolgreichem Neuladen. Ein 409 verbraucht diese Ergänzung nicht und löst kein Retry aus. Scheitert die UI-Wiederherstellung, wird die gelöschte UI-Fassung in einem readonly Textfeld angezeigt. Sie ersetzt weder ein Backup noch den vollständigen kanonischen Datensatz oder Mediendateien.
+
+## Verbindungen (0.4)
+
+Die separate Ansicht `connections.js` liest ausschließlich `/api/providers/status`. Instagram, LinkedIn und YouTube sind von den vorhandenen Demo-Planungskanälen getrennt. Die Ansicht verändert keine Beiträge und erweitert deren Kanalmodell nicht automatisch.
+
+Unbekannte, unvollständige oder aktivierten Versand behauptende DTOs werden abgewiesen. Ladefehler zeigen „Status unbekannt“; ein alter Erfolgsstatus wird bei neuer Prüfung nicht als aktuell ausgegeben. Einrichtungshinweise sind nur ausklappbarer Text. Es gibt keinen Connect-, OAuth- oder Publish-Button und kein Browserfeld für Passwörter oder Tokens. Plattform-App-Freigabe und persönliche Kontoberechtigung werden getrennt dargestellt.

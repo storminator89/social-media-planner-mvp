@@ -25,3 +25,8 @@ screenshots/
 *.zip
 .openai/execution-profile.json
 .DS_Store
+
+dist/
+.wrangler/
+.sites-runtime/
+.dev.vars*

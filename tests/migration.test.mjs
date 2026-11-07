@@ -35,7 +35,7 @@ test('append-only migration retains every legacy row, revision, owner, media ref
   const {directory,db}=await legacy(t),before=dump(db);db.close();
   let next=new LocalDatabase(directory);const after=dump(next.sql);
   for(const row of after.planner_variants){assert.equal(row.inherits_body,0);delete row.inherits_body;}
-  assert.deepEqual(after,before);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2]);
+  assert.deepEqual(after,before);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3]);
   const repo=new PlannerRepository(next);const alice=await repo.load('alice'),bob=await repo.load('bob');
   assert.equal(alice.schemaVersion,2);assert.equal(alice.revision,7);assert.equal(alice.posts[0].variants[0].inheritsBody,false);assert.equal(bob.posts[0].variants[0].body,'Eigene Fassung');
   next.close();next=new LocalDatabase(directory);assert.equal((await new PlannerRepository(next).load('alice')).revision,7);next.close();

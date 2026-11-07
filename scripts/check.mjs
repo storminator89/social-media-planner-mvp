@@ -11,5 +11,5 @@ async function check(directory) {
     }
   }
 }
-for (const directory of ['server', 'public', 'modules', 'tests', 'scripts']) await check(directory);
+for (const directory of ['server', 'public', 'modules', 'tests', 'scripts', 'worker']) await check(directory);
 console.log('All JavaScript syntax checks passed.');

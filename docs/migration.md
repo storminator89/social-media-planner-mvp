@@ -1,4 +1,4 @@
-# Lokales Upgrade auf 0.3
+# Lokales Upgrade auf 0.4
 
 ## Vorher
 
@@ -32,3 +32,11 @@ Tests prüfen echte lokale SQLite-Dateien, wiederholte Starts, alte Mehrbesitzer
 Auch hier vor dem Upgrade Server stoppen und den gesamten lokalen Datenordner sichern. Alten Server nicht parallel gegen dieselbe Datei laufen lassen. Ein alter 0.2-UI-Adapter mit veralteter Revision erhält 409. Nach erneutem Laden weist dieser Adapter Ideen/Tags bewusst ab, anstatt sie zu reduzieren. Das gilt für den geprüften vollständigen 0.2-Adapter, nicht als pauschales Kompatibilitätsversprechen beliebiger Drittclients.
 
 Unveränderte Metadaten werden exakt übernommen; neue bzw. bewusst bearbeitete Labels werden auf die UI-Regeln normalisiert. Ein Undo-Zwischenspeicher wird nicht migriert oder persistent gemacht. Für eine Rückkehr auf einen älteren Stand eine getrennte Sicherung verwenden, nicht durch alte UI-Normalisierung schreiben.
+
+## Von 0.3 auf 0.4
+
+`0003_provider_jobs.sql` ergänzt nur `planner_provider_connections`, `planner_publication_jobs` und einen Index. Bestehende Tabellen, IDs, Revisionen und beide alten SQL-Dateien bleiben unverändert. Es gibt keine Seed-Konten oder automatisch vorbereiteten Jobs. Status-GETs verändern keine Tabellen. Die lokale Migrationsliste umfasst danach 1, 2 und 3; Fehler rollen die gesamte noch ausstehende Migration samt Ledger zurück.
+
+Verbindungen sind ausschließlich unverbundene Einrichtungszustände. Jobs können nur `blocked` oder `cancelled` sein; `publishing_enabled=0` wird in beiden Tabellen erzwungen. Weder Credential-Felder noch eine ausführbare Lease oder Versandfreigabe sind vorhanden. Die Vorbereitung besitzt keinen öffentlichen Schreibendpunkt.
+
+Geprüft: tatsächlicher lokaler Constructor mit Daten mehrerer Besitzer, unveränderte Alt-Revisionsdaten, wiederholte Öffnung, leere neue Tabellen sowie Rollback, wenn Migration 0003 auf widersprüchliches vorhandenes Schema trifft. Diese Tests ersetzen nicht die spätere gehostete Migrationsabnahme. Der Worker führt keine DDL während HTTP-Anfragen aus.

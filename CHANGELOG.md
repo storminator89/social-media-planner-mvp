@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.4.0
+
+- Eigener Worker-Einstieg für spätere Sites-Bereitstellung, ohne Node-Laufzeitabhängigkeiten, mit eingebettetem UI-Inventar und Dispatch-Identitätspflicht.
+- Reine GET-Verbindungsübersicht für Instagram, LinkedIn und YouTube; keine fingierten Konten, OAuth-Links, Secrets oder Publikationsrouten.
+- Additive Migration 0003 für Verbindungsplatzhalter und gesperrte Jobvorbereitung. Datenbankbedingungen verhindern „connected“, aktivierten Versand und ausführbare Jobs.
+- Weiter identische Planungs-API/Adapter sowie die geprüften Ideen-, Varianten-, Queue- und Undo-Funktionen.
+- 272 Tests in drei Host-Zeitzonen, Syntax- und reproduzierbarer Worker-Build. Cloud-D1/R2 und echte Sites-Identität sind noch nicht live nachgewiesen.
+
 ## 0.3.0
 
 - Ideen-Inbox mit Titel, Notizen, Labels, Suche und Label-Filter; keine Kanäle oder Termine erforderlich.

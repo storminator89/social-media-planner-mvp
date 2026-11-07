@@ -1,4 +1,4 @@
-# Takt 0.3: lokaler Social-Media-Planer
+# Takt 0.4: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -17,6 +17,8 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 
 ## Daten und tatsächlicher Funktionsumfang
 
+- Lesende Verbindungsübersicht für Instagram, LinkedIn und YouTube. Sie zeigt echte lokale Serverzustände und unterscheidet technische Einrichtung, Plattformfreigabe und persönliche Berechtigung. Es existieren keine aktiven Verbindungen oder Anmelde-/Versandaktionen.
+- Dependency-freier Sites-Worker-Entwurf mit eingebetteten UI-Dateien und identitätsgebundener Daten-API. `npm run build:worker` erzeugt ein lokales Worker-Artefakt, keinen gehosteten Dienst.
 - Ideen-Inbox mit optionalem Titel, Notizen, Labels, Suche und Label-Filter. Ideen brauchen weder Kanal noch Termin. Erst ein erfolgreicher Beitragssave verschiebt die Idee mit derselben ID in Entwürfe oder Planung.
 - UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export.
 - Eigene Kanaltexte mit expliziter Basisvererbung, Vorschau und Zeichenprüfung. Auch absichtlich leere oder aktuell identische eigene Fassungen bleiben unabhängig.
@@ -48,9 +50,9 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
 
-Version 0.3 nutzt weiterhin API-Schema 2 und dieselben Datenbankmigrationen wie 0.2. Vor einem lokalen Upgrade Daten sichern; Migration 0002 wird additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
+Version 0.4 nutzt weiterhin API-Schema 2 und ergänzt die rein vorbereitende Migration 0003. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
 
-Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/verification.md`.
+Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/verification.md`.
 
 ## Lizenzstatus
 

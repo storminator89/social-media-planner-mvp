@@ -19,7 +19,7 @@ Der lokale Entwicklungsserver ist ausdrücklich eine andere Betriebsart: Loopbac
 
 Schreibanfragen verlangen gleiche Origin, keine Cross-Site-Kennung und `X-Planner-Request: 1`. Die API liefert keine CORS-Freigabe. Antwortdaten sind nicht öffentlich cachebar. SQL und interne Dateischlüssel werden nicht an den Browser ausgegeben.
 
-## API-Vertrag, Version 0.3 (Schema 2)
+## API-Vertrag, Version 0.4 (Schema 2)
 
 Alle Fehler verwenden `{error:{code,message,details?}}`.
 
@@ -63,3 +63,11 @@ API: PNG/JPEG/GIF/WebP/MP4/WebM mit Signaturprüfung; kein SVG/HTML. Die einfach
 Produktobergrenzen: 20 Kanäle, 100 Beiträge, 300 Varianten, 10 Medienreferenzen je Variante, 1 MiB JSON, 20 MiB je API-Datei, 100 Medienobjekte/200 MiB pro Besitzer. Das sind Anwendungsgrenzen, keine zugesagten Hostingtarife oder Plattformquoten.
 
 Noch nicht vorhanden: Medien-Löschendpunkt, Metadatenänderung gespeicherter Bilder, Videorange-Antworten, Transcoding, Backups, Social-Tokens, OAuth, Publisher oder Hintergrundjobs. Für spätere Cloudbereitstellung müssen Migrationen, echte Identität und D1/R2 separat nachgewiesen werden.
+
+## Verbindungsstatus (0.4)
+
+`GET /api/providers/status` ist der einzige neue öffentliche Endpunkt. Er verlangt eine vertrauenswürdige Besucheridentität, prüft Origin und liefert Schema 1 mit drei whitelisted Provider-Statusobjekten und `capabilities:{oauth:false,publishing:false}`. Der lokale Entwicklungsserver setzt seinen separaten Testbesitzer erst nach den bestehenden Loopback-/Headerprüfungen ein.
+
+Der Status enthält ausschließlich Provider, Einrichtungszustand, `accountLabel:null`, `canPublish:false` und vorgegebene Blockercodes. Keine Account-ID, Credential-Referenz, Rohfehler oder Jobpayload. Fehlende Migration/DB-Fehler liefern 503, keinen erfundenen „nicht verbunden“-Erfolg. Fehlende Zeilen nach einer erfolgreichen DB-Abfrage bedeuten tatsächlich, dass keine Connection für diesen Besitzer registriert ist. POST/PUT/DELETE werden abgewiesen.
+
+Die neue interne `ProviderRepository` besitzt ausschließlich vorbereitende Platzhalter-/Joboperationen. Sie ist kein Publisher und keine Berechtigungsquelle. Kein HTTP-Endpunkt ruft diese Mutatoren auf. Näheres in `provider-preparation.md`.

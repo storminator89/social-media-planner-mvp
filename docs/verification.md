@@ -1,45 +1,34 @@
-# Verifikation: Version 0.3
+# Verifikation: Version 0.4
 
-Stand: 7. November 2026. Getrennter lokaler Prototyp, keine Veröffentlichung.
+Stand: 7. November 2026. Nur lokaler Quell-/Worker-Kandidat, kein Deployment.
 
 ## Automatisierte Prüfungen
 
-**214 Tests bestanden**, jeweils in der Standardumgebung UTC sowie mit `TZ=America/Los_Angeles` und `TZ=Asia/Tokyo`. Alle JavaScript-Dateien bestanden die Syntaxprüfung. Aufruf: `npm test` und `npm run check`.
+272 Tests jeweils unter UTC, America/Los_Angeles und Asia/Tokyo bestanden. JavaScript-Syntaxprüfung und Worker-Build erfolgreich. `npm test` erstellt den Worker vor dem Testlauf; dessen tatsächlicher Default-Fetch-Export wird direkt geprüft. Der Determinismus-Test baut in ein isoliertes temporäres Verzeichnis und vergleicht die Bytes mit dem Hauptartefakt.
 
-Abgedeckt sind unter anderem:
+Neue Abdeckung zusätzlich zum geprüften 0.3-Bestand:
 
-- Vollständige Snapshot-Saves, atomare Revisionen/409, API-Schema 2, Besitzertrennung, Medienberechtigungen und fehlende Identität. Identitäten sind simuliert, kein echter Login.
-- Reale lokale SQLite-Dateien und Upgrade 0001→0002: unveränderte Migrationen, konservative Textvererbung, Erhalt von Daten/Revisionen, Wiederöffnung und transaktionales Rollback bei ungültigem Ledger oder DDL-Fehler. 0.3 benötigt keine neue Migration.
-- Ideen-Normalisierung, Titel-/Notizgrenzen, Label-Syntax, Suche und Label-Filter einschließlich echtem Label „all“, CRLF und nicht gepaarten UTF-16-Surrogaten. Unveränderte Titel/Notizen/Labels behalten ihre kanonische Form, einschließlich Rand-Leerzeichen und vorhandener Duplikate.
-- Vorbereiten ohne Mutation; expliziter Übergang gleicher ID; Titel-only-Ideen sind keine veröffentlichungsfähigen Beiträge. Durchgehender Idee→Queue→Adapter→SQLite-Pfad mit Titel, Labels, Varianten und UTC-Zeitpunkt.
-- Echte alte 0.2-Adapter werden bei stale write durch 409 geschützt; nach Neuladen lehnen sie Ideen/Tags ausdrücklich ab. Kein stiller Rückfall in alten localStorage.
-- Varianten einschließlich leerer/identischer unabhängiger Texte; Titel, Statusnotizen, Medien und Labels bei unabhängigen Änderungen. Nicht unterstützte reichere Daten werden abgewiesen.
-- Bestätigtes Delete/Undo bewahrt Varianten-ID, Statusnotiz, Erstelldatum und exakten UTC-Zeitpunkt in der doppelten DST-Stunde. Prüfung mit unabhängiger Änderung zwischen Delete/Undo, Fehler/409, TTL, Neuladen und begrenztem Wiederherstellungscache.
-- Tatsächliche UI-Funktionskörper: Commit-Sperren, verzögerte Texte/Varianten/Medien, Dirty-Close, Ideenübergang, unveränderte Metadaten und readonly Recovery bei gescheitertem Undo. Bestehende gleiche IDs werden nicht ersetzt.
-- Queue-Vorschläge ohne Save, ausdrückliche Übernahme, Fingerabdruck-/Belegungsprüfung, Mindestabstände und IANA-/DST-Grenzen. Mobile Wochenansicht filtert den gewählten Zeitraum.
-- Medien-Signaturprüfung, Quoten, Besitzertrennung, dateibasierter Medien-Roundtrip und statische Pfadgrenzen. Kein neuer Browser-Dateiupload in diesem Ausbau.
+- Worker: verpflichtende Sites-Identität, kein lokaler Ersatzbesitzer, keine eigene Auth-Callback-Implementierung, fehlendes D1-Binding fail-closed, Origin-/CSRF-Schutz und sichere Antwortheader.
+- Eingebettetes statisches Inventar ohne Zugriff auf Serverquellen, Datenbank oder fremde Dateipfade; eigene Server-Bootstrap-Konfiguration ohne Node-Abhängigkeiten.
+- Bestehende Planungs-API durch den real erzeugten Worker: getrennte Besitzer, Save/409, R2-kompatibler Medienzugriff, fehlender Bucket und keine Medienfreigabe an fremde Besitzer.
+- Read-only Providerstatus vom Repository über Worker bis zur tatsächlichen UI-Normalisierung; nicht mutierend, keine Ownerübernahme aus Query/JSON, kein Credential-/Account-/Payload-Leak.
+- Fehlende Provider-Migration liefert 503; bestehende Planung bleibt lesbar. Kein erfundener „nicht verbunden“-Status bei Speicherfehlern. Lokaler Header-Schutz bleibt wirksam.
+- Wirklicher lokaler SQLite-Upgradepfad 2→3, Erhalt sämtlicher Altzeilen/Revisionen/SQL-Prüfsummen, Wiederöffnung und vollständiger Rollback bei widersprüchlicher Tabelle.
+- Provider-Repository: ownergebundene Platzhalter, nur gesperrte/cancelled Jobs, Payloadhash, aktuelle Quellrevision, idempotente Vorbereitung, CAS-Cancellation, keine ausführbaren Zustände oder Credential-Spalten.
+- Verbindungen-UI: vier erlaubte Einrichtungszustände; unterschiedliche Plattform-/Nutzerfreigaben; unbekannte oder „connected“ behauptende Daten werden abgewiesen; rein lesender Client, Fehler-/Loadingzustände, Schutz gegen wiederholte/verspätete Antworten, Escaping und native aufklappbare Hinweise.
 
-Die unabhängige Quellprüfung hat dieselben 186 rein speicherbasierten Tests in drei Host-Zeitzonen sowie Syntax und eigene zusätzliche Reproduktionen geprüft. Gemeldete Datenverlustfälle in Undo und unveränderten Metadaten wurden behoben und erneut nachgeprüft. Die verbleibenden Tests verwenden temporäre lokale SQLite-/Dateiadapter. Die Anzahl enthält auch Bibliotheksfunktionen, die nicht vollständig in der UI erreichbar sind.
+Die unabhängige Nachprüfung hat zusätzlich 240 rein speicherbasierte Tests jeweils unter UTC/Los_Angeles/Tokio und die Syntaxprüfung selbst ausgeführt. Der echte Buildcode wurde zweimal mit ausschließlich abgefangenen Dateischreibvorgängen ausgeführt: Beide Ergebnisse waren byteidentisch zum erzeugten Worker, sämtliche 17 eingebetteten Assets stimmten mit ihren Quellen überein. Der echte lokale Migrationsconstructor wurde zusätzlich mit Memory-SQLite für Upgrade, Wiederstart und Fehler-Rollback geprüft. Keine neuen konkreten Blocker für den ausdrücklich nicht gehosteten Vorbereitungsstand.
 
-## Integrierte Desktop-Browserprüfung
+D1/R2 werden in diesen Tests durch kompatible SQLite-/Memory-/Dateiadapter repräsentiert. Keine Testanfrage kontaktiert einen Social-Provider oder eine echte Cloud-Datenbank. Das Worker-Artefakt enthält keine Provider-Publisher oder externen Provider-Transporte.
 
-Mit der echten lokalen SQLite-API in Chromium beobachtet:
+## Browserprüfung
 
-- Neue Datenbank leer; Kanalprofile als unverbundene Beispiele und Speicher als lokaler Entwicklungsmodus gekennzeichnet.
-- Titel-only-Idee ohne Kanal/Termin gespeichert und neu geladen; Labels mit Komma und Anführungszeichen exakt erhalten. Reales Label „all“ separat filterbar.
-- Vorbereiten wählt keinen Kanal vor und erzeugt keinen Beitrag. Fehlender Beitragstext/Kanal verhindert Save. Abbrechen lässt die Idee unverändert.
-- Zwei Tabs: neuere Ideenänderung gewinnt; stale Umwandlung erhält sichtbaren 409 und behält eigene Eingabe. Keine automatische Wiederholung.
-- Idee mit LinkedIn/Bluesky und eigenem Bluesky-Text über Queue in Planung verschoben. Gleiche ID, ein Objekt, Idee aus Inbox entfernt, keine Zwischenveröffentlichung.
-- Löschen und sofortiges Undo wiederhergestellt. Zweites Delete mit konkurrierender Idee im anderen Tab: Undo bekommt 409, die gelöschte Fassung bleibt als kopierbare readonly Wiederherstellung sichtbar. Fremde Änderung bleibt erhalten.
-- Mehrzeilige Titel/Labels, Filter nach mehrzeiligem Label und reine Notizänderung gespeichert; Reload sowie vollständiger lokaler Serverneustart bewahren Metadaten und neuen Notiztext.
-- Eigene synthetische Testideen/-beiträge anschließend per UI entfernt. Keine Nutzerdaten, Testmedien oder Laufzeitdaten im Quellsnapshot.
+Die Verbindungenansicht wurde im getrennten UI-Checkout auf derselben geprüften 0.3-Basis bedient. Fehlender Endpunkt zeigt sichtbar „Status unbekannt“ statt Erfolg. Ein schmales natives Browserfenster bei 400 CSS-Pixeln und 388 Pixeln Clientbreite hat keinen horizontalen Überlauf; die fünf Navigationsziele sind je 78×52 Pixel groß. Einrichtungshinweise sind per Tastatur bedienbar.
 
-## Responsive Prüfung und Grenze
+Anschließend wurde die echte lokale SQLite-Statusroute mit Migration 0003 temporär in denselben UI-Checkout übernommen: Alle drei Provider wurden als „Nicht verbunden“ angezeigt; es gab keine OAuth- oder Versandaktion. Refresh behielt Fokus und geöffnete Details, „Mehr → Verbindungen“ und „Zur Planung“ funktionierten. Die geprüften UI-Dateien sind identisch zum integrierten Stand. Die Integration ergänzt eigene Ledger-/Migrationsregressionen und übernimmt keine älteren QA-Serverdateien. Historische Ideen-/Varianten-/Queue-/Undo-Browsernachweise stehen in `verification-0.3.md`; sie sind keine neuen Provider-Tests.
 
-Der getrennt entwickelte Ideen-UI-Stand wurde vor Integration in einem echten schmalen Browserfenster mit 400 CSS-Pixeln Außen- und 388 Pixeln Inhaltsbreite geprüft: Idee→Entwurf→geplanter Beitrag mit echten SQLite-Saves, ohne Frame-Harness oder Lockerung der CSP. Am final integrierten Stand wurde zusätzlich ein eigenes natives Chromium-Fenster schmal gezogen und auf 125 % gezoomt: 400 CSS-Pixel Ansichtsbreite, 388 Pixel Client- und Scrollbreite. Mehrzeilige Titel/Labels ließen sich ohne horizontalen Überlauf speichern, neu laden und über bewusste Kanalauswahl zum Entwurf umwandeln. Der Dialog war ebenfalls 388 Pixel breit. Der Testentwurf wurde entfernt, der Zoom zurückgesetzt und das eigene Fenster geschlossen. Die Recovery-Ansicht wurde im Desktop und per Funktionskörpertests geprüft. Ein tatsächliches Smartphone-, Safari- oder Screenreader-Audit ist nicht erfolgt.
+## Offene Live-Nachweise
 
-## Aussagegrenzen
+Keine Site-ID oder Hostingkonfiguration angelegt, keine private oder öffentliche Runtime bereitgestellt. Tatsächliche Dispatch-Identität mit mehreren Besuchern, gehostete D1-Migrationen, R2-Quoten, Sicherungen und Cloud-Neustartverhalten bleiben offen. In der vorhandenen Umgebung war keine Wrangler-/workerd-Runtime verfügbar; es wurde kein alternativer Server- oder Sicherheitsweg eingerichtet.
 
-Echte Sites-Dispatch-Identität, Cloud-D1/R2, gehostete Migrationen, Produktionssicherheit, Backup/Wiederherstellung, Social-OAuth, Provider-API, autonome Veröffentlichung und Hintergrundscheduler wurden nicht verifiziert. Lokale kompatible Adapter und simulierte Besitzer sind kein Cloud- oder Mehrbenutzernachweis. Unabhängige Prüfung ist keine allgemeine Sicherheitsgarantie.
-
-Der Entwicklungsserver bindet ausschließlich an Loopback und verwendet einen gemeinsamen Testarbeitsbereich ohne Anmeldung. Keine vertraulichen Daten eingeben. Er ist nicht zur öffentlichen Bereitstellung vorgesehen. Queue-Regeln sind temporär. Undo ist kein dauerhafter Papierkorb; Recovery-JSON ist keine vollständige kanonische Daten- oder Mediendateisicherung.
+Keine OAuth-App, Tokenablage, Konto-Verknüpfung, Providerroute, Testübertragung, Social-Veröffentlichung oder Hintergrundjob aktiviert. Read-only Einrichtungszustände und gesperrte Jobvorbereitung sind keine Providerintegration. Für spätere echte Freigaben gelten `sites-runtime.md` und `provider-preparation.md`.

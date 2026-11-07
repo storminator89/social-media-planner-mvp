@@ -1,12 +1,16 @@
 {
   "name": "takt-social-planner-local",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "dev": "node server/dev.mjs",
     "test": "node --test tests/*.test.mjs tests/**/*.test.mjs",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "build:worker": "node scripts/build-worker.mjs",
+    "pretest": "node scripts/build-worker.mjs"
   }
 }
