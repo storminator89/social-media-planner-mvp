@@ -1,4 +1,5 @@
 import {createPlannerClient,PlannerClientError} from './client.mjs';
+const DATA_SCHEMA_VERSION=2;
 const MEDIA_PATH=/^\/api\/planner\/media\/[A-Za-z0-9_-]{1,100}$/;
 function error(message,code='UI_SCHEMA_UNSUPPORTED'){throw new PlannerClientError(message,400,code);}
 function wallTime(iso,zone){if(!iso)return null;return new Intl.DateTimeFormat('sv-SE',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso)).replace(' ','T');}
@@ -20,18 +21,21 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
   let snapshot=null;let currentZone=timezone;let busy=false;const uploadedImages=new Map();
   const definitions=channels.map(c=>({id:c.id,platform:c.platform??c.id,name:c.name,handle:c.handle??'',color:c.color??'#64748b',enabled:true,connectionStatus:'manual'}));
   function toUI(state){
+    if(state.schemaVersion!==DATA_SCHEMA_VERSION)error('Das Datenformat des Servers passt nicht zu dieser Ansicht. Bitte neu laden.','STATE_SCHEMA_CHANGED');
     const channelIds=new Set(definitions.map(c=>c.id));const ms=new Map(state.media.map(m=>[m.id,m]));
     for(const c of state.channels)if(!channelIds.has(c.id))error('Der Planer enthält einen Kanal, den diese einfache Ansicht noch nicht unterstützt.');
     const posts=state.posts.map(p=>{
       if(!['draft','planned'].includes(p.stage)||p.tags.length)error('Der Planer enthält zusätzliche Phasen oder Tags, die diese einfache Ansicht noch nicht unterstützt.');
-      let mediaId=null;const mediaChoices=new Set();
+      let mediaId=null;const mediaChoices=new Set();const variantEntries=[];
       for(const v of p.variants){
-        if(v.body!==p.body||v.status!==(p.stage==='planned'?'planned':'draft')||v.format!=='post'||v.mediaIds.length>1||v.scheduledAt!==p.scheduledAt||v.timezone!==p.timezone)error('Dieser Beitrag hat eigene Kanalvarianten. Bitte in einer Varianten-fähigen Ansicht bearbeiten.');
+        if(typeof v.inheritsBody!=='boolean')error('Bei einer Kanalvariante fehlt die explizite Vererbungseinstellung.');
+        if((v.inheritsBody&&v.body!==p.body)||v.status!==(p.stage==='planned'?'planned':'draft')||v.format!=='post'||v.mediaIds.length>1||v.scheduledAt!==p.scheduledAt||v.timezone!==p.timezone)error('Dieser Beitrag nutzt eigene Kanaltermine, Medien, Formate oder Status. Diese Ansicht unterstützt nur eigene Kanaltexte.');
+        if(!v.inheritsBody)variantEntries.push([v.channelId,v.body]);
         mediaChoices.add(v.mediaIds[0]??null);if(mediaChoices.size>1)error('Kanalvarianten nutzen unterschiedliche Medien.');
         mediaId=v.mediaIds[0]??null;
       }
       const media=mediaId?ms.get(mediaId):null;if(mediaId&&!media)error('Ein gespeichertes Medium fehlt.');
-      return{id:p.id,text:p.body,channels:p.variants.map(v=>v.channelId),status:p.stage==='planned'?'scheduled':'draft',scheduledAt:wallTime(p.scheduledAt,p.timezone),timeZone:p.timezone,cover:p.cover??null,media:media?{id:media.id,url:media.url,alt:media.altText,name:media.filename,type:media.mimeType}:null,createdAt:p.createdAt,updatedAt:p.updatedAt};
+      return{id:p.id,text:p.body,variantTexts:Object.fromEntries(variantEntries),channels:p.variants.map(v=>v.channelId),status:p.stage==='planned'?'scheduled':'draft',scheduledAt:wallTime(p.scheduledAt,p.timezone),timeZone:p.timezone,cover:p.cover??null,media:media?{id:media.id,url:media.url,alt:media.altText,name:media.filename,type:media.mimeType}:null,createdAt:p.createdAt,updatedAt:p.updatedAt};
     });return{schemaVersion:1,settings:{timezone:currentZone},posts};
   }
   return{
@@ -41,7 +45,11 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
       if(busy)error('Speicherung läuft noch.','BUSY');if(!snapshot)error('Planer zuerst laden.','NOT_LOADED');busy=true;
       try{
         if(ui?.schemaVersion!==1||!Array.isArray(ui.posts))error('Ungültiger UI-Snapshot.');
-        const ids=new Set();for(const p of ui.posts){if(!p||typeof p.id!=='string'||ids.has(p.id)||!['draft','scheduled'].includes(p.status)||typeof p.text!=='string'||!Array.isArray(p.channels))error('Ungültiger Beitrag.');if(p.media&&!p.channels.length)error('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.','MEDIA_TARGET_REQUIRED');ids.add(p.id);}
+        const ids=new Set();for(const p of ui.posts){if(!p||typeof p.id!=='string'||ids.has(p.id)||!['draft','scheduled'].includes(p.status)||typeof p.text!=='string'||!Array.isArray(p.channels))error('Ungültiger Beitrag.');if(p.media&&!p.channels.length)error('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.','MEDIA_TARGET_REQUIRED');
+          if(p.variantTexts!=null&&(typeof p.variantTexts!=='object'||Array.isArray(p.variantTexts)))error('Kanaltexte müssen eine Zuordnung von Kanal zu Text sein.','INVALID_VARIANT_TEXTS');
+          if(p.variantTexts==null&&snapshot.posts.find(old=>old.id===p.id)?.variants.some(v=>!v.inheritsBody))error('Die eigenen Kanaltexte fehlen im gespeicherten Formular. Bitte neu laden oder die Vererbung ausdrücklich zurücksetzen.','VARIANT_TEXTS_REQUIRED');
+          for(const [channelId,text] of Object.entries(p.variantTexts??{})){if(!p.channels.includes(channelId)||typeof text!=='string')error('Jeder eigene Kanaltext braucht einen ausgewählten Kanal und einen Text.','INVALID_VARIANT_TEXTS');}
+          ids.add(p.id);}
         const selectedZone=ui.settings?.timezone??currentZone;new Intl.DateTimeFormat('de',{timeZone:selectedZone}).format();
         const posts=[];
         for(const p of ui.posts){
@@ -59,12 +67,10 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
             else {const file=decodeImage(p.media);const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');const key=JSON.stringify([digest,p.media.alt??'',file.name]);let media=uploadedImages.get(key);if(!media){media=await client.uploadMedia(file,String(p.media.alt??''));snapshot.media.push(media);uploadedImages.set(key,media);}mediaId=media.id;}
           }
           const previous=snapshot.posts.find(old=>old.id===p.id);
-          // The simple UI does not expose title or per-channel status notes.
-          // Preserve those fields verbatim rather than rewriting hidden metadata.
-          posts.push({id:p.id,title:previous?.title??p.text.trim().split('\n')[0].slice(0,200),body:p.text,stage:p.status==='scheduled'?'planned':'draft',tags:[],cover:p.cover??null,scheduledAt,timezone:postZone,createdAt:previous?.createdAt??p.createdAt,variants:p.channels.map(channelId=>({id:previous?.variants.find(v=>v.channelId===channelId)?.id??crypto.randomUUID(),channelId,body:p.text,format:'post',status:p.status==='scheduled'?'planned':'draft',statusNote:previous?.variants.find(v=>v.channelId===channelId)?.statusNote??'',scheduledAt,timezone:postZone,mediaIds:mediaId?[mediaId]:[]}))});
+          posts.push({id:p.id,title:previous?.title??p.text.trim().split('\n')[0].slice(0,200),body:p.text,stage:p.status==='scheduled'?'planned':'draft',tags:[],cover:p.cover??null,scheduledAt,timezone:postZone,createdAt:previous?.createdAt??p.createdAt,variants:p.channels.map(channelId=>({id:previous?.variants.find(v=>v.channelId===channelId)?.id??crypto.randomUUID(),channelId,body:Object.hasOwn(p.variantTexts??{},channelId)?p.variantTexts[channelId]:p.text,inheritsBody:!Object.hasOwn(p.variantTexts??{},channelId),format:'post',status:p.status==='scheduled'?'planned':'draft',statusNote:previous?.variants.find(v=>v.channelId===channelId)?.statusNote??'',scheduledAt,timezone:postZone,mediaIds:mediaId?[mediaId]:[]}))});
         }
         // Do not merge/retry a conflict automatically: let the user reload safely.
-        const saved=await client.save({revision:snapshot.revision,settings:{...snapshot.settings,timezone:selectedZone},channels:snapshot.channels.length?snapshot.channels:definitions,posts});snapshot=saved;currentZone=saved.settings.timezone;onTimezone(currentZone);
+        const saved=await client.save({schemaVersion:DATA_SCHEMA_VERSION,revision:snapshot.revision,settings:{...snapshot.settings,timezone:selectedZone},channels:snapshot.channels.length?snapshot.channels:definitions,posts});snapshot=saved;currentZone=saved.settings.timezone;onTimezone(currentZone);
         return toUI(saved);
       }finally{busy=false;}
     }

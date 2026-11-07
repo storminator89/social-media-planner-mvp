@@ -1,17 +1,14 @@
-import { STORAGE_KEY, createDemoState, normalizeState } from './model.js';
-/** Override window.TaktStore before app.js for a server-backed implementation.
- * async load(): State|null; async save(state:State): void.
- * Credentials and authorization belong on the server, never in this store. */
+import { normalizeState } from './model.js';
+/** This integrated edition requires the explicit revision-checked server adapter.
+ * No localStorage fallback or implicit migration of old browser-only drafts.
+ * Credentials and authorization belong on the server, never in this module. */
+const unavailable=()=>new Error('Der serverseitige Speicheradapter fehlt. Diese Version unterstützt keinen Browser-only-Speicher. Vorhandene Browserdaten wurden nicht gelesen oder verändert.');
 export const browserStore = {
-  async load() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? normalizeState(JSON.parse(raw)) : null;
-  },
-  async save(state) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeState(state)));
-  }
+  async load() { throw unavailable(); },
+  async save() { throw unavailable(); }
 };
 export async function loadInitialState(store = browserStore) {
   const state = await store.load();
-  return state ? normalizeState(state) : createDemoState();
+  if(!state)throw new Error('Der Speicher hat keinen gültigen Planungszustand geliefert. Es wurden keine Beispieldaten angelegt.');
+  return normalizeState(state);
 }

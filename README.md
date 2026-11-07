@@ -1,4 +1,4 @@
-# Takt: lokaler Social-Media-Planer
+# Takt 0.2: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -18,6 +18,8 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 ## Daten und tatsächlicher Funktionsumfang
 
 - UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export.
+- Eigene Kanaltexte mit expliziter Basisvererbung, Vorschau und Zeichenprüfung. Auch absichtlich leere oder aktuell identische eigene Fassungen bleiben unabhängig.
+- Temporäre Queue-Slots im Editor: gemeinsame Wochentage/Uhrzeit, IANA-Zone, Mindestabstand, bis zu drei freie Vorschläge. Erst bewusste Auswahl ändert den Termin, erst normales Speichern persistiert.
 - SQLite-Daten unter `.local/planner.sqlite`, Bilddateien unter `.local/media/`. Beide überstehen einen Serverneustart in derselben Arbeitsumgebung. Kein Synchronisations- oder Backupversprechen.
 - Neue Datenbank startet leer. Die angezeigten Kanalprofile sind unverbundene Beispiele.
 - Termine werden als UTC-Zeitpunkt plus IANA-Zeitzone gespeichert. Nicht existierende/doppelte Ortszeiten werden nicht stillschweigend verschoben.
@@ -32,8 +34,10 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 
 ## Bekannte Grenzen
 
-- Ein gemeinsamer Beitragstext und ein Bild je Beitrag. Eigene Kanaltexte, Review-Prozesse, Teams und manuelle Publishing-Resultate sind noch nicht in dieser einfachen Oberfläche editierbar. Reichere Backend-Daten werden bewusst abgewiesen, nicht stillschweigend abgeflacht.
+- Eigene Kanaltexte sind verfügbar; Bild, Format und Termin bleiben je Beitrag gemeinsam. Review-Prozesse, Teams und manuelle Publishing-Resultate sind noch nicht in dieser Oberfläche editierbar. Reichere Backend-Daten werden bewusst abgewiesen, nicht stillschweigend abgeflacht.
 - Die separate Workflow-Bibliothek enthält weiterführende Zustands- und Freigabelogik; nicht alle dieser Funktionen sind über die UI erreichbar.
+- Queue-Regeln gelten nur im geöffneten Editor und werden nicht dauerhaft gespeichert. Keine kanalweise Queue-Einstellungsseite oder automatisch optimierte Bestzeit.
+- Ein reiner localStorage-/Static-Modus ist gesperrt. Fehlender Serveradapter oder ungültige Ladeantworten erzeugen weder leere Ersatzschreibvorgänge noch Demo-Beiträge. Alte Browser-only-Daten werden nicht automatisch importiert.
 - Keine Social-OAuth-Verbindungen, Tokens, API-Veröffentlichung, Hintergrund-Scheduler, Webhooks, Analytics oder Inbox.
 - Keine direkte Bearbeitung gespeicherter Bild-Alttexte; Bild erneut auswählen. Kein Medien-Löschendpunkt. Entfernte Beiträge können Bilddateien zurücklassen.
 - Die temporäre Arbeitsumgebung ist kein zugesicherter langfristiger Speicher.
@@ -41,6 +45,8 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 ## Sites als nächste Stufe
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
+
+Version 0.2 verwendet API-Schema 2. Vor einem lokalen Upgrade Daten sichern; Migration 0002 wird additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
 
 Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/verification.md`.
 

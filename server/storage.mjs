@@ -11,18 +11,24 @@ export class LocalDatabase {
     this.sql = new DatabaseSync(join(directory, 'planner.sqlite'));
     this.sql.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
     this.sql.exec('CREATE TABLE IF NOT EXISTS local_migrations (version INTEGER PRIMARY KEY, digest TEXT NOT NULL)');
-    const migration = readFileSync(new URL('./0001_planner.sql', import.meta.url), 'utf8');
-    const digest = createHash('sha256').update(migration).digest('hex');
-    const applied = this.sql.prepare('SELECT digest FROM local_migrations WHERE version = 1').get();
-    if (applied && applied.digest !== digest) throw new Error('Local migration changed after application. Create a new migration.');
-    if (!applied) {
-      this.sql.exec('BEGIN');
-      try {
-        this.sql.exec(migration);
-        this.sql.prepare('INSERT INTO local_migrations (version, digest) VALUES (1, ?)').run(digest);
-        this.sql.exec('COMMIT');
-      } catch (error) { this.sql.exec('ROLLBACK'); throw error; }
-    }
+    // Validate the entire known ledger before any upgrade. Never rewrite old SQL.
+    const migrations = ['0001_planner.sql', '0002_variant_inheritance.sql'].map((name, index) => {
+      const source = readFileSync(new URL(`./${name}`, import.meta.url), 'utf8');
+      return { version: index + 1, source, digest: createHash('sha256').update(source).digest('hex') };
+    });
+    try {
+      this.sql.exec('BEGIN IMMEDIATE');
+      const applied = this.sql.prepare('SELECT version, digest FROM local_migrations ORDER BY version').all();
+      for (const [index, row] of applied.entries()) {
+        if (row.version !== index + 1 || migrations[index]?.digest !== row.digest)
+          throw new Error('Unknown, incomplete or changed local migration history. Upgrade aborted.');
+      }
+      for (const migration of migrations.slice(applied.length)) {
+        this.sql.exec(migration.source);
+        this.sql.prepare('INSERT INTO local_migrations (version, digest) VALUES (?, ?)').run(migration.version, migration.digest);
+      }
+      this.sql.exec('COMMIT');
+    } catch (error) { this.sql.exec('ROLLBACK'); this.sql.close(); throw error; }
   }
   prepare(query) {
     const db = this.sql; let values = [];

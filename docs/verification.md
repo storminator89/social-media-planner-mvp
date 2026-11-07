@@ -1,42 +1,47 @@
-# Verifikation: Version 0.1
+# Verifikation: Version 0.2
 
-Stand: 7. November 2026. Lokaler Prototyp, keine Sites-Veröffentlichung.
+Stand: 7. November 2026. Getrennter lokaler Prototyp, keine Veröffentlichung.
 
 ## Automatisierte Prüfungen
 
-**89 Tests bestanden**, jeweils unter den Host-Zeitzonen der Standardumgebung, America/Los_Angeles und Asia/Tokyo. Alle JavaScript-Dateien bestanden die Syntaxprüfung.
+**143 Tests bestanden**, jeweils in der Standardumgebung sowie mit `TZ=America/Los_Angeles` und `TZ=Asia/Tokyo`. Alle JavaScript-Dateien bestanden die Syntaxprüfung. Aufruf: `npm test` und `npm run check`.
 
 Abgedeckt sind unter anderem:
 
-- Datenmodell, simulierte Besitzerisolation, atomare Revisionen, fehlende Identität, Cross-Origin- und CSRF-Schutz.
-- UTC/IANA-Verträge, ungültige Kalenderdaten, DST-Lücken und doppelte Ortszeiten.
-- Bildtypen, Größen/Quoten, fremde Medienreferenzen und Kompensation eines fehlgeschlagenen Metadateneintrags.
-- Echte Wiederöffnung der lokalen SQLite-Datei und des dateibasierten Medienspeichers.
-- Vollständige statische Modulpfade, keine Freigabe von Datenbank, Serverquellen oder fremden Symlink-Zielen.
-- Die mobile Wochenagenda schließt Termine außerhalb der ausgewählten Woche aus.
-- Kein Verlust von versteckten Titeln oder Statusnotizen; Bilder ohne Zielkanal werden vor Upload/Mutation abgewiesen.
-- Fehlende Einstellungen/Beitrags-/Kanallisten werden nicht als leere Löschliste interpretiert.
-- Tests der tatsächlichen Editorfunktionen mit verzögerten Promises: Commit-Feldsperre, neuer Text während laufendem Save, Doppelklick, Fehler, veraltete Bild-Callbacks, Auswahlreihenfolge und Duplizieren eines ungespeicherten Entwurfs.
-- Weiterführende unabhängige Workflowlogik wie Freigaberevisionen und Teilergebnisse. Diese ist nicht vollständig in der Oberfläche verfügbar.
+- API-Schema 2, atomare Revisionskonflikte, Besitzertrennung und fehlende Identität. Tests mit simuliertem vertrauenswürdigem Besucherheader, nicht mit echter Anmeldung.
+- Realer lokaler SQLite-Upgradepfad von 0001 auf 0002: bytegleiche alte Migration, konservative Textvererbung, Erhalt aller Daten/Revisionen, Wiederöffnung und Abbruch/Rollback bei geänderter oder unbekannter Historie und DDL-Fehler.
+- Alte API-Schreibanfragen werden auch mit passender Revision abgewiesen. Der Browser-only-Fallback liest/schreibt keine alten localStorage-Daten; null-Ladeantworten erzeugen keine Demos.
+- Varianten-Roundtrips einschließlich absichtlich leerer/identischer Texte, späterer Basisänderung, explizitem Reset, verborgenen Titeln und Statusnotizen. Bilder ohne Kanäle werden vor Mutation abgewiesen.
+- Queue-Vorschau ohne Mutation, explizite Übernahme, Belegungen, gemeinsame Kanäle, Mindestabstände, geänderte Regeln/Inhalte, IANA-Zonen und DST-Lücken/doppelte Stunden.
+- Durchgehende Queue→Adapter→SQLite-Prüfung inklusive UTC-Erhaltung, eigenem Kanaltext und 409 gegen konkurrierende Clients.
+- API-Medienprüfung, Besitzerschutz, Quoten und dateibasierter Medien-Roundtrip. Dieser Ausbau hat keine neuen Browser-Dateiuploads durchgeführt.
+- Statische Modulpfade, keine Freigabe der Datenbank, Serverquellen oder fremder Symlinks.
+- Tatsächliche Editorfunktionen mit verzögertem I/O: volle Commit-Feldsperre, Schutz neuerer Texte/Varianten, Doppelklick, späte Bild-Callbacks, Dirty-Duplicate und mobile Wochenfilterung.
+- Queue-Panel-Bedienlogik: Vorschau allein speichert nichts, Auswahl liefert eine Kopie, veraltete Vorschläge werden verworfen, Commit-Sperre und temporäre Regeln.
 
-Aufruf: `npm test` und `npm run check`.
+Die unabhängige Nachprüfung wird separat am eingefrorenen Quellsnapshot dokumentiert. Die Testanzahl umfasst auch weiterführende Workflow-Bibliotheksfunktionen, die nicht vollständig in der Oberfläche verfügbar sind.
 
-## Beobachtete Browserabläufe
+## Integrierte Browserprüfung
 
-Der integrierte Prototyp wurde im Chromium-Browser geprüft:
+Im Chromium-Hauptfenster beobachtet:
 
-- Neuer Serverzustand startet leer; lokale Speichergrenze und fehlende Anmeldung werden in den Einstellungen erklärt.
-- Beitragstext und ein selbst erzeugtes Testbild gewählt; fehlender Alttext blockiert Speichern.
-- Bild gespeichert, über relative API-Adresse angezeigt und nach Reload sowie vollständigem Neustart des Entwicklungsservers wieder geladen.
-- Ein HTML-Teststring blieb sichtbarer Text und erzeugte kein ausführbares Element.
-- Zwei gleichzeitig geöffnete Tabs: erste Bearbeitung gespeichert; zweite erhielt Konflikthinweis und behielt den eigenen Text im geöffneten Editor.
-- DST-Lücke Europe/Berlin abgewiesen; gültiger Termin korrekt im Kalender angezeigt.
-- Löschen und Rückgängig; Testbeiträge danach entfernt.
-- Nach den Async-Korrekturen Save/Delete erneut erfolgreich; während des Commits waren sämtliche Formularfelder sichtbar deaktiviert.
-- Die unveränderte responsive Basisoberfläche wurde bei 441 und 389 CSS-Pixeln ohne horizontalen Dokumentüberlauf geprüft. Keine Prüfung auf echten Mobilgeräten oder in Safari.
+- Leerer Serverzustand und wahrheitsgemäße lokale Speicherkennzeichnung.
+- Instagram-Basis plus eigene Bluesky-Fassung; Basisänderung verändert eigene Fassung nicht. Save, Reload und vollständiger Entwicklungsserver-Neustart bewahren die Fassung.
+- Queue-Suche mit bearbeiteter Uhrzeit 09:30 liefert drei gemeinsame freie Slots. Textänderung verwirft die Vorschläge. Bewusste Übernahme ändert erst das Formular; reguläres Einplanen speichert.
+- Ein belegter gemeinsamer Kanaltermin wird bei der nächsten Suche ausgelassen. Ein Abstand von genau 30 Minuten bleibt bei Mindestabstand 30 zulässig.
+- Ein veralteter Tab erhält einen sichtbaren Konflikthinweis und behält seine eigene Kanaltext-Eingabe. Kein automatisches Retry oder Überschreiben.
+- 301 Zeichen für Bluesky blockieren Planung, bleiben aber als Entwurf speicherbar und nach Reload vollständig vorhanden.
+- Expliziter Reset-Dialog stellt Basisvererbung her; nach Save/Reload ist der Kanal wieder als Basistext gekennzeichnet.
+- Commit sperrt auch sämtliche Queue-Eingaben. Selbst erstellte Testbeiträge wurden abschließend entfernt; der neu geladene Serverzustand zeigt 0 geplante und 0 Entwurfsbeiträge.
+
+## Responsive Prüfung und Grenze
+
+Die integrierte Oberfläche wurde zusätzlich in einem vorübergehenden 390-Pixel-Testframe mit 375 CSS-Pixeln tatsächlicher Inhaltsbreite geprüft. Dokumentbreite und Scrollbreite waren beide 375 Pixel; das Queue-Panel war 320 Pixel breit und hatte keinen horizontalen Überlauf. Suche und explizite Übernahme waren bedienbar.
+
+Dies ist ein Layoutnachweis, kein vollständiger mobiler End-to-End-Nachweis: Das `srcdoc`-Prüfharness kann nach einem erfolgreichen Schreibvorgang den History-URL-Wechsel nicht ausführen. Die Speicherung wurde anschließend im Hauptfenster verifiziert; der Harnessfehler wurde nicht als erfolgreicher Abschluss ausgegeben. Der Prüfharness wurde entfernt und ist nicht Teil des Produkts. Einbettung in fremde Frames ist kein unterstützter Betriebsmodus. Kein echtes Smartphone-/Safari-/Screenreader-Audit.
 
 ## Aussagegrenzen
 
 Echte Sites-Dispatch-Identität, Cloud-D1/R2, gehostete Migrationen, Produktionssicherheit, Backup/Wiederherstellung, Social-OAuth, Provider-API, autonome Veröffentlichung und Hintergrundscheduler wurden nicht verifiziert. Lokale kompatible Adapter und simulierte Besitzer sind kein Cloud- oder Mehrbenutzernachweis.
 
-Der Entwicklungsserver bindet ausschließlich an Loopback und verwendet einen gemeinsamen Testarbeitsbereich ohne Anmeldung. Keine vertraulichen Daten eingeben. Er ist nicht zur öffentlichen Bereitstellung vorgesehen.
+Der Entwicklungsserver bindet ausschließlich an Loopback und verwendet einen gemeinsamen Testarbeitsbereich ohne Anmeldung. Keine vertraulichen Daten eingeben. Er ist nicht zur öffentlichen Bereitstellung vorgesehen. Queue-Regeln gelten nur für den geöffneten Editor und sind keine dauerhaft gespeicherte Kanalplanung oder Empfehlung einer optimalen Reichweitenzeit.

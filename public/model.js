@@ -1,10 +1,10 @@
+import { effectiveText, selectedVariantTexts, channelTextChecks, searchableText } from './variants.js';
 import { resolveLocalTime as resolveWorkflowTime } from './workflows/workflows.mjs';
 export const CHANNELS = [
   { id: 'instagram', name: 'Instagram', handle: '@studio.nord', limit: 2200, color: '#b54488', abbreviation: 'ig' },
   { id: 'linkedin', name: 'LinkedIn', handle: 'Studio Nord', limit: 3000, color: '#2866aa', abbreviation: 'in' },
   { id: 'bluesky', name: 'Bluesky', handle: '@studionord.example', limit: 300, color: '#1680d9', abbreviation: 'bs' }
 ];
-export const STORAGE_KEY = 'takt-social-planner-v1';
 export const SCHEMA_VERSION = 1;
 export function defaultTimeZone(){return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
 export function isTimeZone(zone){if(typeof zone!=='string'||/^[+-]/.test(zone))return false;try{new Intl.DateTimeFormat('en',{timeZone:zone}).format();return typeof zone==='string'&&zone.length>0}catch{return false}}
@@ -20,16 +20,18 @@ export function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate
 export function startOfWeek(date) { const d = new Date(date); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
 export function localDateTime(date, time = '10:00') { return `${dateKey(date)}T${time}`; }
 export function postDate(post) { return post.scheduledAt ? new Date(post.scheduledAt) : null; }
-export function displayTitle(post) { const text = post.text.trim().split('\n')[0]; return text.length > 68 ? `${text.slice(0,65)}…` : text || 'Neuer Entwurf'; }
+export function displayTitle(post) { const text = (post.text.trim()||(post.channels||[]).map(id=>effectiveText(post,id)).find(t=>t?.trim())||'').trim().split('\n')[0]; return text.length > 68 ? `${text.slice(0,65)}…` : text || 'Neuer Entwurf'; }
 export function characterCount(text) { return Array.from(text).length; }
 export function validatePost(post, now = new Date()) {
   const errors = [];
-  if (!post.text?.trim()) errors.push('Schreibe zuerst einen Beitrag.');
+  if (!post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
   if (!Array.isArray(post.channels) || !post.channels.length) errors.push('Wähle mindestens einen Kanal.');
-  for (const id of post.channels || []) {
-    const channel = CHANNELS.find(c => c.id === id);
-    if (!channel) errors.push('Ein ausgewählter Kanal ist ungültig.');
-    else if (characterCount(post.text || '') > channel.limit) errors.push(`${channel.name}: maximal ${channel.limit.toLocaleString('de-DE')} Zeichen.`);
+  for (const result of channelTextChecks(post,CHANNELS)) {
+    if (result.unknown) errors.push('Ein ausgewählter Kanal ist ungültig.');
+    else if(post.status==='scheduled') {
+      if(result.empty) errors.push(`${result.name}: Ergänze einen Beitragstext.`);
+      if(result.overLimit) errors.push(`${result.name}: maximal ${result.limit.toLocaleString('de-DE')} Zeichen (${result.count.toLocaleString('de-DE')} vorhanden).`);
+    }
   }
   if (post.media && !post.media.alt?.trim()) errors.push('Ergänze einen Alternativtext für dein Bild.');
   if (post.status === 'scheduled') {
@@ -50,7 +52,7 @@ export function createDemoState(now = new Date()) {
   const posts = entries.map((e,i) => ({id:`demo-${i+1}`,text:e[0],channels:e[1],scheduledAt:localDateTime(addDays(week,e[2]),e[3]),status:'scheduled',cover:e[4],media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()}));
   posts.push({id:'demo-draft-1',text:'3 Dinge, die wir diesen Monat gelernt haben.\n\n1. Gute Fragen sind oft wertvoller als schnelle Antworten.\n2. Kleine Schritte bringen uns weiter.\n3. …',channels:['linkedin'],scheduledAt:null,status:'draft',cover:null,media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()});
   posts.push({id:'demo-draft-2',text:'Eine neue Idee nimmt Form an.\n\nMehr dazu bald. ✨',channels:['instagram'],scheduledAt:null,status:'draft',cover:'forms',media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()});
-  return {schemaVersion:SCHEMA_VERSION,settings:{timezone:defaultTimeZone()},posts:posts.map(p=>({...p,timeZone:defaultTimeZone()}))};
+  return {schemaVersion:SCHEMA_VERSION,settings:{timezone:defaultTimeZone()},posts:posts.map(p=>({...p,timeZone:defaultTimeZone(),variantTexts:{}}))};
 }
 export function normalizeState(value) {
   if (!value || value.schemaVersion !== SCHEMA_VERSION || !Array.isArray(value.posts)) throw new Error('Die gespeicherten Planungsdaten haben ein unbekanntes Format.');
@@ -66,11 +68,11 @@ export function normalizeState(value) {
       if(typeof p.media.dataUrl==='string'&&/^data:image\/(png|jpeg|webp);base64,/.test(p.media.dataUrl))media={...metadata,dataUrl:p.media.dataUrl};
       else if(typeof p.media.url==='string'&&/^\/api\/planner\/media\/[A-Za-z0-9_-]+$/.test(p.media.url))media={...metadata,id:String(p.media.id||p.media.url.split('/').pop()),url:p.media.url};
     }
-    return {id:p.id,text:p.text,channels:[...new Set(p.channels)],status:p.status,scheduledAt:p.scheduledAt||null,timeZone:isTimeZone(p.timeZone)?p.timeZone:timezone,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
+    return {id:p.id,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,scheduledAt:p.scheduledAt||null,timeZone:isTimeZone(p.timeZone)?p.timeZone:timezone,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
   });
   return {schemaVersion:SCHEMA_VERSION,settings:{timezone},posts};
 }
 export function filterPosts(posts,{channel='all',query='',status='all'}={}) {
   const needle=query.trim().toLocaleLowerCase('de');
-  return posts.filter(p=>(channel==='all'||p.channels.includes(channel))&&(status==='all'||p.status===status)&&(!needle||p.text.toLocaleLowerCase('de').includes(needle)));
+  return posts.filter(p=>(channel==='all'||p.channels.includes(channel))&&(status==='all'||p.status===status)&&(!needle||searchableText(p).toLocaleLowerCase('de').includes(needle)));
 }

@@ -86,10 +86,10 @@ test('media signature, CSRF marker and foreign references are enforced through l
 test('rich channel variants are rejected by simple view without destructive flattening', async t => {
   const s = await setup(t), ui = store(s.client), initial = await ui.load();
   await ui.save({ ...initial, posts: [post()] });
-  const data = await s.client.load(); data.posts[0].variants[0].body = 'Andere Kanalvariante';
+  const data = await s.client.load(); data.posts[0].variants[0].format = 'reel';
   await s.client.save(data);
   await assert.rejects(store(s.client).load(), error => error.code === 'UI_SCHEMA_UNSUPPORTED');
-  assert.equal((await s.client.load()).posts[0].variants[0].body, 'Andere Kanalvariante');
+  assert.equal((await s.client.load()).posts[0].variants[0].format, 'reel');
 });
 
 test('static route cannot expose local database, source or out-of-root symlinks', async t => {
@@ -157,4 +157,19 @@ test('partial snapshots cannot silently clear posts, channels or settings', asyn
     await assert.rejects(s.client.save(data), error => error.status === 400);
     const after = await s.client.load(); assert.equal(after.revision, 1); assert.equal(after.posts[0].body, 'Integrationstest');assert.equal(after.channels.length,1);
   }
+});
+
+test('integrated variants preserve explicit empty/equal values and independent edits across reopen',async t=>{
+  const s=await setup(t),ui=store(s.client),initial=await ui.load();
+  const saved=await ui.save({...initial,posts:[post({status:'draft',scheduledAt:null,variantTexts:{linkedin:''}})]});
+  assert.deepEqual(saved.posts[0].variantTexts,{linkedin:''});
+  saved.posts[0].variantTexts.linkedin=saved.posts[0].text;await ui.save(saved);s.restart();
+  const editor=store(s.client),loaded=await editor.load();assert.deepEqual(loaded.posts[0].variantTexts,{linkedin:'Integrationstest'});
+  loaded.posts[0].text='Neue Basis';await editor.save(loaded);let data=await s.client.load();assert.equal(data.posts[0].variants[0].body,'Integrationstest');assert.equal(data.posts[0].variants[0].inheritsBody,false);
+  const again=await editor.load();again.posts[0].variantTexts={};await editor.save(again);data=await s.client.load();assert.equal(data.posts[0].variants[0].body,'Neue Basis');assert.equal(data.posts[0].variants[0].inheritsBody,true);
+});
+
+test('same-revision legacy API writes fail without clearing the variant planner',async t=>{
+  const s=await setup(t),ui=store(s.client),initial=await ui.load();await ui.save({...initial,posts:[post({variantTexts:{linkedin:'Eigener Text'}})]});
+  const current=await s.client.load();await assert.rejects(s.client.save({...current,schemaVersion:1,posts:[]}),error=>error.status===409&&error.code==='STATE_SCHEMA_CHANGED');assert.deepEqual(await s.client.load(),current);
 });

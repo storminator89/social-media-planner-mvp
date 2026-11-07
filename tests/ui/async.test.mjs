@@ -1,22 +1,22 @@
+import {selectedVariantTexts} from '../../public/variants.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import {startOfWeek,addDays,dateKey} from '../../public/model.js';
 
 // Exercise the actual application functions with delayed I/O, not a rewritten model.
 const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
 function functionSource(name){const start=source.search(new RegExp(`(?:async )?function ${name}\\(`));assert.ok(start>=0);const next=source.slice(start+1).search(/\n(?:async )?function /);return source.slice(start,next<0?undefined:start+1+next);}
 function context(extra={}){
   const fields={'#post-text':{value:'Gesendete Fassung'},'#post-date':{value:'2027-01-15'},'#post-time':{value:'10:30'},'#post-zone':{value:'Europe/Berlin'},'#composer':{open:true},'#media-alt':{focus(){}},'#media-file':{value:'file'},'#save-draft':{},'#schedule-post':{}};
-  const c={fields,$:selector=>fields[selector],$$:()=>[{value:'instagram'}],state:{posts:[]},editingId:null,composerMedia:null,composerCover:null,saving:false,mediaLoading:false,composerGeneration:1,mediaGeneration:0,initialEditor:'',view:'drafts',crypto:{randomUUID:()=> 'new-post'},Date,Map,Promise,structuredClone,validatePost:()=>[],notify:()=>{},render:()=>{},renderMediaEditor:()=>{},renderPreview:()=>{},setComposerBusy:()=>{},updateSaveAvailability:()=>{},closeCount:0,closeComposer:()=>c.closeCount++,editorSnapshot:()=>fields['#post-text'].value,...extra};
+  const c={fields,$:selector=>fields[selector],$$:()=>[{value:'instagram'}],state:{posts:[]},editingId:null,composerMedia:null,composerCover:null,composerBaseText:'Gesendete Fassung',composerVariantTexts:{},selectedVariantTexts,saving:false,mediaLoading:false,composerGeneration:1,mediaGeneration:0,initialEditor:'',view:'drafts',crypto:{randomUUID:()=> 'new-post'},Date,Map,Promise,structuredClone,validatePost:()=>[],notify:()=>{},render:()=>{},renderMediaEditor:()=>{},renderPreview:()=>{},setComposerBusy:()=>{},updateSaveAvailability:()=>{},closeCount:0,closeComposer:()=>c.closeCount++,editorSnapshot:()=>JSON.stringify({text:c.composerBaseText,variantTexts:c.composerVariantTexts}),...extra};
   return vm.createContext(c);
 }
 
 test('successful delayed save cannot close over a newer editor value',async()=>{
   let finish;const c=context({persist:()=>new Promise(resolve=>{finish=resolve;})});vm.runInContext(functionSource('savePost'),c);
   const pending=c.savePost('draft');assert.equal(c.saving,true);
-  c.fields['#post-text'].value='Neuere noch nicht gesendete Fassung';finish(true);await pending;
+  c.fields['#post-text'].value='Neuere noch nicht gesendete Fassung';c.composerBaseText=c.fields['#post-text'].value;finish(true);await pending;
   assert.equal(c.closeCount,0);assert.equal(c.editingId,'new-post');assert.equal(c.fields['#post-text'].value,'Neuere noch nicht gesendete Fassung');assert.equal(c.saving,false);
 });
 
@@ -50,9 +50,17 @@ test('pending image decode blocks save, and dirty duplicate never discards curre
   c.mediaLoading=false;c.editingId='p1';c.state.posts=[{id:'p1'}];c.initialEditor='Older value';vm.runInContext(functionSource('duplicatePost'),c);await c.duplicatePost();assert.equal(writes,0);assert.equal(c.closeCount,0);
 });
 
-test('mobile week agenda excludes posts outside the selected week',()=>{
-  const c=context({anchor:new Date('2026-11-02T12:00:00'),startOfWeek,addDays,dateKey,days:['Mo','Di','Mi','Do','Fr','Sa','So'],dateLabel:()=>'',postCard:p=>p.id,icon:()=>'',renderAgenda:posts=>JSON.stringify(posts.map(p=>p.id)),periodPosts:posts=>posts.filter(p=>p.scheduledAt>='2026-11-02'&&p.scheduledAt<'2026-11-09')});
+
+test('delayed save preserves a newer individual channel text',async()=>{
+  let finish,submitted;const c=context({composerVariantTexts:{instagram:'Gesendete Variante'},persist:next=>{submitted=next;return new Promise(resolve=>{finish=resolve;});}});vm.runInContext(functionSource('savePost'),c);
+  const pending=c.savePost('draft');assert.equal(submitted.posts[0].text,'Gesendete Fassung');assert.equal(submitted.posts[0].variantTexts.instagram,'Gesendete Variante');
+  c.composerVariantTexts.instagram='Neuere Variante';finish(true);await pending;assert.equal(c.closeCount,0);assert.equal(c.composerVariantTexts.instagram,'Neuere Variante');assert.equal(c.saving,false);
+});
+
+test('mobile week agenda receives only the selected week, not all posts',()=>{
+  const dateKey=d=>new Date(d).toISOString().slice(0,10),addDays=(d,n)=>new Date(new Date(d).getTime()+n*86400000);
+  const c=vm.createContext({anchor:new Date('2026-11-02T00:00:00Z'),startOfWeek:d=>d,addDays,dateKey,Date,days:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],dateLabel:d=>dateKey(d),icon:()=>'',postCard:()=>'',renderAgenda:posts=>{c.received=posts;return '';},periodPosts:posts=>posts.filter(p=>p.scheduledAt>='2026-11-02'&&p.scheduledAt<'2026-11-09')});
   vm.runInContext(functionSource('renderWeek'),c);
-  const html=c.renderWeek([{id:'inside-week',scheduledAt:'2026-11-03T10:00'},{id:'outside-week',scheduledAt:'2026-11-09T10:00'}]);
-  assert.match(html,/inside-week/);assert.doesNotMatch(html,/outside-week/);
+  c.renderWeek([{id:'before',scheduledAt:'2026-11-01T10:00'},{id:'inside',scheduledAt:'2026-11-08T10:00'},{id:'after',scheduledAt:'2026-11-09T10:00'}]);
+  assert.deepEqual(c.received.map(p=>p.id),['inside']);
 });
