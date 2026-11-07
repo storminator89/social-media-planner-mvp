@@ -35,3 +35,17 @@ test('hosted router serves closed readiness without invoking any transport',asyn
  const res=await app.fetch(new Request('https://takt.example'+INSTAGRAM_READINESS_PATH,{headers:{'oai-authenticated-user-id':'owner'}}),env);
  assert.equal(res.status,200);assert.equal((await res.json()).connected,false);assert.equal(calls,0);
 });
+test('untrusted provider envelopes, account identifiers, scopes and identities fail closed',async()=>{
+ const good={access_token:'fixture-token',user_id:'456',permissions:INSTAGRAM_SCOPES.join(',')};
+ for(const invalid of [{...good,user_id:456},{...good,user_id:'0456'},{...good,access_token:''},{...good,access_token:'token\nInjected: value'},{...good,permissions:INSTAGRAM_SCOPES[0]},{...good,permissions:[...INSTAGRAM_SCOPES]},{...good,permissions:INSTAGRAM_SCOPES.join(',')+','+INSTAGRAM_SCOPES[0]},{...good,expires_in:3600}]){
+  let calls=0;await assert.rejects(make(async()=>{calls++;return response({data:[invalid]});}).verifyCode('code'));assert.equal(calls,1);
+ }
+ for(const invalid of [{user_id:'456',username:'<script>'},{user_id:456,username:'fixture'},{user_id:'456',username:'a'.repeat(31)},{user_id:'456',username:'fixture',access_token:'unsolicited'}]){
+  let calls=0;await assert.rejects(make(async()=>++calls===1?token():response({data:[invalid]})).verifyCode('code'));assert.equal(calls,2);
+ }
+});
+test('transport redirects and inconsistent declared response sizes never proceed',async()=>{
+ for(const invalid of [new Response(null,{status:302,headers:{Location:'https://evil.example'}}),new Response('{}',{headers:{'Content-Type':'application/json','Content-Length':'65537'}}),new Response('{}',{headers:{'Content-Type':'application/json','Content-Length':'bad'}})]){
+  let calls=0;await assert.rejects(make(async()=>{calls++;return invalid;}).verifyCode('code'));assert.equal(calls,1);
+ }
+});

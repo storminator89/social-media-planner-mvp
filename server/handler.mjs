@@ -1,3 +1,4 @@
+import {handleXOAuth} from '../modules/oauth/x/http-router.mjs';
 import {handleInstagramOAuth} from '../modules/instagram/http-router.mjs';
 import {EditorWorkspaceRepository} from '../modules/workspaces/workspace-repository.mjs';
 import {createEditorWorkspaceApi} from '../modules/workspaces/workspace-api.mjs';
@@ -31,7 +32,7 @@ export function createLocalHandler({ directory = join(ROOT, '.local'), publicDir
       if (url.pathname.startsWith('/api/')) {
         const headers = new Headers(request.headers); headers.set('oai-authenticated-user-id', LOCAL_OWNER);
         const internal = new Request(request, { headers });
-        const response = await handleInstagramOAuth(internal) ?? await handleYouTube(internal, {DB, BUCKET}) ?? await handleLinkedInOAuth(internal, {DB, BUCKET}) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await workspace(internal) ?? await handlePlannerRequest(internal, { DB, BUCKET });
+        const response = await handleXOAuth(internal) ?? await handleInstagramOAuth(internal) ?? await handleYouTube(internal, {DB, BUCKET}) ?? await handleLinkedInOAuth(internal, {DB, BUCKET}) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await workspace(internal) ?? await handlePlannerRequest(internal, { DB, BUCKET });
         if (!response) return errorResponse(404, 'Endpunkt nicht vorhanden.');
         // Keep capability labels truthful: this is disk-backed emulation, not deployed D1/R2.
         if (url.pathname === '/api/planner/state' && response.ok) {

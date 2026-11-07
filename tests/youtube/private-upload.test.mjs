@@ -32,3 +32,16 @@ test('documented optional session part is allowed, unsafe opaque values are not'
 test('native response chunks are copied before a borrowed Buffer is reused',async()=>{const shared=Buffer.from(JSON.stringify({items:[{id:CHANNEL}]}));let n=0;const r=response();Object.defineProperty(r,'body',{value:{getReader(){return{async read(){if(n++===0)return{done:false,value:shared};shared.fill(32);return{done:true};},releaseLock(){},async cancel(){}};}}});r.headers.set('Content-Type','application/json');const h=harness([r,start()]);assert.equal((await h.adapter.initiateOnce(input())).state,'session_ready');});
 test('microtask-driven response cannot bypass monotonic step deadline',async()=>{let n=0;const r=response();r.headers.set('Content-Type','application/json');Object.defineProperty(r,'body',{value:{getReader(){return{async read(){if(n++===0){const until=performance.now()+20;while(performance.now()<until){}return{done:false,value:new TextEncoder().encode(JSON.stringify({items:[{id:CHANNEL}]}))};}return{done:true};},releaseLock(){},async cancel(){}};}}});const h=harness([r,start()],{stepMs:5});assert.notEqual((await h.adapter.initiateOnce(input())).state,'session_ready');assert.equal(h.calls.filter(c=>c.init.method==='POST').length,0);});
 test('a never-completing reservation cannot initiate after late resolution',async()=>{const repo=repository(),reserve=repo.reserveStart.bind(repo);let release;repo.reserveStart=op=>new Promise(resolve=>{release=async()=>resolve(await reserve(op));});const h=harness([identity(),start()],{repository:repo,stepMs:10});assert.equal((await h.adapter.initiateOnce(input())).state,'unknown');if(release)await release();await new Promise(r=>setTimeout(r,15));assert.equal(h.calls.filter(c=>c.init.method==='POST').length,0);});
+
+for(const privacyStatus of ['private','public','unlisted'])test('explicit '+privacyStatus+' is fingerprint-bound and sent unchanged',async()=>{
+ const op=input({privacyStatus,media:{size:1,mimeType:'video/mp4',sha256:'a'.repeat(64)}});
+ const plan=await preparePrivateYouTubeUpload(op),other=await preparePrivateYouTubeUpload({...op,privacyStatus:privacyStatus==='private'?'public':'private'});
+ assert.notEqual(plan.fingerprint,other.fingerprint);assert.ok(Object.isFrozen(plan.metadata.status));
+ const h=harness([identity(),start(),response({id:VIDEO,snippet:{channelId:CHANNEL},status:{privacyStatus}},201)]);
+ assert.equal((await h.adapter.initiateOnce(op)).state,'session_ready');assert.equal(JSON.parse(h.calls[1].init.body).status.privacyStatus,privacyStatus);
+ const done=await h.adapter.uploadNextChunk('op1');assert.equal(done.state,'upload_accepted');assert.equal(done.privacyStatus,privacyStatus);
+});
+for(const privacyStatus of ['public','unlisted'])test('provider-forced private is not success for '+privacyStatus,async()=>{
+ const h=harness([identity(),start(),complete()]);await h.adapter.initiateOnce(input({privacyStatus,media:{size:1,mimeType:'video/mp4',sha256:'a'.repeat(64)}}));
+ const done=await h.adapter.uploadNextChunk('op1');assert.equal(done.code,'UNEXPECTED_PROVIDER_VISIBILITY');assert.equal(done.nextAction,'manual_reconciliation_no_reupload');
+});

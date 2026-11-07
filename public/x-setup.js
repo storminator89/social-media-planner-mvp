@@ -6,7 +6,7 @@ function freeze(value){
 export const X_SETUP_DATA=freeze({
   provider:'x',
   title:'X einrichten',
-  summary:'Bereite den Zugang vor. Eine Kontofreigabe ist hier noch nicht möglich.',
+  summary:'Bereite Zugang, Kostenfreigabe und sichere Servereinrichtung vor. Der geprüfte Serverstatus entscheidet, ob eine Kontofreigabe möglich ist.',
   steps:[
     {
       id:'access-and-costs',
@@ -22,11 +22,11 @@ export const X_SETUP_DATA=freeze({
     {
       id:'secure-server-setup',
       title:'Sichere Anbindung fertigstellen',
-      description:'Die X-App und der geschützte Rückweg zum Planer müssen eingerichtet und geprüft werden. Dieser Schritt ist noch offen.',
+      description:'Die X-App und der geschützte Rückweg zum Planer müssen eingerichtet und geprüft werden. Dieser Schritt muss vor der Kontofreigabe abgeschlossen sein.',
       details:[
         'Vorgesehen ist eine serverseitige Web-App mit OAuth 2.0 und PKCE S256. Die bei X registrierte Rücksprungadresse muss exakt zum geprüften Planer passen.',
-        'OAuth-Kern, verschlüsselte Speicherung und geschützte Serverrouten sind lokal vorbereitet. Die freigegebene Live-Konfiguration, Prüfung auf dem echten Host und die bedienbare Browser-Anbindung fehlen noch.',
-        'Es gibt noch keine aktive X-Rücksprungroute. Client-Secrets und Tokens gehören ausschließlich in eine freigegebene sichere Serverablage, nicht in diese Ansicht oder einen Chat.'
+        'OAuth-Kern, verschlüsselte Speicherung und geschützte Serverrouten sind lokal vorbereitet. Die freigegebene Live-Konfiguration, Prüfung auf dem echten Host fehlen noch. Die Browser-Bedienung ist vorbereitet und bleibt ohne diese Voraussetzungen gesperrt.',
+        'Die vorbereitete X-Rücksprungroute ist ohne freigegebene Live-Einrichtung nicht aktiv. Client-Secrets und Tokens gehören ausschließlich in eine freigegebene sichere Serverablage, nicht in diese Ansicht oder einen Chat.'
       ],
       links:[{label:'Offizielle X-OAuth-Anleitung lesen',url:'https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code'}]
     },

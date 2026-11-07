@@ -3,6 +3,8 @@
  * Never pass request JSON as this module's arguments. No retries or persistence.
  */
 import {INSTAGRAM_SCOPES,INSTAGRAM_API_VERSION} from './contract.mjs';
+const verifiedResults=new WeakSet();
+export const isVerifiedInstagramResult=value=>verifiedResults.has(value);
 export class InstagramOAuthError extends Error {constructor(code){super('Instagram account verification failed.');this.code=code;}}
 const fail=code=>{throw new InstagramOAuthError(code);};
 const secret=value=>typeof value==='string'&&value.length>0&&value.length<=16384&&!/[\s\x00-\x1f\x7f]/u.test(value);
@@ -54,7 +56,7 @@ export function createInstagramCodeVerifier({configuration:input,clientSecret,tr
    const now=clock();if(!Number.isSafeInteger(now)||now<0)fail('INVALID_CLOCK');
    // No inferred expiry or connection state from the short-token response.
    const result={status:'identity_verified_not_stored',accountId:identity.user_id,username:identity.username,scopes:[...INSTAGRAM_SCOPES],verifiedAtMs:now,connected:false,canPublish:false};
-   Object.defineProperty(result,'accessToken',{value:token.access_token,enumerable:false});return Object.freeze(result);
+   Object.defineProperty(result,'accessToken',{value:token.access_token,enumerable:false});verifiedResults.add(result);return Object.freeze(result);
   }
   try{return await Promise.race([exchange(),deadline]);}catch(error){controller.abort();if(error instanceof InstagramOAuthError)throw error;fail('EXCHANGE_OUTCOME_UNKNOWN');}finally{clearTimeout(timer);}
  }});

@@ -1,11 +1,11 @@
-/** Server-only private YouTube uploads. No scheduler, public visibility, OAuth
+/** Server-only explicitly approved YouTube uploads. No scheduler, OAuth
  * defaults, automatic retries or browser-supplied session URLs. */
 export const YOUTUBE_PRIVATE_LIMITS=Object.freeze({mediaBytes:8*1024*1024,chunkBytes:1024*1024,responseBytes:65536,stepMs:20000});
-export const YOUTUBE_UPLOAD_CAPABILITIES=Object.freeze({provider:'youtube',privacy:'private',publicPublishing:false,nativeScheduling:false,automaticRetries:false,liveVerified:false});
+export const YOUTUBE_UPLOAD_CAPABILITIES=Object.freeze({provider:'youtube',privacy:Object.freeze(['private','public','unlisted']),publicPublishing:true,nativeScheduling:false,automaticRetries:false,liveVerified:false});
 const API='https://www.googleapis.com/youtube/v3',UPLOAD='https://www.googleapis.com/upload/youtube/v3/videos';
 const CHANNEL=/^UC[A-Za-z0-9_-]{22}$/,VIDEO=/^[A-Za-z0-9_-]{11}$/,ID=/^[A-Za-z0-9_-]{1,100}$/;
 const enc=new TextEncoder();
-export class YouTubeUploadError extends Error{constructor(code){super('Der private Upload konnte nicht sicher verarbeitet werden.');this.code=code;}}
+export class YouTubeUploadError extends Error{constructor(code){super('Der Upload konnte nicht sicher verarbeitet werden.');this.code=code;}}
 function fail(code){throw new YouTubeUploadError(code);}
 function own(v,k){return Object.hasOwn(v,k);}
 function wellFormed(v){return typeof v==='string'&&v.isWellFormed();}
@@ -20,7 +20,8 @@ function array(v){if(!Array.isArray(v)||Object.getPrototypeOf(v)!==Array.prototy
 function freeze(v){if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;}
 async function digest(v){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',enc.encode(v)))].map(x=>x.toString(16).padStart(2,'0')).join('');}
 export async function preparePrivateYouTubeUpload(input){
- const v=snapshot(input,['operationId','channelId','title','description','tags','categoryId','madeForKids','containsSyntheticMedia','media'],['operationId','channelId','title','categoryId','madeForKids','containsSyntheticMedia','media']);
+ const v=snapshot(input,['operationId','channelId','title','description','tags','categoryId','madeForKids','containsSyntheticMedia','privacyStatus','media'],['operationId','channelId','title','categoryId','madeForKids','containsSyntheticMedia','media']);
+ if(v.privacyStatus!==undefined&&!['private','public','unlisted'].includes(v.privacyStatus))fail('INVALID_VISIBILITY');
  const m=snapshot(v.media,['size','mimeType','sha256']);const tags=v.tags===undefined?[]:array(v.tags);const description=v.description===undefined?'':v.description;
  if(typeof v.operationId!=='string'||!ID.test(v.operationId)||typeof v.channelId!=='string'||!CHANNEL.test(v.channelId))fail('INVALID_TARGET');
  if(!wellFormed(v.title)||!v.title.trim()||[...v.title].length>100||/[<>]/.test(v.title))fail('INVALID_TITLE');
@@ -29,7 +30,7 @@ export async function preparePrivateYouTubeUpload(input){
  if(typeof v.madeForKids!=='boolean'||typeof v.containsSyntheticMedia!=='boolean')fail('EXPLICIT_DISCLOSURES_REQUIRED');
  if(tags.some(t=>!wellFormed(t)||!t.trim()||/[<>]/.test(t))||tags.reduce((n,t)=>n+[...t].length+(/\s/.test(t)?2:0),Math.max(0,tags.length-1))>500)fail('INVALID_TAGS');
  if(!integer(m.size,1,YOUTUBE_PRIVATE_LIMITS.mediaBytes)||!['video/mp4','video/webm'].includes(m.mimeType)||typeof m.sha256!=='string'||!/^[a-f0-9]{64}$/.test(m.sha256))fail('INVALID_SERVER_MEDIA');
- const op={operationId:v.operationId,channelId:v.channelId,media:{size:m.size,mimeType:m.mimeType,sha256:m.sha256},metadata:{snippet:{title:v.title,description,tags,categoryId:v.categoryId},status:{privacyStatus:'private',selfDeclaredMadeForKids:v.madeForKids,containsSyntheticMedia:v.containsSyntheticMedia}},notifySubscribers:false};
+ const op={operationId:v.operationId,channelId:v.channelId,media:{size:m.size,mimeType:m.mimeType,sha256:m.sha256},metadata:{snippet:{title:v.title,description,tags,categoryId:v.categoryId},status:{privacyStatus:v.privacyStatus??'private',selfDeclaredMadeForKids:v.madeForKids,containsSyntheticMedia:v.containsSyntheticMedia}},notifySubscribers:false};
  op.fingerprint=await digest(JSON.stringify(op));return freeze(op);
 }
 export function validateYouTubeSessionURL(value){
@@ -125,8 +126,8 @@ function providerFailure(reply,phase){
 }
 function videoResult(data,op){
  if(!record(data)||typeof data.id!=='string'||!VIDEO.test(data.id)||data.snippet?.channelId!==op.channelId)return{...uncertain('VIDEO_IDENTITY_NOT_VERIFIED'),nextAction:'probe_same_session'};
- if(data.status?.privacyStatus!=='private'||own(data.status,'publishAt'))return{...uncertain('UNEXPECTED_PROVIDER_VISIBILITY'),videoId:data.id};
- return{state:'upload_accepted',videoId:data.id,privacyStatus:'private',processingStatus:'unknown',nextAction:'inspect_video'};
+ if(data.status?.privacyStatus!==op.metadata.status.privacyStatus||own(data.status,'publishAt'))return{...uncertain('UNEXPECTED_PROVIDER_VISIBILITY'),videoId:data.id};
+ return{state:'upload_accepted',videoId:data.id,privacyStatus:op.metadata.status.privacyStatus,processingStatus:'unknown',nextAction:'inspect_video'};
 }
 /** Each invocation has one total monotonic budget. Repository claims must be
  * durable; their expiry/crash recovery may only permit a probe of a known session.
@@ -153,7 +154,7 @@ export function createPrivateYouTubeUploadAdapter(options={}){
  async function reserve(ctx,id,action){
   if(typeof id!=='string'||!ID.test(id))fail('INVALID_OPERATION');const saved=await ctx.run(()=>repo.reserveNext(id,action));if(!saved)return null;
   const {operation:op,checkpoint:cp,lease}=saved;
-  if(op?.operationId!==id||op?.metadata?.status?.privacyStatus!=='private'||own(op.metadata.status,'publishAt')||op.notifySubscribers!==false||!['session_ready','unknown','auth_required','rate_limited','quota_exceeded','blocked'].includes(cp?.state))fail('INVALID_CHECKPOINT');
+  if(op?.operationId!==id||!['private','public','unlisted'].includes(op?.metadata?.status?.privacyStatus)||own(op.metadata.status,'publishAt')||op.notifySubscribers!==false||!['session_ready','unknown','auth_required','rate_limited','quota_exceeded','blocked'].includes(cp?.state))fail('INVALID_CHECKPOINT');
   validateYouTubeSessionURL(cp.sessionUrl);
   if(!integer(cp.nextOffset,0,op.media.size-1)||!integer(cp.chunkBytes,262144,YOUTUBE_PRIVATE_LIMITS.mediaBytes)||cp.chunkBytes%262144)fail('INVALID_CHECKPOINT');
   await fence(ctx,lease);return saved;
@@ -198,15 +199,15 @@ export function createPrivateYouTubeUploadAdapter(options={}){
    if(cp.retryAt&&Date.parse(cp.retryAt)>now())return finish(ctx,lease,cp,{state:'rate_limited',code:'RETRY_AFTER_NOT_REACHED',retryAt:cp.retryAt});
    await fence(ctx,lease);const reply=await request(ctx,'PUT',cp.sessionUrl,{'Content-Length':'0','Content-Range':`bytes */${op.media.size}`},undefined,lease);return uploadReply(ctx,lease,op,cp,reply,'probe');
   });},
-  async inspectVideo({videoId,channelId}={}){const result=await step(async ctx=>{
-   if(typeof videoId!=='string'||!VIDEO.test(videoId)||typeof channelId!=='string'||!CHANNEL.test(channelId))fail('INVALID_VIDEO_REFERENCE');
+  async inspectVideo({videoId,channelId,privacyStatus='private'}={}){const result=await step(async ctx=>{
+   if(!['private','public','unlisted'].includes(privacyStatus)||typeof videoId!=='string'||!VIDEO.test(videoId)||typeof channelId!=='string'||!CHANNEL.test(channelId))fail('INVALID_VIDEO_REFERENCE');
    const reply=await request(ctx,'GET',API+`/videos?part=snippet%2Cstatus%2CprocessingDetails&id=${videoId}`);
    if(reply.status!==200||reply.failed||reply.malformed||!Array.isArray(reply.data?.items))return{state:'check_failed',code:'VIDEO_CHECK_FAILED'};
    if(!reply.data.items.length)return{state:'not_found',code:'VIDEO_NOT_FOUND_AT_CHECK_TIME'};
    const x=reply.data.items[0];if(reply.data.items.length!==1||!record(x)||x.id!==videoId||x.snippet?.channelId!==channelId||!record(x.status)||own(x,'processingDetails')&&!record(x.processingDetails))return{state:'check_failed',code:'VIDEO_IDENTITY_NOT_VERIFIED'};
-   if(x.status.privacyStatus!=='private'||own(x.status,'publishAt'))return{state:'check_failed',code:'UNEXPECTED_PROVIDER_VISIBILITY'};
-   const upload=x.status.uploadStatus,processing=x.processingDetails?.processingStatus;const state=['failed','rejected','deleted'].includes(upload)||['failed','terminated'].includes(processing)?'processing_failed':processing==='succeeded'||upload==='processed'?'private_ready':'processing_or_unknown';
-   return{state,videoId,privacyStatus:'private',processingStatus:['succeeded','processing','failed','terminated'].includes(processing)?processing:'unknown',uploadStatus:['uploaded','processed','failed','rejected','deleted'].includes(upload)?upload:'unknown'};
+   if(x.status.privacyStatus!==privacyStatus||own(x.status,'publishAt'))return{state:'check_failed',code:'UNEXPECTED_PROVIDER_VISIBILITY'};
+   const upload=x.status.uploadStatus,processing=x.processingDetails?.processingStatus;const state=['failed','rejected','deleted'].includes(upload)||['failed','terminated'].includes(processing)?'processing_failed':processing==='succeeded'||upload==='processed'?(privacyStatus==='private'?'private_ready':'video_ready'):'processing_or_unknown';
+   return{state,videoId,privacyStatus,processingStatus:['succeeded','processing','failed','terminated'].includes(processing)?processing:'unknown',uploadStatus:['uploaded','processed','failed','rejected','deleted'].includes(upload)?upload:'unknown'};
   });return result.state==='unknown'?{state:'check_failed',code:'VIDEO_CHECK_FAILED'}:result;}
  });
 }
