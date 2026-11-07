@@ -1,4 +1,4 @@
-# Lokales Upgrade auf 0.7
+# Lokales Upgrade auf 0.9
 
 ## Vorher
 
@@ -15,7 +15,7 @@ Keine automatische Übernahme fremder Arbeitsverzeichnisse, Browserprofile oder 
 - IDs, Titel, Notizen, Medienverweise, Revisionen und Besitzer werden nicht umgeschrieben.
 - Ein neuer aktueller Adapter stellt vererbte Texte durch fehlende Keys in `variantTexts` dar. Ein vorhandener Key ist eine unabhängige Fassung. Die bewusste Rücksetzung erfolgt in der UI.
 
-GET/PUT verwenden danach API-Schema 2. Ein alter oder fehlender Schemastand wird vor Schreiboperationen mit 409 `STATE_SCHEMA_CHANGED` abgewiesen, auch bei passender Revision. Ein Konflikt ist kein Anlass zum automatischen Überschreiben.
+Seit 0.9 verwenden GET/PUT API-Schema 3 (zuvor Schema 2). Ein alter oder fehlender Schemastand wird vor Schreiboperationen mit 409 `STATE_SCHEMA_CHANGED` abgewiesen, auch bei passender Revision. Ein Konflikt ist kein Anlass zum automatischen Überschreiben.
 
 ## Browser-only-Altbestände
 
@@ -77,3 +77,14 @@ Pending-Medien und manuell zu klärende Übertragungen werden nicht automatisch 
 Version 0.8 ergänzt `0007_editor_workspaces.sql` mit eigener Tabelle/Index. SQL 0001–0006 sind unverändert. Der lokale Constructor prüft die komplette Ledgergeschichte, wendet ausstehende Schritte atomar an und rollt Schema/Ledger bei Fehler zurück. Der 6→7-Pfad, Wiederstart, Altdigestfehler und absichtliche Indexkollision werden geprüft. Keine Post-/Medien-/Credentialdaten werden umgeschrieben. Die Quellen enthalten kein 0008 und keine API 3.
 
 Vor einem Upgrade eine konsistente Sicherung der lokalen Datenbank einschließlich vorhandener WAL-Daten erstellen. Der Quellstand führt keine automatische Datensicherung oder Rückwärtsmigration aus. Gehostetes D1-Packaging und tatsächliche Migration bleiben eine eigene Betriebsabnahme.
+
+
+## Von 0.8 auf 0.9: gespeicherte Posting-Zeiten
+
+`0008_posting_schedules.sql` ergänzt nullable JSON-Spalten `posting_schedule_json` auf Kanälen und `schedule_binding_json` auf Beiträgen. Bestehende Zeilen erhalten ausdrücklich NULL, keine inferred Queue-Bindung und keine Terminverschiebung. Zusätzlich entsteht `planner_schedule_undo` mit Owner, Post-ID, SHA-256 und Ablauf, ohne zweite Inhaltskopie. SQL 0001–0007 bleiben bytegleich. Der lokale Constructor wendet Spalten, Tabelle, Index und Ledger gemeinsam transaktional an.
+
+API 3 verlangt die neuen Felder explizit null/Objekt. API 2 oder fehlendes Schema wird auch bei passender Revision mit 409 abgewiesen. UI-State 2 enthält vollständige Kanäle, bestätigte Revision sowie `scheduledInstant` und `scheduleBinding`. Ein alter 0.8-Adapter darf weder nachladen noch eine gecachte Fassung überschreiben. Server und UI müssen gemeinsam aktualisiert werden.
+
+Arbeitsfassungen bleiben Schema 1 und benötigen keine neue SQL-Spalte. `payload.planning` bleibt bei alten Einträgen exakt abwesend; aktuelle Eingaben tragen es ausdrücklich. Sobald es vorhanden ist, kann ein Altclient es nicht durch Weglassen löschen: dieselbe CAS-Mutation prüft die JSON-Memberanwesenheit. Beide Werte null sind eine bewusste Entkopplung, kein stiller Default.
+
+Ein Undo-Nachweis gilt höchstens 60 Sekunden, höchstens 100 je Besitzer. Wiederherstellung braucht einen exakten gehaltenen Originalpost und freie Belegung; ein Digest allein rekonstruiert keinen Inhalt. Unklare HTTP-Erfolgsantworten lösen keinen Schreibretry aus. Erst ein neuer passender privater Proof darf den begrenzten Kandidaten bestätigen. Ein Indexfehler in 0008 rollt auch bereits hinzugefügte Spalten zurück. Gehostete D1-Anwendung bleibt separat zu prüfen.

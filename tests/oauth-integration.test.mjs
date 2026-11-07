@@ -1,3 +1,4 @@
+import {legacyScheduleProjection} from './legacy-migration-projection.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
@@ -16,7 +17,7 @@ import {D1TestAdapter} from './data/support.mjs';
 
 const migrationNames=['0001_planner.sql','0002_variant_inheritance.sql','0003_provider_jobs.sql'];
 const oldTables=['planner_profiles','planner_channels','planner_posts','planner_variants','planner_media','planner_provider_connections','planner_publication_jobs'];
-const dump=db=>Object.fromEntries(oldTables.map(name=>[name,db.prepare(`SELECT * FROM ${name} ORDER BY owner_id`).all().map(row=>({...row}))]));
+const dump=db=>Object.fromEntries(oldTables.map(name=>[name,db.prepare(`SELECT * FROM ${name} ORDER BY owner_id`).all().map(row=>legacyScheduleProjection([row])[0])]));
 const config=()=>createLinkedInOfflineConfiguration({siteId:'offline-test-site',siteOrigin:'https://planner.example',clientId:'offline_test_app',redirectUri:'https://planner.example/api/providers/linkedin/oauth/callback',accountType:'personal',appConfigVersion:'v1'});
 const binding=()=>randomBytes(32).toString('base64url');
 async function v3Directory(t){
@@ -34,9 +35,9 @@ async function v3Directory(t){
  memory.sql.close();return {directory,db};
 }
 
-test('actual v3→v7 constructor preserves planning, blocked jobs, owners and migration digests',async t=>{
+test('actual v3→v8 constructor preserves planning, blocked jobs, owners and migration digests',async t=>{
  const {directory,db}=await v3Directory(t),before=dump(db),ledger=db.prepare('SELECT * FROM local_migrations ORDER BY version').all();db.close();
- let next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);assert.deepEqual(next.sql.prepare('SELECT * FROM local_migrations WHERE version<=3 ORDER BY version').all(),ledger);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3,4,5,6,7]);assert.equal(next.sql.prepare('SELECT COUNT(*) n FROM planner_oauth_states').get().n,0);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);next.close();
+ let next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);assert.deepEqual(next.sql.prepare('SELECT * FROM local_migrations WHERE version<=3 ORDER BY version').all(),ledger);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3,4,5,6,7,8]);assert.equal(next.sql.prepare('SELECT COUNT(*) n FROM planner_oauth_states').get().n,0);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);next.close();
 });
 
 test('failed migration4 rolls back schema and ledger and retains all previous rows',async t=>{

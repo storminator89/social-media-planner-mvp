@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.9.0
+
+- Dauerhafte Posting-Zeiten je Kanal, gemeinsame freie Slots und explizite Queue-Bindung. Regeländerungen verschieben weder feste noch gebundene Beiträge.
+- API 3/UI-State 2 erhalten bestätigte UTC-Zeitpunkte einschließlich Sekunden/Millisekunden und verwenden eine gemeinsame Snapshotrevision. Alte Clients dürfen neue Felder nicht überschreiben.
+- Additive Migration 0008, unveränderte SQL 0001–0007. Kurze ownergebundene Digestnachweise sichern exaktes Queue-Undo und prüfen Belegung erneut.
+- Arbeitsfassungen bewahren optional den Planungskontext einschließlich Feldanwesenheit; atomarer Downgradeschutz gegen Altclients. Keine neue Workspace-Migration.
+- Keine neue Provideraktivierung, kein Auto-Publishing und keine Cloudbereitstellung.
+
 ## 0.8.0
 
 - Separate serverseitige Arbeitsfassungen für unvollständige Composer-Eingaben, einschließlich roher CSV-Labels und eigener Kanaltexte. Kein Ersatzschreiben von Beiträgen und kein localStorage-Fallback.

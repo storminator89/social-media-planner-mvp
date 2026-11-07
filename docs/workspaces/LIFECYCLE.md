@@ -1,3 +1,5 @@
+> Historical 0.8 component/browser evidence, not a new 0.9 acceptance result.
+
 # Lifecycle and late-input follow-up
 
 The integration review identified two UI lifecycle edges after the initial handoff.

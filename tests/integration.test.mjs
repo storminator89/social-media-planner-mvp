@@ -9,7 +9,7 @@ import { createTaktStore } from '../modules/data/takt-adapter.mjs';
 
 const channels = [{ id: 'linkedin', name: 'LinkedIn', color: '#2866aa', limit: 3000 }];
 const png = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMsTLjBQApgIkn1qIZRDUNKAwBGMgHJ6tENZAAAAABJRU5ErkJggg==', 'base64'));
-const post = (extra = {}) => ({ id: 'post-1', text: 'Integrationstest', channels: ['linkedin'], status: 'scheduled', scheduledAt: '2027-01-15T10:30', timeZone: 'Europe/Berlin', media: null, cover: null, createdAt: '2026-11-07T09:00:00.000Z', updatedAt: '2026-11-07T09:00:00.000Z', ...extra });
+const post = (extra = {}) => ({ id: 'post-1', scheduleBinding: null, scheduledInstant: null, text: 'Integrationstest', channels: ['linkedin'], status: 'scheduled', scheduledAt: '2027-01-15T10:30', timeZone: 'Europe/Berlin', media: null, cover: null, createdAt: '2026-11-07T09:00:00.000Z', updatedAt: '2026-11-07T09:00:00.000Z', ...extra });
 const request = (path = '/api/planner/state', options = {}) => new Request('http://localhost:3000' + path, options);
 async function setup(t) {
   const directory = await mkdtemp(join(tmpdir(), 'takt-test-'));

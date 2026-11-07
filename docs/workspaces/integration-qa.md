@@ -1,3 +1,5 @@
+> Historical 0.8 component/browser evidence, not a new 0.9 acceptance result.
+
 # Integrated workspace browser smoke
 
 Completed 2026-11-07 against a separate QA copy of the integrated Takt 0.8.0 source. The real integrated `server/dev.mjs` supplied its fixed `http://127.0.0.1:4173` origin, local SQLite workspace API and actual `store.plannerRevision` getter. No mock status or workspace store was substituted. The integration source tree was not changed.
@@ -16,4 +18,4 @@ Completed 2026-11-07 against a separate QA copy of the integrated Takt 0.8.0 sou
 
 This smoke checks actual local HTTP/SQLite integration, not hosted D1, remote deployment, real account authorization or provider publishing. There were no file uploads, OAuth actions or provider contacts. Teardown and deliberately late-input race cases remain covered by deterministic tests of actual UI/controller/app functions; this browser smoke does not claim to induce those artificial races through normal human input.
 
-The REA complete-source workflow was applied as ordinary source and boundary inspection plus reproducible tests; there was no reverse-engineering runtime or external product-copying step. The isolated UI-source verification passed 1067 tests per UTC, America/Los_Angeles and Asia/Tokyo, syntax checks and Worker build. The complete integrated version passed 1146 tests in each of those zones; see the root verification report for its independent 1091-test read-only review and build evidence. The 15-entry `SOURCE.sha256` source manifest is unchanged by this report.
+The REA complete-source workflow was applied as ordinary source and boundary inspection plus reproducible tests; there was no reverse-engineering runtime or external product-copying step. The isolated UI-source verification passed 1067 tests per UTC, America/Los_Angeles and Asia/Tokyo, syntax checks and Worker build. The complete integrated version passed 1146 tests in each of those zones; see the root verification report for its independent 1091-test read-only review and build evidence. The 15-entry `SOURCE-v0.8.sha256` source manifest is unchanged by this report.

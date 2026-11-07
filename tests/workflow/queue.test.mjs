@@ -109,3 +109,11 @@ test('safe duplication preserves variants and media but removes workflow and out
   copy.media.alt = 'Anders'; assert.equal(original.media.alt, 'Bild');
 });
 test('duplicate IDs are rejected rather than overwriting the original', () => code(() => duplicateTaktDraft(post(), { id: 'p1', now }), 'NEW_ID_REQUIRED'));
+test('new-state duplicates explicitly clear canonical time and saved queue binding', () => {
+  const copied = duplicateTaktDraft({ ...post(), scheduledInstant: now, scheduleBinding: { mode: 'queue' } }, { id: 'copy', now });
+  assert.equal(copied.scheduledInstant, null); assert.equal(copied.scheduleBinding, null);
+});
+test('temporary queue helper cannot silently detach a persisted queue binding', () => {
+  const p = { ...post(), scheduleBinding: { mode: 'queue' } }, suggestion = suggestQueueSlots(opts({ post: p })).suggestions[0];
+  code(() => applyQueueSuggestion({ post: p, rules: [rule()], suggestion, now }), 'PERSISTED_QUEUE_BINDING');
+});

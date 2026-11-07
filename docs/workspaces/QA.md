@@ -1,3 +1,5 @@
+> Historical 0.8 component/browser evidence, not a new 0.9 acceptance result.
+
 > Historical component QA before integration. Later lifecycle tests and the final integrated browser smoke are documented in LIFECYCLE.md and integration-qa.md. This report does not replace the current root verification report.
 
 # Original component Workspace UI verification, 7 November 2026

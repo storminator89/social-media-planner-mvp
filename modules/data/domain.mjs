@@ -1,10 +1,12 @@
+import {normalizePostingSchedule,normalizeScheduleBinding,validatePostScheduleBinding} from '../workflows/posting-schedules.mjs';
 /** Pure validation and date handling; no credentials, network, or browser storage. */
-export const DATA_SCHEMA_VERSION = 2;
+export const DATA_SCHEMA_VERSION = 3;
 export const LIMITS = Object.freeze({channels:20,posts:100,variants:300,body:20000,jsonBytes:1024*1024,mediaPerVariant:10,uploadBytes:20*1024*1024,mediaCount:100,mediaTotalBytes:200*1024*1024});
 export const PLATFORMS = Object.freeze(['instagram','facebook','linkedin','tiktok','youtube','threads','bluesky','mastodon','pinterest','x','other']);
 export class PlannerError extends Error {
   constructor(status, code, message, details) { super(message); this.status=status; this.code=code; this.details=details; }
 }
+function scheduling(fn){try{return fn();}catch(error){throw new PlannerError(400,error.code??'INVALID_SCHEDULE',error.message,error.detail);}}
 function fail(message) { throw new PlannerError(400,'INVALID_STATE',message); }
 function obj(value,label) { if(!value || typeof value!=='object' || Array.isArray(value)) fail(`${label}: Objekt erwartet.`); return value; }
 function str(value,label,max=200,empty=true) { if(typeof value!=='string' || value.length>max || (!empty && !value.trim())) fail(`${label}: ungültiger Text (max. ${max} Zeichen).`); return value; }
@@ -35,15 +37,15 @@ export function validateState(input,now=new Date().toISOString()) {
   const s=obj(input.settings,'Einstellungen');
   const settings={timezone:timezone(s.timezone??'UTC'),locale:choice(s.locale??'de-DE',['de-DE','en-GB','en-US'],'Sprache')};
   const channels=arr(input.channels,'Kanäle',LIMITS.channels).map(c=>{
-    obj(c,'Kanal');if(c.connectionStatus!=null&&c.connectionStatus!=='manual')fail('Externe Kanäle sind hier noch nicht verbunden.');
+    obj(c,'Kanal');if(!Object.hasOwn(c,'postingSchedule'))fail('Posting-Zeiten müssen ausdrücklich null oder ein Objekt sein.');if(c.connectionStatus!=null&&c.connectionStatus!=='manual')fail('Externe Kanäle sind hier noch nicht verbunden.');
     if(c.enabled!=null&&typeof c.enabled!=='boolean')fail('Kanal.enabled muss boolesch sein.');
     const color=c.color??'#64748b';if(!/^#[0-9a-f]{6}$/i.test(color))fail('Ungültige Kanalfarbe.');
-    return {id:validId(c.id),platform:choice(c.platform,PLATFORMS,'Plattform'),name:str(c.name,'Kanalname',100,false),handle:str(c.handle??'','Handle',150),color,enabled:c.enabled??true,connectionStatus:'manual'};
+    return {id:validId(c.id),platform:choice(c.platform,PLATFORMS,'Plattform'),name:str(c.name,'Kanalname',100,false),handle:str(c.handle??'','Handle',150),color,enabled:c.enabled??true,connectionStatus:'manual',postingSchedule:scheduling(()=>normalizePostingSchedule(c.postingSchedule))};
   });
   const channelIds=unique(channels.map(c=>c.id),'Kanäle');
   let variantCount=0; const allVariantIds=[];
   const posts=arr(input.posts,'Beiträge',LIMITS.posts).map(p=>{
-    obj(p,'Beitrag');const tz=timezone(p.timezone??settings.timezone);
+    obj(p,'Beitrag');if(!Object.hasOwn(p,'scheduleBinding'))fail('Queue-Bindung muss ausdrücklich null oder ein Objekt sein.');const tz=timezone(p.timezone??settings.timezone);
     const scheduledAt=instant(p.scheduledAt);const stage=choice(p.stage??'draft',['idea','draft','planned','archived'],'Beitragsphase');
     if(stage==='planned'&&!scheduledAt) fail('Geplante Beiträge brauchen einen Zeitpunkt.');
     const variants=arr(p.variants,'Varianten',LIMITS.channels).map(v=>{
@@ -61,7 +63,10 @@ export function validateState(input,now=new Date().toISOString()) {
     });
     unique(variants.map(v=>v.channelId),'Kanalvarianten');
     const tags=arr(p.tags??[],'Tags',20).map(t=>str(t,'Tag',60,false));
-    return {id:validId(p.id),title:str(p.title??'','Titel',200),body:str(p.body??'','Beitragstext',LIMITS.body),stage,tags,cover:p.cover==null?null:choice(p.cover,['sunrise','forms','studio','nature'],'Titelbild'),scheduledAt,timezone:tz,createdAt:instant(p.createdAt)??now,updatedAt:now,variants};
+    const post={id:validId(p.id),scheduleBinding:scheduling(()=>normalizeScheduleBinding(p.scheduleBinding)),title:str(p.title??'','Titel',200),body:str(p.body??'','Beitragstext',LIMITS.body),stage,tags,cover:p.cover==null?null:choice(p.cover,['sunrise','forms','studio','nature'],'Titelbild'),scheduledAt,timezone:tz,createdAt:instant(p.createdAt)??now,updatedAt:now,variants};
+    scheduling(()=>validatePostScheduleBinding(post));
+    if(post.scheduleBinding&&variants.some(v=>v.status!=='planned'||v.scheduledAt!==post.scheduledAt||v.timezone!==post.timezone))fail('Alle Queue-Varianten müssen denselben Zeitpunkt und dieselbe IANA-Zeitzone wie der Beitrag verwenden.');
+    return post;
   });
   unique(posts.map(p=>p.id),'Beiträge');unique(allVariantIds,'Varianten');if(variantCount>LIMITS.variants) fail(`Höchstens ${LIMITS.variants} Varianten.`);
   return {schemaVersion:DATA_SCHEMA_VERSION,revision:input.revision,settings,channels,posts};

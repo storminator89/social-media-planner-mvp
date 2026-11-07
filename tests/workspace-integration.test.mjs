@@ -47,9 +47,9 @@ test('revision getter matches the exact confirmed planner snapshot, never a fail
  const h=createSitesHandler(),e=env(),a=clients(h,e),b=clients(h,e),store=createTaktStore({client:a.planner,timezone:'Europe/Berlin',channels:[{id:'instagram',name:'Instagram'}]});
  assert.equal(store.plannerRevision,null);const initial=await store.load();assert.equal(store.plannerRevision,0);assert.equal(Object.getOwnPropertyDescriptor(store,'plannerRevision').set,undefined);
  await b.planner.save(fixture());await assert.rejects(store.save(initial),x=>x.status===409);assert.equal(store.plannerRevision,0);
- const loaded=await store.load();assert.equal(store.plannerRevision,1);await store.save(loaded);assert.equal(store.plannerRevision,2);
+ const loaded=await store.load();assert.equal(store.plannerRevision,1);const confirmed=await store.save(loaded);assert.equal(store.plannerRevision,2);
  const source=await a.workspace.save(input({sourcePostId:'post-1',basePlannerRevision:2}));assert.equal(source.basePlannerRevision,2);
- await store.save({...loaded,posts:[]});const read=await a.workspace.read(source.workspaceId);assert.equal(read.basePlannerRevision,2);assert.equal(read.currentPlannerRevision,3);assert.equal(read.sourceExists,false);
+ await store.save({...confirmed,posts:[]});const read=await a.workspace.read(source.workspaceId);assert.equal(read.basePlannerRevision,2);assert.equal(read.currentPlannerRevision,3);assert.equal(read.sourceExists,false);
 });
 test('lost post-commit workspace response is reconciled by same ID without additional write',async()=>{
  const h=createSitesHandler(),e=env(),a=clients(h,e);const batch=e.DB.batch.bind(e.DB);let lose=true,count=0;

@@ -122,6 +122,7 @@ export function suggestQueueSlots({ post, posts = [], rules, after = new Date().
 
 /** Use only after explicit selection; rechecks rules, time and occupancy, and returns a copy. */
 export function applyQueueSuggestion({ post, posts = [], rules, suggestion, now = new Date().toISOString(), minimumGapMinutes = 30 }) {
+  if(post.scheduleBinding)fail('PERSISTED_QUEUE_BINDING','Dieser Beitrag hat gespeicherte Posting-Zeiten. Nutze deren Vorschläge oder löse die Bindung ausdrücklich.');
   const channelIds = selectedChannels(post), normalized = normalizeQueueRules(rules);
   if (!suggestion || suggestion.mode !== 'editorial_only' || suggestion.postFingerprint !== fingerprint(post)) fail('SUGGESTION_STALE', 'Der Beitrag wurde geändert. Lade die Terminvorschläge erneut.');
   if (!Array.isArray(suggestion.channelIds) || JSON.stringify([...suggestion.channelIds].sort()) !== JSON.stringify([...channelIds].sort())) fail('SUGGESTION_STALE', 'Die Zielkanäle wurden geändert.');
@@ -137,14 +138,14 @@ export function applyQueueSuggestion({ post, posts = [], rules, suggestion, now 
   if (!channelIds.every(id => { const rule = normalized.find(r => r.channelId === id); return rule && ruleMatches(epoch, rule); })) fail('QUEUE_RULE_CHANGED', 'Die Queue-Regeln wurden geändert. Lade die Vorschläge erneut.');
   const conflicts = collisions(epoch, busyTimes(posts, post, channelIds), suggestion.minimumGapMinutes);
   if (conflicts.length) fail('SLOT_TAKEN', 'Dieser Termin ist inzwischen belegt. Wähle einen anderen Vorschlag.', { conflicts });
-  return { ...clone(post), status: 'scheduled', scheduledAt: suggestion.local, timeZone: suggestion.timezone, updatedAt: new Date(current).toISOString() };
+  return { ...clone(post), status: 'scheduled', scheduledAt: suggestion.local, scheduledInstant: null, scheduleBinding: null, timeZone: suggestion.timezone, updatedAt: new Date(current).toISOString() };
 }
 
 /** Duplicates preserve content, including channel overrides, but never old schedule or evidence. */
 export function duplicateTaktDraft(post, { id, now = new Date().toISOString() }) {
   if (typeof id !== 'string' || !id || id === post.id) fail('NEW_ID_REQUIRED', 'Die Kopie benötigt eine neue ID.');
   const current = new Date(absoluteTime(now)).toISOString();
-  const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post)], status: 'draft', scheduledAt: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, media: clone(post.media ?? null), createdAt: current, updatedAt: current };
+  const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post)], status: 'draft', scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, media: clone(post.media ?? null), createdAt: current, updatedAt: current };
   if (post.variantTexts !== undefined) draft.variantTexts = clone(post.variantTexts);
   if (post.title !== undefined) draft.title = post.title;
   if (post.tags !== undefined) draft.tags = clone(post.tags);

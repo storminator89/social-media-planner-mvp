@@ -1,6 +1,6 @@
 # Unfinished composer work: integrated UI contract
 
-Base: reviewed Takt 0.7.1. The UI increment originally contained no backend; Takt 0.8 now combines it with the real workspace repository, routes and additive migration 0007. Provider/OAuth code, posting capabilities and credentials are unchanged. API 2 / UI state 1 remain unchanged; the independent workspace HTTP contract is schema 1. SOURCE.sha256 records the fifteen exact UI/test files before packaging; the root release manifest binds the whole integration.
+Base: reviewed Takt 0.7.1. The UI increment originally contained no backend; Takt 0.8 now combines it with the real workspace repository, routes and additive migration 0007. Provider/OAuth code, posting capabilities and credentials are unchanged. Historical 0.8 used API 2 / UI state 1. Current 0.9 uses API 3 / UI state 2; the independent workspace HTTP contract remains schema 1 with optional exact planning context. SOURCE-v0.8.sha256 records the fifteen historical 0.8 UI/test files before packaging; the root release manifest binds the whole integration.
 
 ## User experience
 

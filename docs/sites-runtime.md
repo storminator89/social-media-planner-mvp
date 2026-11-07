@@ -60,3 +60,10 @@ Vor Aktivierung sind echte D1-/R2-Transaktions-, Antwort- und Speicherverträge,
 Migration 0007 erweitert eine physisch private Site-D1-Datenbank. Die älteren Planertabellen sind nur ownergebunden: dieselbe physische Datenbank darf deshalb nicht zwischen Sites geteilt werden. Ein WeakMap-Check erkennt nur denselben JavaScript-Handle unter anderer Site-ID; er ersetzt keine native Bindingprüfung. Kein Request installiert Schema.
 
 Der lokale Server übergibt seinen fest gewählten Loopback-Origin ausdrücklich mit HTTP-Opt-in. Diese Konfiguration und sein geteilter Testbesitzer sind kein gehosteter Authnachweis. Siehe `workspaces/integration.md`.
+
+
+## Planer-Schema 3 (0.9)
+
+Migration 0008 ergänzt nur neue nullable Zeitplan-/Bindungsspalten und kurze Hashnachweise für Queue-Undo. SQL 0001–0007 bleiben unverändert. Bestehende Provider-, Credential- und Arbeitsfassungstabellen werden nicht verändert. API3 und UI-State2 müssen gemeinsam ausgeliefert werden; alte Planerwrites sind gesperrt. Workspace planning benötigt keine neue Tabelle, aber einen atomaren Presence/CAS-Guard gegen Altclients.
+
+Die lokale 7→8-Migration ist kein Nachweis einer gehosteten D1-Anwendung. Native Migration, private Bindings, tatsächliche Besucheridentität und Browser-Runtime bleiben vor einer ausdrücklich freigegebenen Bereitstellung separat zu prüfen. Keine Request-Route führt DDL aus.

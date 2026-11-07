@@ -1,0 +1,48 @@
+--- a/public/workflows/ideas.mjs (0.8.0)
++++ b/public/workflows/ideas.mjs (0.9.0)
+@@ -1,3 +1,4 @@
++import {normalizeScheduleBinding,scheduleLocalTime,validatePostScheduleBinding} from './posting-schedules.mjs';
+ /** Text-first ideas and deliberate preparation. No persistence, identity, provider, or network. */
+ import { WorkflowError, resolveLocalTime } from './workflows.mjs';
+ 
+@@ -29,7 +30,7 @@
+ function assertIdea(idea) {
+   if (!idea || idea.status !== 'idea') fail('NOT_IDEA', 'Dieser Eintrag ist keine offene Idee.');
+   id(idea.id);
+-  if (idea.scheduledAt !== null && idea.scheduledAt !== undefined) fail('IDEA_HAS_SCHEDULE', 'Eine Idee darf keinen vorgemerkten Termin tragen.');
++  if (idea.scheduleBinding != null || idea.scheduledInstant != null || idea.scheduledAt !== null && idea.scheduledAt !== undefined) fail('IDEA_HAS_SCHEDULE', 'Eine Idee darf keinen vorgemerkten Termin tragen.');
+   if ((idea.channels?.length ?? 0) || Object.keys(idea.variantTexts ?? {}).length || idea.media != null) fail('INVALID_IDEA_STATE', 'Ideen haben noch keine Kanäle, Kanalvarianten oder Medien. Übernimm solche Inhalte als Entwurf.');
+ }
+ function validateContent({ title = '', text: body = '', tags = [] }) {
+@@ -83,7 +84,7 @@
+ 
+ export function createIdea({ id: ideaId, title = '', text: body = '', tags = [], timezone = 'UTC', now = new Date().toISOString() }) {
+   const content = validateContent({ title, text: body, tags }), createdAt = nowIso(now);
+-  return { id: id(ideaId), ...content, status: 'idea', channels: [], variantTexts: {}, scheduledAt: null, timeZone: zone(timezone), media: null, cover: null, createdAt, updatedAt: createdAt };
++  return { id: id(ideaId), ...content, status: 'idea', channels: [], variantTexts: {}, scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: zone(timezone), media: null, cover: null, createdAt, updatedAt: createdAt };
+ }
+ 
+ export function updateIdea(idea, patch, { now = new Date().toISOString() } = {}) {
+@@ -103,7 +104,7 @@
+ export function prepareIdeaDraft(idea, { channels = [] } = {}) {
+   assertIdea(idea); validateContent(idea);
+   if (!Array.isArray(channels) || channels.some(channel => typeof channel !== 'string' || !channel) || new Set(channels).size !== channels.length) fail('INVALID_CHANNELS', 'Die Kanalauswahl ist ungültig.');
+-  return { draft: { ...clone(idea), status: 'draft', channels: [...channels], scheduledAt: null }, sourceFingerprint: ideaFingerprint(idea) };
++  return { draft: { ...clone(idea), status: 'draft', channels: [...channels], scheduledAt: null, scheduledInstant: null, scheduleBinding: null }, sourceFingerprint: ideaFingerprint(idea) };
+ }
+ 
+ /** Produces a proposed snapshot. Persist it atomically before claiming the idea was moved. */
+@@ -128,9 +129,11 @@
+   if (draft.status === 'scheduled') {
+     for (const channel of draft.channels) if (!(own(variants, channel) ? variants[channel] : body).trim()) fail('CHANNEL_TEXT_REQUIRED', 'Jeder vorgemerkte Kanal benötigt einen Text.', { channelId: channel });
+     if (typeof draft.scheduledAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.scheduledAt)) fail('SCHEDULE_REQUIRED', 'Wähle einen Termin.');
+-    const planned = resolveLocalTime(draft.scheduledAt.slice(0, 10), draft.scheduledAt.slice(11), timezone);
++    let planned;
++    if(draft.scheduleBinding!=null){const binding=normalizeScheduleBinding(draft.scheduleBinding);if(draft.scheduledInstant!==binding.instant||scheduleLocalTime(binding.instant,timezone)!==draft.scheduledAt)fail('INVALID_BINDING','Slot und Termin stimmen nicht überein.');validatePostScheduleBinding({...draft,scheduledAt:binding.instant});planned={instant:binding.instant};}
++    else planned = resolveLocalTime(draft.scheduledAt.slice(0, 10), draft.scheduledAt.slice(11), timezone);
+     if (Date.parse(planned.instant) <= Date.parse(updatedAt)) fail('PAST_TIME', 'Wähle einen zukünftigen Termin.');
+-  } else if (draft.scheduledAt != null) fail('DRAFT_HAS_SCHEDULE', 'Ein Entwurf darf keinen verdeckten Termin behalten.');
++  } else if (draft.scheduledAt != null || draft.scheduledInstant != null || draft.scheduleBinding != null) fail('DRAFT_HAS_SCHEDULE', 'Ein Entwurf darf keinen verdeckten Termin behalten.');
+   // A legacy form omitting metadata must not erase title or tags.
+   const title = text(own(draft, 'title') ? draft.title : original.title ?? '', 'Titel', LIMITS.title);
+   const tags = preserveIdeaTags(own(draft, 'tags') ? draft.tags : original.tags ?? []);

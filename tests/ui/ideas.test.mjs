@@ -2,20 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-import { normalizeState, validatePost } from '../../public/model.js';
+import { normalizeState, validatePost, CHANNELS } from '../../public/model.js';
 import { normalizeEditorialMetadata, validateIdea, ideaTitle } from '../../public/ideas.js';
 import { createIdea, updateIdea, parseIdeaTags, formatIdeaTags, prepareIdeaDraft, commitIdeaDraft, filterIdeas } from '../../public/workflows/ideas.mjs';
-const idea=()=>createIdea({id:'i1',title:'Ein Titel',text:'Notiz',tags:['Thema, eins','Kampagne'],timezone:'Europe/Berlin',now:'2026-11-07T10:00:00Z'});
+const idea=()=>({...createIdea({id:'i1',title:'Ein Titel',text:'Notiz',tags:['Thema, eins','Kampagne'],timezone:'Europe/Berlin',now:'2026-11-07T10:00:00Z'}),scheduleBinding:null,scheduledInstant:null});
+const uiState=posts=>({schemaVersion:2,revision:4,channels:CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null})),settings:{timezone:'Europe/Berlin'},posts});
 const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
 function functionSource(name){const start=source.search(new RegExp(`(?:async )?function ${name}\\(`));assert.ok(start>=0);const next=source.slice(start+1).search(/\n(?:async )?function /);return source.slice(start,next<0?undefined:start+1+next);}
 function context(extra={}){
   const fields={'#search':{value:''},'#idea-title':{value:'Ein Titel'},'#idea-text':{value:'Notiz'},'#idea-tags':{value:'"Thema, eins", Kampagne'},'#idea-errors':{hidden:true,scrollIntoView(){}},'#idea-dialog':{open:true},'#info-dialog':{close(){}},'#main':{focus(){}}};
-  const c={fields,$:selector=>fields[selector],$$:()=>[],state:{schemaVersion:1,settings:{timezone:'Europe/Berlin'},posts:[idea()]},editingIdeaId:'i1',saving:false,createIdea,updateIdea,parseIdeaTags,validateIdea,Date,crypto:{randomUUID:()=> 'new-idea'},currentZone:()=> 'Europe/Berlin',setIdeaBusy:()=>{},notify:()=>{},render:()=>{},closeIdea:()=>{c.closed++},closed:0,prepared:0,beginIdeaPost:()=>{c.prepared++},view:'ideas',initialIdeaEditor:'',...extra};vm.createContext(c);vm.runInContext(functionSource('ideaEditorSnapshot'),c);return c;
+  const c={fields,$:selector=>fields[selector],$$:()=>[],state:uiState([idea()]),editingIdeaId:'i1',saving:false,createIdea,updateIdea,parseIdeaTags,validateIdea,Date,crypto:{randomUUID:()=> 'new-idea'},currentZone:()=> 'Europe/Berlin',setIdeaBusy:()=>{},notify:()=>{},render:()=>{},closeIdea:()=>{c.closed++},closed:0,prepared:0,beginIdeaPost:()=>{c.prepared++},view:'ideas',initialIdeaEditor:'',...extra};vm.createContext(c);vm.runInContext(functionSource('ideaEditorSnapshot'),c);return c;
 }
 test('title-only idea needs no channel or scheduling but cannot be a post',()=>{const p={...idea(),text:''};assert.deepEqual(validatePost(p),[]);assert.ok(validatePost({...p,status:'draft'}).length);});
-test('normalizer retains idea metadata, label punctuation and whitespace',()=>{const p={...idea(),title:'  Titel  ',text:'  Notiz\n'};const state=normalizeState({schemaVersion:1,posts:[p]});assert.deepEqual(state.posts[0],p);});
-test('normalizer retains metadata on drafts with channel-specific text',()=>{const p={...idea(),status:'draft',channels:['bluesky'],variantTexts:{bluesky:'Eigener Text'}};const n=normalizeState({schemaVersion:1,posts:[p]}).posts[0];assert.deepEqual(n,p);});
-test('idea cannot hide media, channel variants, covers or a schedule',()=>{for(const patch of [{media:{id:'m'}},{channels:['instagram']},{variantTexts:{bluesky:''}},{cover:'forms'},{scheduledAt:'2027-01-01T10:00'}])assert.throws(()=>normalizeState({schemaVersion:1,posts:[{...idea(),...patch}]}));});
+test('normalizer retains idea metadata, label punctuation and whitespace',()=>{const p={...idea(),title:'  Titel  ',text:'  Notiz\n'};const state=normalizeState(uiState([p]));assert.deepEqual(state.posts[0],p);});
+test('normalizer retains metadata on drafts with channel-specific text',()=>{const p={...idea(),status:'draft',channels:['bluesky'],variantTexts:{bluesky:'Eigener Text'}};const n=normalizeState(uiState([p])).posts[0];assert.deepEqual(n,p);});
+test('idea cannot hide media, channel variants, covers or a schedule',()=>{for(const patch of [{media:{id:'m'}},{channels:['instagram']},{variantTexts:{bluesky:''}},{cover:'forms'},{scheduledAt:'2027-01-01T10:00'}])assert.throws(()=>normalizeState(uiState([{...idea(),...patch}])));});
 test('metadata limits are validated without silently dropping values',()=>{for(const patch of [{title:'x'.repeat(201)},{tags:[12]},{tags:Array.from({length:21},(_,i)=>String(i))}])assert.throws(()=>normalizeEditorialMetadata(patch));});
 test('label edit roundtrip preserves commas and quotes',()=>{const labels=['Thema, eins','Sie sagt "ja"'];assert.deepEqual(parseIdeaTags(formatIdeaTags(labels)),labels);});
 test('display title falls back to note but never changes original',()=>{const p={...idea(),title:'',text:'Erste Zeile\nZweite'};assert.equal(ideaTitle(p),'Erste Zeile');assert.equal(p.text,'Erste Zeile\nZweite');});
@@ -51,7 +52,7 @@ test('unchanged title and labels retain exact canonical CRLF, whitespace and dup
   const c=context({state:{posts:[original]},persist:async value=>{sent=value;return true;}});
   c.fields['#idea-title'].value='Titel\nZeile zwei';c.fields['#idea-tags'].value=formatIdeaTags(original.tags).replaceAll('\r\n','\n');c.initialIdeaEditor=c.ideaEditorSnapshot();c.fields['#idea-text'].value='Nur Notiz geändert';
   vm.runInContext(functionSource('saveIdea'),c);await c.saveIdea();assert.equal(sent.posts[0].title,original.title);assert.deepEqual([...sent.posts[0].tags],original.tags);assert.equal(sent.posts[0].text,'Nur Notiz geändert');
-  assert.deepEqual(normalizeState({schemaVersion:1,posts:[original]}).posts[0].tags,original.tags);
+  assert.deepEqual(normalizeState(uiState([original])).posts[0].tags,original.tags);
 });
 
 

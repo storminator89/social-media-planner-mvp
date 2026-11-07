@@ -4,7 +4,7 @@
 
 Der lokale Server und der native Worker-Einstieg enthalten denselben Workspace-Datenvertrag. Lokale SQLite-Persistenz ist implementiert und getestet. Es wurde keine Site angelegt, kein D1 bereitgestellt und keine Cloudidentität verifiziert. Kein OAuth-/Provider-/Publishingcode wird durch dieses Inkrement geändert oder aktiviert.
 
-Quellmodule: `modules/workspaces/`. Migration: `server/0007_editor_workspaces.sql`. Oberfläche: `public/workspace-*.js` und `workspace.css`. API ist `/api/planner/workspaces` mit eigenem Schema 1; die normale Planung bleibt API 2/UI-State 1.
+Quellmodule: `modules/workspaces/`. Migration: `server/0007_editor_workspaces.sql`. Oberfläche: `public/workspace-*.js` und `workspace.css`. API ist `/api/planner/workspaces` mit eigenem Schema 1; die normale Planung verwendet seit 0.9 API 3/UI-State 2.
 
 ## Konfiguration und Herkunft
 
@@ -22,4 +22,9 @@ Unklarer Save behält ID, writeId, erwartete Revision und vollständigen Inhalt.
 
 Die 30-Tage-Frist betrifft normale Wiederaufnahme, keine Löschzusage. Maximal 20 aktive und 100 lebenszeitliche Identitäten pro Site/Owner; geschlossene Payloads bleiben gespeichert, sind aber über normale Load-/Discard-Endpunkte nicht lesbar. Kein automatisches Purge, kein unbeschränktes Backup. Details und exakte DTOs stehen in `backend-contract.md`.
 
-Keine Queue 0008/API 3 in diesem Stand. Individuelle gespeicherte Posttermine funktionieren unverändert; dauerhafte kanalweise Posting-Zeitpläne bleiben separat. Für native Sites/D1 sind Dispatch, private Bindings, Migration, Transaktions-/Antwortverträge und Zwei-Besitzer-Browserabläufe weiterhin nachzuweisen.
+Seit 0.9 ist die gespeicherte kanalweise Planung mit Migration 0008/API 3 integriert. Die Workspace-Tabelle aus 0007 bleibt unverändert; die optionale Payload-Erweiterung bewahrt ihren Planungskontext. Für native Sites/D1 sind Dispatch, private Bindings, Migration, Transaktions-/Antwortverträge und Zwei-Besitzer-Browserabläufe weiterhin nachzuweisen.
+
+
+## Planungskontext ab 0.9
+
+Optionales `payload.planning` bindet seine Feldanwesenheit, bestätigten UTC-Instant und vollständige Queue-Referenz in den Snapshot-Receipt ein. Legacy-Abwesenheit bleibt exakt; aktuelle UI schreibt bewusst beide null oder den vollständigen Kontext. Ein Altclient kann ein vorhandenes Feld nicht durch Weglassen löschen, auch nicht in einer CAS-Race. Wiederaufnahme erteilt kein neues Slotrecht und verändert nicht die beim Composerstart bestätigte Herkunftsrevision. Neue Kopien oder manuelle Neuplanung verlangen bewusste Entkopplung/Terminwahl. Siehe `../posting-schedules.md`.

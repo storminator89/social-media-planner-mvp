@@ -24,11 +24,11 @@ test('failed Undo is not consumed, and successful local changes between delete a
 test('concurrent changes reject Undo, and an explicit fresh load clears its session cache',async()=>{
   const {store,repo}=await seeded(),ui=await store.load();const deleted=await store.save({...ui,posts:[]});const current=await repo.load('alice');await repo.save('alice',{...current,settings:{...current.settings,timezone:'Asia/Tokyo'}});
   await assert.rejects(store.save({...deleted,posts:ui.posts}),e=>e.code==='REVISION_CONFLICT');assert.equal((await repo.load('alice')).posts.length,0);
-  const fresh=await store.load();await assert.rejects(store.save({...fresh,posts:ui.posts}),e=>e.code==='DST_AMBIGUOUS');assert.equal((await repo.load('alice')).posts.length,0);
+  const fresh=await store.load();await assert.rejects(store.save({...fresh,posts:ui.posts}),e=>e.code==='UNTRUSTED_SCHEDULE_INSTANT');assert.equal((await repo.load('alice')).posts.length,0);
 });
 
 test('Undo cache expires without silently choosing a repeated-hour instant',async()=>{
-  const {store,repo}=await seeded(),ui=await store.load();const deleted=await store.save({...ui,posts:[]});const real=Date.now;try{Date.now=()=>real()+61000;await assert.rejects(store.save({...deleted,posts:ui.posts}),e=>e.code==='DST_AMBIGUOUS');}finally{Date.now=real;}assert.equal((await repo.load('alice')).posts.length,0);
+  const {store,repo}=await seeded(),ui=await store.load();const deleted=await store.save({...ui,posts:[]});const real=Date.now;try{Date.now=()=>real()+61000;await assert.rejects(store.save({...deleted,posts:ui.posts}),e=>e.code==='UNTRUSTED_SCHEDULE_INSTANT');}finally{Date.now=real;}assert.equal((await repo.load('alice')).posts.length,0);
 });
 
 test('Undo cannot silently drop cached independent channel text or convert a deleted post backwards to an idea',async()=>{

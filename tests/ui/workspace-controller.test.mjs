@@ -1,3 +1,4 @@
+import {createEditorTiming} from '../../public/editor-timing.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -551,7 +552,7 @@ test('actual post-save bridge locks cleanup and rechecks unexpected late local c
     '#form-errors': { hidden: true, textContent: '', innerHTML: '' },
   };
   const context = vm.createContext({
-    saving: false, mediaLoading: false, composerMissingMedia: false,
+    composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
     state: { posts: [{ id: 'post-1', status: 'draft', createdAt: '2026-01-01' }] },
     editingId: 'post-1', initialEditor: '{}', composerLabelState: { title: '', tags: [], baseline: '' },
     composerBaseText: 'submitted text', composerVariantTexts: {}, composerMedia: null, composerCover: null,
