@@ -1,4 +1,4 @@
-# Lokales Upgrade auf 0.6
+# Lokales Upgrade auf 0.7
 
 ## Vorher
 
@@ -60,3 +60,13 @@ Neue Credentials starten leer. Erst der kontrollierte Callback nach vollständig
 Der lokale Constructor prüft weiter sämtliche Digests vor allen Änderungen und rollt ausstehende DDL plus Ledger gemeinsam zurück. Tests mit tatsächlicher SQLite-Datei prüfen 4→5, Wiederöffnung, Besitzer-/State-Erhalt, geänderte Historie und absichtlich kollidierenden Index. Cloud-D1-Migrationen sind damit noch nicht bewiesen. Runtime-Secretbereitstellung erfolgt separat, niemals durch SQL oder einen HTTP-Aufruf.
 
 Die lokale Preview erhält keine Secrets und aktiviert keinen OAuth-Transport. Ein Upgrade des Quellcodes allein erzeugt weder einen Providerzugriff noch ein Konto. Datenordner und gegebenenfalls vorhandene autorisierte Credential-/Key-Backups müssen bei einer späteren Betriebsumgebung gemeinsam geplant werden; diese Quelle liefert keine Backupgarantie.
+
+## Von 0.6 auf 0.7
+
+`0006_youtube_lifecycle.sql` ergänzt fünf eigene Tabellen für YouTube-OAuth-State, Credentials, Installtickets, Medien und Uploadverläufe. Migrationen 0001–0005 bleiben bytegleich; es gibt keine Rückfüllung, keine vorhandenen Konten und keinen automatischen Grant. Der lokale Ledger umfasst anschließend 1–6.
+
+PKCE-Verifier, Access-Tokens und Resumable-Sessionadressen sind mit unterschiedlichen AEAD-Zwecken und Kontextbindungen verschlüsselt. State-/Browser-/Noncewerte werden nur gehasht gespeichert. Runtime-Schlüssel werden weder erzeugt noch in SQL gehalten. Medienreservierungen zählen bereits ausstehend zur 20er-Quote; ein bestätigtes R2-Objekt und passende aktuelle Credential-Epoch sind vor Ready erforderlich. Inhalts-Eindeutigkeit umfasst auch ausstehende Dateien und ungewisse/abgebrochene Uploadaufträge.
+
+Der tatsächliche lokale Constructor wird auf 5→6, Wiederstart, bytegleichen Altbestand, geänderten v5-Digest und vollständigen DDL-/Ledger-Rollback bei einem kollidierenden neuen Index geprüft. Dies ist keine gehostete D1-Abnahme. Alte Instanzen dürfen nicht parallel gegen die aktualisierte Datenbank laufen; vorher vollständige Sicherung anlegen. Ein Downgrade erfolgt nur aus getrennter Sicherung, nicht durch Entfernen von Ledgerzeilen.
+
+Pending-Medien und manuell zu klärende Übertragungen werden nicht automatisch gelöscht oder zurückgesetzt. Ein späterer autorisierter Recovery-/Retentionplan ist erforderlich, bevor diese Grenzen im echten Betrieb genutzt werden.

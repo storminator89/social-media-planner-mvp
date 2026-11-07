@@ -1,4 +1,4 @@
-# Takt 0.6: lokaler Social-Media-Planer
+# Takt 0.7: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -17,9 +17,11 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 
 ## Daten und tatsächlicher Funktionsumfang
 
-- Lesende Verbindungsübersicht für Instagram, LinkedIn, YouTube und X. X bleibt ohne gespeicherte Verbindung; möglicher API-Zugang und Kosten erfordern eine ausdrückliche Freigabe. Sie zeigt echte lokale Serverzustände und unterscheidet technische Einrichtung, Plattformfreigabe und persönliche Berechtigung. Der ausgelieferte Stand hat keine aktivierte Provider-Konfiguration. Für LinkedIn sind kontrollierte Verknüpfungs- und lokale Trennabläufe implementiert; Versand bleibt immer gesperrt.
+- Lesende Verbindungsübersicht für Instagram, LinkedIn, YouTube und X. X bleibt ohne gespeicherte Verbindung; möglicher API-Zugang und Kosten erfordern eine ausdrückliche Freigabe. Sie zeigt echte lokale Serverzustände und unterscheidet technische Einrichtung, Plattformfreigabe und persönliche Berechtigung. Der ausgelieferte Stand hat keine aktivierte Provider-Konfiguration. Für LinkedIn und YouTube sind kontrollierte Verknüpfungs- und lokale Trennabläufe implementiert. LinkedIn-Versand bleibt gesperrt; YouTube besitzt einen gesondert deaktivierten privaten Uploadpfad.
 - Vollständiger serverseitiger LinkedIn-Webablauf: expliziter Start, pro Versuch geschützter Cookie, Einmal-State/Installticket, begrenzter Codeaustausch, echte RS256-/Issuer-/Audience-/Nonceprüfung, passender Userinfo-Subject und erst dann verschlüsselte Tokenablage. Ohne ausdrücklich bereitgestellte Runtime-Konfiguration/Schlüssel und bestätigte Sicherheitsvoraussetzungen ist jeder aktive Pfad gesperrt. Der lokale Previewserver kann keinen Provider starten.
 - LinkedIn-Bedienung liest den tatsächlichen Serverzustand, akzeptiert nur die offizielle Autorisierungsadresse mit eigenem Callback und entfernt gespeicherten Zugriff erst nach ausdrücklicher Bestätigung. Keine fingierte Verbindung, kein Reconnect, Refresh oder Posting.
+- Google-/YouTube-Webflow mit PKCE S256, vollständiger OIDC-Prüfung und Abgleich eines vorab bestätigten Zielkanals. Eigene verschlüsselte State-, Credential- und Installticket-Persistenz; kein Refresh oder Reconnect. Ohne Runtime-Freigaben bleibt auch dieser Pfad gesperrt.
+- Private YouTube-Uploads als eigener bewusster Ablauf: MP4/WebM bis 8 MiB und 20 gespeicherte Dateien, erst private Site-Speicherung, dann unveränderliche Zusammenfassung und ausdrücklicher Uploadstart. Kinder-/KI-Angaben sind Pflichtentscheidungen. Sichtbarkeit ist fest privat, Abonnentenbenachrichtigung aus; keine öffentliche Planung. Ungewisse Übertragungen werden nicht automatisch neu gestartet.
 - Dependency-freier Sites-Worker-Entwurf mit eingebetteten UI-Dateien und identitätsgebundener Daten-API. `npm run build:worker` erzeugt ein lokales Worker-Artefakt, keinen gehosteten Dienst.
 - Ideen-Inbox mit optionalem Titel, Notizen, Labels, Suche und Label-Filter. Ideen brauchen weder Kanal noch Termin. Erst ein erfolgreicher Beitragssave verschiebt die Idee mit derselben ID in Entwürfe oder Planung.
 - UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export.
@@ -43,7 +45,8 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 - Die separate Workflow-Bibliothek enthält weiterführende Zustands- und Freigabelogik; nicht alle dieser Funktionen sind über die UI erreichbar.
 - Queue-Regeln gelten nur im geöffneten Editor und werden nicht dauerhaft gespeichert. Keine kanalweise Queue-Einstellungsseite oder automatisch optimierte Bestzeit.
 - Ein reiner localStorage-/Static-Modus ist gesperrt. Fehlender Serveradapter oder ungültige Ladeantworten erzeugen weder leere Ersatzschreibvorgänge noch Demo-Beiträge. Alte Browser-only-Daten werden nicht automatisch importiert.
-- Keine tatsächlich eingerichtete Social-Verbindung oder reale Credentials in diesem Quellstand. LinkedIn-OAuth und Tokenverschlüsselung sind implementiert und mit lokalen kryptografischen Fixtures geprüft, aber noch nicht live aktiviert. Keine API-Veröffentlichung, Hintergrund-Scheduler, Webhooks, Analytics oder Inbox.
+- Keine tatsächlich eingerichtete Social-Verbindung oder reale Credentials in diesem Quellstand. LinkedIn-/Google-OAuth, Tokenverschlüsselung und private YouTube-Übertragung sind mit lokalen kryptografischen und HTTP-Fixtures geprüft, aber nicht live aktiviert. Kein öffentlicher Publisher, Hintergrund-Scheduler, Webhooks, Analytics oder Inbox. YouTube-Schritte funktionieren nur bis zum Ablauf des aktuellen Access-Tokens und nur über sichtbare, bewusst gestartete Interaktion. OAuth allein ist keine Uploadfreigabe.
+- Ungewisse Medienablagen zählen zur Quote und können nicht als Uploadquelle verwendet werden. Gleicher Dateiinhalt ist dauerhaft gegen doppelte Reservierung gesperrt, einschließlich ausstehender Einträge. Es gibt noch keine UI für Löschung, Retention oder manuelle Wiederherstellung. Lokales Trennen löscht keine Google-Videos und widerruft den Google-Grant nicht.
 - Keine direkte Bearbeitung gespeicherter Bild-Alttexte; Bild erneut auswählen. Kein Medien-Löschendpunkt. Entfernte Beiträge können Bilddateien zurücklassen.
 - Rückgängig ist eine kurze Sitzungsfunktion, kein Papierkorb: UI-Angebot 12 Sekunden; kanonische Wiederherstellungsdaten höchstens 60 Sekunden und 100 Einträge pro Store. Neuladen löscht diesen Zwischenspeicher. Bei einem Konflikt bleibt die gelöschte UI-Fassung sichtbar kopierbar, sie wird nicht automatisch wiederhergestellt.
 - Die temporäre Arbeitsumgebung ist kein zugesicherter langfristiger Speicher.
@@ -52,9 +55,9 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
 
-Version 0.6 nutzt weiterhin API-Schema 2 und ergänzt ausschließlich Migration 0005 für verschlüsselte Credentials und Installtickets. Migrationen 0001–0004 bleiben bytegleich. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
+Version 0.7 nutzt weiterhin API-Schema 2 und ergänzt ausschließlich Migration 0006 mit fünf eigenen YouTube-Tabellen. Migrationen 0001–0005 bleiben bytegleich. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
 
-Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/token-lifecycle.md`, `docs/linkedin-web-transport.md`, `docs/verification.md`.
+Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/token-lifecycle.md`, `docs/linkedin-web-transport.md`, `docs/youtube-http-contract.md`, `docs/youtube-operation.md` und `docs/verification.md`.
 
 ## Lizenzstatus
 

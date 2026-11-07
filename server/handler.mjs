@@ -1,3 +1,4 @@
+import {handleYouTube} from '../modules/youtube/http-router.mjs';
 import {handleLinkedInOAuth} from '../modules/oauth/http-router.mjs';
 import {handleProviderStatus} from '../modules/providers/status-api.mjs';
 import { readFile, realpath } from 'node:fs/promises';
@@ -26,7 +27,7 @@ export function createLocalHandler({ directory = join(ROOT, '.local'), publicDir
       if (url.pathname.startsWith('/api/')) {
         const headers = new Headers(request.headers); headers.set('oai-authenticated-user-id', LOCAL_OWNER);
         const internal = new Request(request, { headers });
-        const response = await handleLinkedInOAuth(internal, {DB, BUCKET}) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await handlePlannerRequest(internal, { DB, BUCKET });
+        const response = await handleYouTube(internal, {DB, BUCKET}) ?? await handleLinkedInOAuth(internal, {DB, BUCKET}) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await handlePlannerRequest(internal, { DB, BUCKET });
         if (!response) return errorResponse(404, 'Endpunkt nicht vorhanden.');
         // Keep capability labels truthful: this is disk-backed emulation, not deployed D1/R2.
         if (url.pathname === '/api/planner/state' && response.ok) {

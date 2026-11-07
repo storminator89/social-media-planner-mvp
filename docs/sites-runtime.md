@@ -28,7 +28,7 @@ Automatisierte Tests rufen den tatsächlichen erzeugten Worker auf, verwenden da
 
 Vor produktiver Nutzung fehlen mindestens: private Site-Bereitstellung, Dispatch-Readback mit zwei echten Personen, gehostete Migrationen, D1-/R2-Quoten und Persistenz, Backup-/Wiederherstellung, reale Provider-App-/OAuth-Freigaben und eine ausdrücklich genehmigte private Testübertragung. Keine Credential-Rohwerte werden im Quellcode, Manifest oder Browser gespeichert. Die neue private Credential-Tabelle enthält nur verschlüsselte Tokens sowie notwendige nichtöffentliche Metadaten; der Runtime-Key liegt außerhalb von D1.
 
-Ein Browser-Queue-Termin ist kein Scheduler. Ein Worker-`setTimeout` wird nicht als Hintergrundausführung verwendet. Es existiert keine autonome Veröffentlichungsroute. Die getrennten Publishing-Adapter bleiben außerhalb der HTTP-Routen. Der LinkedIn-Verknüpfungstransport ist implementiert, benötigt aber explizite vollständig geprüfte Serverkonfiguration. Testfixtures sind nicht Teil des Runtime-Bundles.
+Ein Browser-Queue-Termin ist kein Scheduler. Ein Worker-`setTimeout` wird nicht als Hintergrundausführung verwendet. Es existiert keine autonome Veröffentlichungsroute. Die getrennten Instagram-/X-/LinkedIn-Publishing-Adapter bleiben außerhalb der HTTP-Routen. 0.7 ergänzt ausschließlich einen gesondert gesperrten privaten YouTube-Uploadvertrag. Der LinkedIn-Verknüpfungstransport ist implementiert, benötigt aber explizite vollständig geprüfte Serverkonfiguration. Testfixtures sind nicht Teil des Runtime-Bundles.
 
 ## Native App-Connectoren
 
@@ -43,3 +43,11 @@ Der Composition Root des erzeugten Workers setzt ausdrücklich nativen Fetch fü
 Nur GET an `/api/providers/linkedin/oauth/callback` wird gesondert geprüft. Alle anderen API-Routen behalten die allgemeine Origin-Grenze. Der Callback verlangt selbst dieselbe Dispatch-Identität wie der Start, die eigene geschützte Browserbindung und den geclaimten State/Installkontext. Kein Besucher wird anhand eines State-Lookups bestimmt. Die reservierten Sites-Authrouten werden nicht überschrieben.
 
 Migration 0005 ist schema-only und additiv vorbereitet, aber nicht gehostet angewandt. Echte D1-Transaktionen, Secretbereitstellung, Runtime-Response-URLs, Cookie-/Sessionrückkehr und Plattformlogs müssen vor Aktivierung nachgewiesen werden. Kein Worker-Test mit simuliertem Dispatch-Header ersetzt diese Prüfung. Der fertige Quellcode ist keine erteilte Hosting-/OAuth-Freigabe.
+
+## YouTube in 0.7
+
+Eine zweite enge GET-Callbackausnahme gilt nur für `/api/providers/youtube/oauth/callback`; sie verlangt dieselbe Sites-Identität, den eigenen Versuchscookie, PKCE und vollständig geprüften Google-OIDC-/Kanalbezug. Keine reservierte Sites-Route wird überschrieben. Medien- und Uploadaktionen behalten Same-origin-/CSRF-Schutz und werden zusätzlich getrennt aktiviert.
+
+Der native Worker bündelt die Google-Web- und privaten Uploadpfade, bleibt ohne ausdrückliche Konfiguration jedoch vollständig gesperrt. Für Videoobjekte werden maximal 8 MiB vollständig zur Signatur-/SHA-Prüfung gelesen. Das ist eine bewusst kleine Produktgrenze, keine Zusicherung der großen Google-Uploadlimits oder ausreichender realer Worker-Ressourcen. R2.put muss ein passendes Objekt mit Key, Größe und ETag bestätigen; eine leere/unklare Antwort führt nicht zu Ready.
+
+Vor Aktivierung sind echte D1-/R2-Transaktions-, Antwort- und Speicherverträge, Dispatch-/Cookie-Rückkehr, Googles App-/Scope-/Kanal- und Projektquoten, Response-URLs, Laufzeit-/Speicherbudgets sowie Plattform-Querylogs zu prüfen. Die fünf neuen Tabellen sind noch nicht gehostet angewandt. Secretbereitstellung, Grant und konkreter privater Upload benötigen die passende Freigabe. Siehe `youtube-operation.md`.

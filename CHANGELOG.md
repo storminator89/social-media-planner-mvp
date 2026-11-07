@@ -1,5 +1,15 @@
 # Änderungsprotokoll
 
+## 0.7.0
+
+- Standardmäßig gesperrter Google-Webflow mit PKCE S256, vollständiger RS256-/Nonce-/Subjectprüfung und fest bestätigtem YouTube-Zielkanal.
+- Additive Migration 0006 für verschlüsselte Versuche, Credentials, Installtickets, private Medien und dauerhafte Uploadzustände. Frühere Migrationen unverändert.
+- Privater MP4-/WebM-Upload bis 8 MiB: Site-Speicherung getrennt von ausdrücklichem Google-Start, unveränderliche Inhaltsbestätigung, feste private Sichtbarkeit und keine Abonnentenbenachrichtigung.
+- Resumable-Sessions sind verschlüsselte serverseitige Capabilities. Ungewisser Start wird nicht wiederholt, ungewisser Chunk benötigt dieselbe Sessionprobe. Dauerhafte Warnungen und Inhalts-Deduplizierung verhindern stille Neustarts.
+- Cancel-/Disconnect-/Ablauf-Fences unmittelbar vor externem Senden; positive R2-Bestätigung vor Ready, ausstehende Dateien zählen zur Quote.
+- Eigene YouTube-Oberfläche mit zweckgebundener Unsicherheit, Ablaufprüfung und ehrlich getrennten Zuständen für angenommenen Upload und Verarbeitung.
+- Kein realer Grant, Schlüssel, Upload oder Hosting angelegt. Kein Refresh, Reconnect, öffentlicher Versand oder Hintergrundbetrieb.
+
 ## 0.6.0
 
 - Echte serverseitige LinkedIn-Webpfade für expliziten Start, validierten Callback, Readiness und lokale Zugriffsentfernung, vollständig gesperrt ohne autorisierte Runtime-Konfiguration.

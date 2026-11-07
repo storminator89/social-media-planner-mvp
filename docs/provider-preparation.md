@@ -4,7 +4,7 @@
 
 Im ausgelieferten Stand ist kein Social-Konto aktiviert. LinkedIn besitzt inzwischen einen vollständig implementierten, aber explizit freizuschaltenden Verknüpfungsablauf. Ein erfolgreich aus der Datenbank gelesener leerer Verbindungsbestand wird als „Nicht verbunden“ dargestellt. Technische Einrichtung, Anbieter-App-Freigabe und persönliche Kontoberechtigung sind verschiedene Voraussetzungen. Kein Zustand impliziert einen erfolgreichen Post.
 
-`/api/providers/status` liefert ausschließlich lesende, besitzerspezifische Statusdaten. Fehler oder fehlende Tabellen führen zu 503. Die Oberfläche zeigt dann „Status unbekannt“, anstatt eine Verbindung zu erfinden. Es gibt keine Provider-Upload-, Job- oder Publishing-Schreibroute. Die getrennten LinkedIn-Start-/Callback-/Trennrouten bleiben ohne geprüfte Runtime-Konfiguration gesperrt. Eigene Planerbilder lassen sich weiterhin über den vorhandenen geschützten Medienendpunkt speichern.
+`/api/providers/status` liefert ausschließlich lesende, besitzerspezifische Statusdaten. Fehler oder fehlende Tabellen führen zu 503. Die Oberfläche zeigt dann „Status unbekannt“, anstatt eine Verbindung zu erfinden. Diese ältere Vorbereitungs-API bietet keine Provider-Upload-, Job- oder Publishing-Schreibroute. Davon getrennt enthält Version 0.7 gesondert gesperrte LinkedIn-/Google-OAuth-Routen und private YouTube-Uploadrouten; sie aktivieren diese Platzhaltertabellen nicht. Die neuen Wege bleiben ohne geprüfte Runtime-Konfiguration gesperrt. Eigene Planerbilder lassen sich weiterhin über den vorhandenen geschützten Medienendpunkt speichern.
 
 ## Datenmodell
 
