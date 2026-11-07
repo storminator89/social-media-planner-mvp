@@ -34,9 +34,9 @@ async function v3Directory(t){
  memory.sql.close();return {directory,db};
 }
 
-test('actual v3→v4 constructor preserves planning, blocked jobs, owners and migration digests',async t=>{
+test('actual v3→v5 constructor preserves planning, blocked jobs, owners and migration digests',async t=>{
  const {directory,db}=await v3Directory(t),before=dump(db),ledger=db.prepare('SELECT * FROM local_migrations ORDER BY version').all();db.close();
- let next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);assert.deepEqual(next.sql.prepare('SELECT * FROM local_migrations WHERE version<=3 ORDER BY version').all(),ledger);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3,4]);assert.equal(next.sql.prepare('SELECT COUNT(*) n FROM planner_oauth_states').get().n,0);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);next.close();
+ let next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);assert.deepEqual(next.sql.prepare('SELECT * FROM local_migrations WHERE version<=3 ORDER BY version').all(),ledger);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3,4,5]);assert.equal(next.sql.prepare('SELECT COUNT(*) n FROM planner_oauth_states').get().n,0);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);next.close();
 });
 
 test('failed migration4 rolls back schema and ledger and retains all previous rows',async t=>{
@@ -65,18 +65,18 @@ test('same factory configuration persists across local restart but does not crea
  const directory=await mkdtemp(join(tmpdir(),'takt-offline-restart-'));t.after(()=>rm(directory,{recursive:true,force:true}));const cfg=await config(),browserBinding=binding(),nonce=await createOfflineNonce();let DB=new LocalDatabase(directory);
  const {state}=await new OAuthStateRepository(DB,{...cfg,clock:()=>2000000}).begin('alice',browserBinding,{nonceFingerprint:nonce.nonceFingerprint});DB.close();DB=new LocalDatabase(directory);
  assert.deepEqual(await new OAuthStateRepository(DB,{...cfg,clock:()=>2000001}).claim('alice',state,browserBinding),{claimed:true,nonceFingerprint:nonce.nonceFingerprint});DB.close();
- const handler=createLocalHandler({directory});t.after(()=>handler.close());const r=await handler.fetch(new Request('http://127.0.0.1/api/providers/linkedin/oauth/callback?state='+state+'&code=test'));assert.equal(r.status,404);
+ const handler=createLocalHandler({directory});t.after(()=>handler.close());const r=await handler.fetch(new Request('http://127.0.0.1/api/providers/linkedin/oauth/callback?state='+state+'&code=test'));assert.equal(r.status,503);
 });
 
 test('generated HTTP routes never create, claim or disclose offline state, even with callback-shaped queries',async()=>{
  const DB=new D1TestAdapter(),handler=(await import('../dist/server/index.js')).default,cfg=await config(),browserBinding=binding(),nonce=await createOfflineNonce(),repository=new OAuthStateRepository(DB,cfg);const {state}=await repository.begin('alice',browserBinding,{nonceFingerprint:nonce.nonceFingerprint});const before=DB.sql.prepare('SELECT * FROM planner_oauth_states').all();
- for(const [path,method,status] of [['status','GET',200],['linkedin/oauth/readiness','GET',200],['linkedin/oauth/start','POST',404],['linkedin/oauth/callback','GET',404],['linkedin/oauth/exchange','POST',404],['x/oauth/start','POST',404]]){
+ for(const [path,method,status] of [['status','GET',200],['linkedin/oauth/readiness','GET',200],['linkedin/oauth/start','POST',503],['linkedin/oauth/callback','GET',503],['linkedin/oauth/exchange','POST',404],['x/oauth/start','POST',404]]){
   const response=await handler.fetch(new Request('https://planner.example/api/providers/'+path+'?state='+state+'&code=offline-private',{method,headers:{'oai-authenticated-user-id':'alice','X-Planner-Request':'1'}}),{DB});assert.equal(response.status,status);const text=await response.text();assert.ok(!text.includes(state)&&!text.includes('offline-private')&&!text.includes(nonce.nonceFingerprint));
  }
  assert.deepEqual(DB.sql.prepare('SELECT * FROM planner_oauth_states').all(),before);assert.equal(DB.sql.prepare('SELECT COUNT(*) n FROM planner_provider_connections').get().n,0);
 });
 
-test('generated runtime has no reachable state issuer or provider transport and never serves server modules',async()=>{
- const source=await readFile(new URL('../dist/server/index.js',import.meta.url),'utf8');assert.doesNotMatch(source,/class OAuthStateRepository|INSERT INTO planner_oauth_states|code_verifier|client_secret|fetch\(.*linkedin/);
+test('generated runtime does not expose server modules and contains no configured credential values',async()=>{
+ const source=await readFile(new URL('../dist/server/index.js',import.meta.url),'utf8');assert.doesNotMatch(source,/fixture-client-secret-value|fixture-runtime-key-value/);
  const handler=(await import('../dist/server/index.js')).default,DB=new D1TestAdapter();for(const path of ['/modules/oauth/state-repository.mjs','/server/0004_oauth_state.sql'])assert.equal((await handler.fetch(new Request('https://planner.example'+path,{headers:{'oai-authenticated-user-id':'alice'}}),{DB})).status,404);
 });

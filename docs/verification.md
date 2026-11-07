@@ -1,38 +1,44 @@
-# Verifikation: Version 0.5
+# Verifikation: Version 0.6
 
-Stand: 7. November 2026. Lokaler Quell-/Worker-Kandidat, keine Site angelegt oder veröffentlicht.
+Stand: 7. November 2026. Lokaler Quell-/Worker-Kandidat, keine Site angelegt oder veröffentlicht. Der implementierte LinkedIn-Webflow bleibt ohne ausdrücklich bereitgestellte und geprüfte Runtime-Konfiguration vollständig gesperrt.
 
-## Automatisierte Prüfung
+## Automatisierte Integration
 
-333 Tests jeweils unter UTC, America/Los_Angeles und Asia/Tokyo bestanden; Syntaxprüfung und Worker-Build erfolgreich. Der tatsächliche generierte Worker wird direkt aufgerufen, nicht nur ein Stummel des Handlers. Wiederholte Builds sind byteidentisch. Tests verwenden SQLite-/Memory-/Dateiadapter, keine reale Cloud-Datenbank oder Social-Konten.
+568 Tests jeweils unter UTC, America/Los_Angeles und Asia/Tokyo bestanden; Syntaxprüfung und Worker-Build erfolgreich. Der tatsächliche generierte Worker enthält 18 öffentliche Assets und wird in Tests direkt aufgerufen. Wiederholte Builds sind byteidentisch. Alle Providerantworten sind lokale Testgegenstücke; kein Test ruft LinkedIn oder einen anderen Social-Dienst auf.
 
-Neue Abdeckung gegenüber 0.4:
+Neue Abdeckung gegenüber 0.5:
 
-- Servereigene, unveränderliche LinkedIn-Konfiguration mit exakter Origin, Redirect, Site-/Client-/Scope-/Aktionsbindung. Mutation des Eingabeobjekts während asynchroner Hashberechnung kann keine nachträglich erlaubte fremde Konfiguration erzeugen.
-- Ablehnender Callbackparser: doppelte/fehlende/unbekannte Felder, code+error, URL-Alternativen, Kontrollen/UTF-8/Überlänge und falsche Config. Codes und Providerfehler erscheinen nicht in öffentlichen Fehlerantworten.
-- Gekapselte Flow-Factory verbindet Parser und Repository fest. Ein anderer Site-/Client-/Redirectkontext kann den legitimen State nicht konsumieren. Falscher Besitzer/Browser und Replay bleiben ohne Wirkung.
-- 256-Bit-State, unabhängige Nonce und Browserbindung, Hash-only-Ablage, TTL, Quota inklusive verbrauchter noch gültiger Versuche, CAS-Einmalclaim mit gebundenem Nonce-Receipt und klare Ungewissheit bei verlorener Commitantwort.
-- Echter lokaler Constructor 3→4 mit nichtleerem Planer-/Jobbestand mehrerer Besitzer, unveränderten alten Zeilen/Digests, Wiederstart, persistierendem State und vollständigem Schema-/Ledger-Rollback bei absichtlich kollidierendem Index.
-- Reine Readiness- und Statusaufrufe erzeugen/beanspruchen keine States. Start-, Callback-, Exchange- und X-Initiationsrouten fehlen im echten erzeugten Worker. Servermodule/SQL sind keine öffentlichen Assets.
-- Vierer-Status vom echten Repository bis zum UI-Normalizer. X bleibt nicht verbunden und nicht persistierbar, verlangt ausdrückliche Kostenfreigabe, hat keinen Tarif oder Kontolink. Alte Dreierantworten und behauptete Verbindungen werden abgewiesen.
-- Bestehende Planungs-/Ideen-/Varianten-/Queue-/Medien-/409-/Undo-Tests unverändert im Gesamtlauf enthalten. Die übrigen Bibliothekstests bedeuten nicht, dass jede Bibliotheksfunktion über die UI erreichbar ist.
+- Vollständiger HTTP-Ablauf von explizitem Same-origin-POST über geschützten Versuchscookie, State-Claim und Installticket bis zu echter lokaler RS256-/Nonce-/Audience-/Issuer-/Subjectprüfung, AES-256-GCM-Speicherung und öffentlichem Readback.
+- Identischer vertrauenswürdiger Besitzer, Site-/App-/Aktionskontext und Attemptbindung vom Start bis zum Commit. Falsche Besitzer, vertauschte oder doppelte Cookies, A/B-Versuche desselben Besitzers, parallele Starts und Replay können keinen fremden Zugriff installieren.
+- Nur die exakt eigene GET-Callbackroute erhält eine eng begrenzte Protokollausnahme. Andere API-Routen behalten Origin-/CSRF-Schutz. Fehlende Site-Sitzung führt nicht zur Weitergabe von Code/State an eine Anmeldung.
+- Standardmäßig gesperrte Runtime, keine lokale Aktivierung über Shellwerte und keine Browser-Tokenaufnahme. Ungültige Konfiguration und fehlender Schlüssel werden nicht durch Erfolgs- oder Demoantworten ersetzt.
+- Feste Token-/JWKS-/Userinfo-Endpunkte; begrenzte Requests und Antworten, monotone Gesamtlaufzeiten, keine Redirects, Cookies oder automatischen Retries. Stream-Chunks werden nach Empfang wirklich kopiert, einschließlich Buffer-Unterklassen. Auch unmittelbar aufeinander folgende Microtasks können die monotone Body-Deadline nicht umgehen.
+- Vollständige echte Signaturprüfung und ablehnende JOSE-/JWKS-/JSON-Parser, Nonce/at_hash, Audience/azp, Issuer, Zeiten und Userinfo-Subjectvergleich. Fehler, ungewisse Exchanges und verlorene Commitantworten erzeugen keine behauptete Verbindung und keinen wiederholten Code-POST.
+- Verschlüsselte, besitzer-/kontextgebundene Credentials, nur einmal beanspruchbare Installtickets und first-writer-wins. Lokale Trennung und Schlüsselrotation sind revisionsgeschützt; verspätete Writer können sie nicht rückgängig machen. Manipulierter Ciphertext und fehlende alte Schlüssel werden nicht als nutzbare Verbindung angezeigt. SQL-Adapterfehler werden redigiert.
+- Additive Migration 0005 mit tatsächlichem lokalen SQLite-Constructor: 4→5, Wiederstart, alte Besitzer-/State-Daten und Revisionen, unveränderte Digests sowie vollständiger DDL-/Ledger-Rollback bei erzwungenem Indexkonflikt. SQL 0001–0004 und sämtliche Planer-Daten-/Workflowmodule bleiben bytegleich zu 0.5.
+- UI-Validierung der exakten offiziellen Weiterleitungsadresse und des eigenen Callbacks, explizite lokale Trennbestätigung, neuer Readback bei Konflikten, Schutz vor veralteten asynchronen Ergebnissen. Ablauf-Timer und Wiederaufnahmeprüfung entfernen einen überholten Verbindungszustand ohne Polling. Eine Callback-Query kann keinen Erfolg vortäuschen.
+- Vorhandene Ideen-, Planungs-, Kanalvarianten-, Queue-, Medien-, DST-, 409- und Undo-Regressionsprüfungen sind weiterhin enthalten. Bibliothekstests behaupten nicht, dass jede interne Funktion eine UI-Aktion besitzt.
 
 ## Unabhängige Nachprüfung
 
-298 rein speicherbasierte Tests wurden unabhängig in UTC/Los_Angeles/Tokio ausgeführt, ebenso Syntax. Der tatsächliche Buildcode wurde zweimal mit abgefangenen Dateischreibvorgängen ausgeführt; beide Ergebnisse entsprechen dem erzeugten Worker und allen 17 öffentlichen Assets. Der echte lokale Migrationsconstructor wurde zusätzlich mit Memory-SQLite in Upgrade-, Wiederstart- und Fehlerfällen geprüft.
+Die unabhängige Prüfung umfasst den integrierten HTTP-/Runtimevertrag, die echten Kryptografie- und Persistenzmodule, die UI-Nachhärtung und die tatsächlich erzeugten Workerbytes. 523 rein speicherbasierte Tests wurden unabhängig jeweils unter UTC, America/Los_Angeles und Asia/Tokyo ausgeführt, ebenso Syntax. Der echte Buildcode wurde zweimal ausschließlich im Speicher ausgeführt; beide Ergebnisse entsprechen exakt dem erzeugten Worker und allen 18 Assets. Die UI-Dateien stimmen bytegenau mit der separat nachgeprüften Fassung überein. Keine verbleibenden konkreten Quellblocker für diesen nicht aktivierten Stand.
 
-Zwei konkret reproduzierte Vertragsprobleme wurden vor Übergabe behoben: mutierbare Config während await und getrennt injizierbare Parser-/Repositorykontexte. Beide Originalreproduktionen wurden unabhängig erneut geprüft; der legitime State bleibt nach fremdem Kontextversuch nutzbar. Keine verbleibenden konkreten Blocker für diesen lokalen, nicht aktivierten Vorbereitungsstand.
+Zusätzlich wurde der gebaute Worker in einer WebAPI-only-VM ohne Node-Globals ausgeführt: HTTP-Start → echte lokale RSA-/OIDC-Prüfung → AEAD-Speicherung → öffentliches DTO → fremde Trennanfrage mit 409 → eigene Trennanfrage mit 204 → gesperrter Replay. Der Ablauf verwendet genau drei lokale Provider-Fixtureantworten und keinerlei Netzaufruf. Der echte lokale Migrationsconstructor wurde unabhängig mit isoliertem Memory-SQLite in Upgrade-, Wiederstart- und Fehlerfällen geprüft.
+
+Konkret reproduzierte Randfälle wurden vor Übergabe behoben: Tokenformat-/Ciphertext-Limitkonsistenz, Redigierung synchroner Prepare-/Bind-Fehler, Eigentum an Stream-Bytes, monotone Body-Deadline, exaktes UI-Callback-Pinning und Ablauf-Invalidierung einer offen bleibenden Karte. Diese Korrekturen wurden unabhängig nachgeprüft. Der A/B-Ticket-/Grant-Vertrag wird durch echte Repository- und Ende-zu-Ende-Negativtests geprüft, nicht nur durch frei austauschbare Claim-Stummel.
 
 ## Browserprüfung
 
-Die echte integrierte lokale SQLite-Statusroute zeigte Instagram, LinkedIn, YouTube und X als „Nicht verbunden“. Keine Statussimulation. X zeigte `COST_APPROVAL_REQUIRED` als verständlichen Hinweis auf zu prüfenden Zugang und ausdrücklich freizugebende mögliche Kosten; keine Preise oder Aktivierungsaktion.
+Eine getrennte Kopie des integrierten lokalen Servers wurde ohne OAuth-Konfiguration geprüft. LinkedIn zeigt „Einrichtung erforderlich“ mit tatsächlich deaktiviertem Start, keinen Disconnect-Knopf und keinen OAuth-Link. Die übrigen drei Karten behalten ihren eigenen Status; X verlangt weiter ausdrückliche Kostenfreigabe.
 
-Desktop mit 1174 CSS-Pixeln: zwei Spalten/zwei Reihen, kein horizontaler Überlauf. Natives schmales Browserfenster mit 400 CSS-Pixeln: eine Spalte, Client-/Scrollbreite jeweils 388 Pixel, Navigation etwa 78×52 Pixel je Ziel. Enter öffnete Details; Refresh behielt Fokus und offene X-Hinweise. Es gab ausschließlich „Status aktualisieren“ und „Zur Planung“, keine Connect-, Zahlungs-, OAuth- oder Versandaktion.
+Desktop zweispaltig und mobile Ansicht mit 386 CSS-Pixeln: kein horizontaler Überlauf, einspaltige Karten, Startknopf 44 Pixel hoch und mobile Navigation etwa 52 Pixel hoch. Voraussetzungen sind per Tastatur lesbar. Refresh behält Fokus und geöffnete Details; Navigation und Browser-Zurück/Vorwärts bleiben gesperrt. Auch `?linkedin=linked#connections` erzeugt keine Verbindung. Browserzoom wurde zurückgestellt und die Preview gestoppt.
 
-Direkter read-only Browseraufruf des LinkedIn-Readiness-Endpunkts bestätigte `offline_preparation`, fünf false-Fähigkeiten, unbestätigtes Ziel und `authorizationUrl:null`. Start-/Callback-Ablehnung ist automatisiert/sourcegeprüft, nicht als Live-OAuth-Browserdurchlauf behauptet. Preview danach gestoppt. Details: `x-browser-qa.md`. Historische 0.4- und 0.3-Browsernachweise stehen getrennt in den jeweiligen Berichten.
+Dies belegt ausschließlich den echten gesperrten Browserpfad. Es gab keine aktivierte OAuth-Weiterleitung oder erfolgreiche Live-Verknüpfung. Der nachfolgende URL-/Ablauf-Fix wurde getrennt durch Unit-/Async-Tests und einen unabhängigen Timer-Smoke geprüft, nicht als positiver Browser-OAuth-Test ausgegeben. Tatsächliche BFCache-Wiederherstellung wurde nicht im Browser nachgewiesen; Lebenszyklusfälle sind automatisiert geprüft. Details: `linkedin-browser-qa.md`.
 
 ## Grenzen
 
-Keine echte Sites-Dispatch-Rückkehr, Cloud-D1/R2-Migration oder Authentifizierung zweier Personen getestet. Keine neue Runtime, Sicherheitslockerung oder fremde Software dafür eingerichtet. Keine Hosting-ID, App, Credentials, OAuth-Grants, Tokens, Provider-/Zahlungsaktivierung oder Posts erstellt. Das Worker-Artefakt enthält keine Provider-Publisher und keinen State-/Flow-Mutator.
+Keine echten Sites-Dispatch-Sitzungen, gehosteten D1-/R2-Migrationen oder zwei realen Besucher getestet. Keine Site, App, Secrets, OAuth-Grants, Provider-/Zahlungsaktivierung oder Posts erstellt. Der Worker enthält keinen Publisher, Refresh-Transport oder Hintergrundscheduler. Lokale Testschlüssel und Providerantworten sind ausschließlich flüchtige Fixtures, keine echten Zugangsdaten.
 
-LinkedIn-Web-PKCE, tatsächliche Nonce-Rückgabe, signierte Tokenclaims, App-Produkte, sichere Tokenablage und Konto-/Postingberechtigung bleiben offene Live-Prüfungen. X-Kosten/Zugang sind keine freigegebenen Ausgaben. Readiness ist kein Verbindungsnachweis. Siehe `oauth-preparation.md`, `sites-runtime.md` und `provider-preparation.md`.
+Offen bleiben die ausdrücklich genehmigte Site/App/Secretbereitstellung, tatsächliche Session-/Cookie-Rückkehr und Plattformlogs, LinkedIns echte Nonce-/Issuer-/Tokenantwort-Kompatibilität und gesonderte Nutzerfreigabe für dauerhaften Zugriff. Das Vorhandensein serverseitiger Bestätigungsflags ersetzt diese Nachweise nicht. Die heute implementierte lokale Trennung erfordert intakte Konfiguration/Schlüssel und authentifizierbaren Ciphertext; Schlüsselverlust oder beschädigter Bestand benötigt einen gesonderten autorisierten Recoveryplan. Sie ist kein Provider-Widerruf.
+
+Siehe `oauth-preparation.md`, `linkedin-web-transport.md`, `token-lifecycle.md` und `sites-runtime.md`. Historische Nachweise sind in `verification-0.3.md`, `verification-0.4.md` und `verification-0.5.md` getrennt dokumentiert.

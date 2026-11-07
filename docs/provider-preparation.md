@@ -2,9 +2,9 @@
 
 ## Ehrliche Zustände
 
-Die Anwendung registriert derzeit keine Social-Konten. Ein erfolgreich aus der Datenbank gelesener leerer Verbindungsbestand wird als „Nicht verbunden“ dargestellt. Technische Einrichtung, Anbieter-App-Freigabe und persönliche Kontoberechtigung sind verschiedene Voraussetzungen. Kein Zustand impliziert einen erfolgreichen Post.
+Im ausgelieferten Stand ist kein Social-Konto aktiviert. LinkedIn besitzt inzwischen einen vollständig implementierten, aber explizit freizuschaltenden Verknüpfungsablauf. Ein erfolgreich aus der Datenbank gelesener leerer Verbindungsbestand wird als „Nicht verbunden“ dargestellt. Technische Einrichtung, Anbieter-App-Freigabe und persönliche Kontoberechtigung sind verschiedene Voraussetzungen. Kein Zustand impliziert einen erfolgreichen Post.
 
-`/api/providers/status` liefert ausschließlich lesende, besitzerspezifische Statusdaten. Fehler oder fehlende Tabellen führen zu 503. Die Oberfläche zeigt dann „Status unbekannt“, anstatt eine Verbindung zu erfinden. Es gibt keine OAuth-, Provider-Upload-, Job- oder Publishing-Schreibroute. Eigene Planerbilder lassen sich weiterhin über den vorhandenen geschützten Medienendpunkt speichern.
+`/api/providers/status` liefert ausschließlich lesende, besitzerspezifische Statusdaten. Fehler oder fehlende Tabellen führen zu 503. Die Oberfläche zeigt dann „Status unbekannt“, anstatt eine Verbindung zu erfinden. Es gibt keine Provider-Upload-, Job- oder Publishing-Schreibroute. Die getrennten LinkedIn-Start-/Callback-/Trennrouten bleiben ohne geprüfte Runtime-Konfiguration gesperrt. Eigene Planerbilder lassen sich weiterhin über den vorhandenen geschützten Medienendpunkt speichern.
 
 ## Datenmodell
 
@@ -16,7 +16,7 @@ Die Vorbereitung liest ausschließlich eigene Quellen, schützt den Insert mit d
 
 ## Grenzen vor echter Integration
 
-Serverseitige OAuth-Konfiguration, konkrete Konto-/Kanalverifikation, benutzerspezifische sichere Credentialablage, Provider-Freigaben, geschützte Freigabedatensätze, Mediensicherung und produktiver Transport fehlen. Anbieter-Adapter mit lokalen Antwortfixtures sind nicht in diesen Runtime-Build übernommen. Eine Bibliotheksprüfung ersetzt keinen echten Account-/Cloud-Test.
+Für LinkedIn sind serverseitige Konfiguration, OIDC-/Kontoverifikation, verschlüsselte Credentialablage und ein fester Transport implementiert. Ihre echte App-/Provider-/Cloud-Abnahme fehlt weiterhin. Die Publishing-Adapter bleiben getrennt; es gibt keine Versandfreigabedatensätze, veröffentlichende Route oder produktive Mediensicherung. Eine lokale kryptografische Prüfung ersetzt keinen echten Account-/Cloud-Test.
 
 Eine private Testübertragung benötigt eine konkrete Nutzerfreigabe für Zielkonto, Inhalt und Medium. Dauerhafte Zugriffsberechtigungen benötigen die gesonderte sichere Freigabe. Es werden keine Secrets im Chat oder Browser gesammelt. Vor geplanter öffentlicher Veröffentlichung müssen zusätzlich Provider-Zustände, unklare Ergebnisse, sichere Wiederaufnahme und das tatsächliche Hintergrundsystem nachgewiesen werden.
 
@@ -26,6 +26,6 @@ Die Statusübersicht enthält vier Karten: Instagram, LinkedIn, YouTube und X. X
 
 Für X sind API-Zugang, verfügbarer Funktionsumfang und mögliche Nutzungskosten vor einer Aktivierung zu prüfen und ausdrücklich freizugeben. Die UI nennt keine dauerhaften Preise und besitzt keine Zahlungs-, Verbindungs- oder Veröffentlichungsaktion. Die aktuelle Preisquelle ist [X API Pricing](https://docs.x.com/x-api/getting-started/pricing); dieses Projekt hat weder einen Tarif bestellt noch ein Kostenlimit autorisiert.
 
-Die ursprünglichen drei Provider besitzen weiterhin nur vorbereitende Platzhaltertabellen. X ist darin nicht persistierbar: Verbindungs- und Jobmethoden lehnen X ausdrücklich ab. Der Status-GET bleibt nicht mutierend, fehlende Tabellen bleiben Fehler und liefern keinen erfundenen Ersatzstatus. Bestehende SQL-Dateien werden für die Anzeige nicht geändert.
+Die ursprünglichen drei Provider behalten unveränderte vorbereitende Platzhaltertabellen. LinkedIn nutzt zusätzlich eine separate private Credential-/Ticket-Tabelle; die alte Statuszeile ist nicht seine maßgebliche Readiness. X ist darin nicht persistierbar: Verbindungs- und Jobmethoden lehnen X ausdrücklich ab. Der Status-GET bleibt nicht mutierend, fehlende Tabellen bleiben Fehler und liefern keinen erfundenen Ersatzstatus. Bestehende SQL-Dateien werden für die Anzeige nicht geändert.
 
-Die LinkedIn-Vorbereitung wird in `oauth-preparation.md` beschrieben. Sie verändert keinen dieser Verbindungszustände und schaltet keine Publishing-Fähigkeit frei. Extern entwickelte Provider-Adapter sind nicht Teil des Runtime-Bundles.
+Der LinkedIn-Webflow wird in `oauth-preparation.md` beschrieben. Er verändert die alten Platzhalter nicht und schaltet keine Publishing-Fähigkeit frei. Der neue feste Authentifizierungstransport ist Teil des geschlossenen Workerpfads; die getrennten Publishing-Adapter sind es nicht.

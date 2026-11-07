@@ -35,7 +35,7 @@ Seit Version 0.2 gibt es eigene Kanaltexte über `variantTexts`. Ein fehlender K
 
 Die Queue-Anbindung in `queue-panel.js` nutzt `workflows/queue.mjs`: Vorschläge sind read-only, ein Klick übernimmt nur Datum/Zone in den Editor. Jede Inhalts-/Regeländerung verwirft die Liste; die Übernahme prüft Fingerabdruck, Belegung und Zeit erneut. Speicherung erfolgt ausschließlich über den regulären Commit mit Revision. Regeln sind temporär, nicht Teil des State.
 
-Die angezeigten Profile sind Beispiele. Es gibt keine Verbindung zu Buffer oder anderen Social-Konten und keinen automatischen Versand.
+Die angezeigten Profile sind Beispiele. Es gibt keine Verbindung zu Buffer und keinen automatischen Versand. Tatsächliche LinkedIn-Verknüpfungen werden separat unter Konten geprüft; Planungsprofile bleiben Beispiele.
 
 ## Ideen und Wiederherstellung (0.3)
 
@@ -45,10 +45,10 @@ Unveränderte Titel, Labels und Notizen bleiben exakt erhalten, auch bei CR/LF, 
 
 Undo verwendet den aktuellen Snapshot mit seiner Revision. Nur bestätigte Löschungen erhalten kurzzeitig eine storegebundene kanonische Ergänzung für dieselbe ID; maximal 100 Einträge/60 Sekunden, Leeren bei erfolgreichem Neuladen. Ein 409 verbraucht diese Ergänzung nicht und löst kein Retry aus. Scheitert die UI-Wiederherstellung, wird die gelöschte UI-Fassung in einem readonly Textfeld angezeigt. Sie ersetzt weder ein Backup noch den vollständigen kanonischen Datensatz oder Mediendateien.
 
-## Verbindungen (0.5)
+## Verbindungen (0.6)
 
-Die separate Ansicht `connections.js` liest ausschließlich `/api/providers/status`. Instagram, LinkedIn, YouTube und X sind von den vorhandenen Demo-Planungskanälen getrennt. Die Ansicht verändert keine Beiträge und erweitert deren Kanalmodell nicht automatisch.
+Instagram, YouTube und X verwenden weiter den authentifizierten Vierer-Status. Die LinkedIn-Karte nutzt ausschließlich den eigenen Readiness-Endpunkt und ersetzt die veraltete LinkedIn-Platzhalterzeile vollständig. Keine automatische Änderung der Planungskanäle oder Beiträge.
 
-Unbekannte, unvollständige oder aktivierten Versand behauptende DTOs werden abgewiesen. Ladefehler zeigen „Status unbekannt“; ein alter Erfolgsstatus wird bei neuer Prüfung nicht als aktuell ausgegeben. Einrichtungshinweise sind nur ausklappbarer Text. Es gibt keinen Connect-, OAuth- oder Publish-Button und kein Browserfeld für Passwörter oder Tokens. Plattform-App-Freigabe und persönliche Kontoberechtigung werden getrennt dargestellt.
+Nur bestätigte `ready`-Readiness aktiviert den persönlichen LinkedIn-Start. Die UI prüft die offizielle Autorisierungsadresse, genaues eigenes Callbackziel und einmalige erlaubte Parameter vor Navigation. Eine Verknüpfung wird erst nach tatsächlichem Readback angezeigt. Trennung benötigt eine ausdrückliche zweite Bestätigung, danach wieder Readback. Ein Konflikt führt nicht zum Retry. Ablauf, Sichtbarkeitswechsel und verspätete Antworten dürfen keine dauerhaft aktive Anzeige oder unerwünschte Navigation erzeugen.
 
-Die Vierer-Ansicht und der Server-DTO müssen zusammen aktualisiert werden; ein alter Dreierpayload wird bewusst nicht als aktueller Status akzeptiert. X weist auf API-Zugang und ausdrücklich freizugebende mögliche Kosten hin, ohne feste Preise oder Kaufaktion. Desktop zeigt zwei Spalten und zwei Reihen, die mobile Ansicht eine Spalte.
+Keine Passwort-/Tokenfelder, keine Veröffentlichung, kein Reconnect oder Refresh. Ohne Konfiguration sind Aktionen sichtbar gesperrt. X weist unverändert auf Zugang und ausdrücklich freizugebende mögliche Kosten hin; es gibt keine Preisbehauptung oder Kaufaktion. Details und Grenzen stehen in `linkedin-connection-ui.md` und im Verifikationsbericht.

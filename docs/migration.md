@@ -1,4 +1,4 @@
-# Lokales Upgrade auf 0.5
+# Lokales Upgrade auf 0.6
 
 ## Vorher
 
@@ -47,6 +47,16 @@ Geprüft: tatsächlicher lokaler Constructor mit Daten mehrerer Besitzer, unver�
 
 Die neue Tabelle speichert nur Hashes von State und Browserbindung, einen Nonce-Fingerprint sowie nichtgeheime, exakt gebundene Konfiguration. Sie enthält keine Autorisierungscodes, PKCE-Verifier, Tokens oder Schlüssel. HTTP-Leseaufrufe erzeugen oder konsumieren keine Versuche. Es gibt keine Start-/Callback-Schreibroute. Die State-Tabelle ist kein Token-Vault und beweist keinen durchgeführten OAuth-Flow.
 
-X wird als vierter gesperrter Status angezeigt, aber nicht in den bestehenden Provider-/Jobtabellen gespeichert. Deren unveränderte CHECKs erlauben weiterhin nur drei Provider. X-Mutatoren werden vor Persistenz abgewiesen. Eine spätere X-Persistenzerweiterung braucht einen getrennt geprüften Tabellen-/Datenmigrationsplan; es gibt absichtlich keine Migration 0005.
+X wird als vierter gesperrter Status angezeigt, aber nicht in den bestehenden Provider-/Jobtabellen gespeichert. Deren unveränderte CHECKs erlauben weiterhin nur drei Provider. X-Mutatoren werden vor Persistenz abgewiesen. Eine spätere X-Persistenzerweiterung braucht einen getrennt geprüften Tabellen-/Datenmigrationsplan; Version 0.5 legt dafür absichtlich keine weitere Migration an. Die spätere 0005 in Version 0.6 betrifft ausschließlich LinkedIn-Credentials, nicht die X-Persistenz.
 
 Regressionen prüfen den echten lokalen Constructor mit nichtleeren Planer- und gesperrten Jobbeständen mehrerer Besitzer, unveränderte Revisionen/Digests, Wiederstart und Rollback bei kollidierendem Migrationsindex. Gehostete Anwendung, reale D1-Transaktionen und Aufbewahrung/Bereinigung in der Cloud sind nicht nachgewiesen. Abgelaufene State-Zeilen werden nur begrenzt beim nächsten Begin desselben Besitzers entfernt; ein eigenständiger Bereinigungslauf ist nicht implementiert.
+
+## Von 0.5 auf 0.6
+
+`0005_provider_credentials.sql` ergänzt nur die neue Credential-Tabelle, einmalige Installtickets und deren Index. Die vier vorigen SQL-Dateien bleiben bytegleich. Es gibt keine Rückfüllung und keine Seed-Credentials. Pro Site/Besitzer/Provider ist höchstens eine Credential-Zeile möglich. Die bestehenden Provider-/Jobtabellen bleiben unverändert und können weiterhin keinen aktiven Versand markieren.
+
+Neue Credentials starten leer. Erst der kontrollierte Callback nach vollständiger Identitätsprüfung darf Ciphertext und minimale gebundene Kontometadaten atomar installieren. Ein erfolgreiches Install verbraucht sein Ticket und erhöht Revision/Auth-Epoch. Lokale Trennung löscht den Ciphertext, schreibt einen Tombstone und sperrt verspätete Ergebnisse. Ein neues Connect-new darf diesen Tombstone nicht überschreiben. Schlüssel werden niemals in SQL gespeichert.
+
+Der lokale Constructor prüft weiter sämtliche Digests vor allen Änderungen und rollt ausstehende DDL plus Ledger gemeinsam zurück. Tests mit tatsächlicher SQLite-Datei prüfen 4→5, Wiederöffnung, Besitzer-/State-Erhalt, geänderte Historie und absichtlich kollidierenden Index. Cloud-D1-Migrationen sind damit noch nicht bewiesen. Runtime-Secretbereitstellung erfolgt separat, niemals durch SQL oder einen HTTP-Aufruf.
+
+Die lokale Preview erhält keine Secrets und aktiviert keinen OAuth-Transport. Ein Upgrade des Quellcodes allein erzeugt weder einen Providerzugriff noch ein Konto. Datenordner und gegebenenfalls vorhandene autorisierte Credential-/Key-Backups müssen bei einer späteren Betriebsumgebung gemeinsam geplant werden; diese Quelle liefert keine Backupgarantie.

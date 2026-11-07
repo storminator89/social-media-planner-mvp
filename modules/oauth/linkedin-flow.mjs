@@ -1,7 +1,7 @@
 import {OAuthStateRepository} from './state-repository.mjs';
 import {assertLinkedInOfflineConfiguration,createOfflineNonce,parseLinkedInCallback,OAuthContractError} from './linkedin-contract.mjs';
 
-/** Deliberately outside the HTTP/Worker import graph. This factory owns BOTH the
+/** Server-internal primitive, composed by the gated HTTP flow. It owns BOTH the
  * parser configuration and matching repository context. No independently injected
  * repository can accidentally claim another app/Site/redirect's state. */
 export function createOfflineLinkedInFlow(db,config,{clock=Date.now}={}){

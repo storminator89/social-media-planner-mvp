@@ -19,7 +19,7 @@ Der lokale Entwicklungsserver ist ausdrücklich eine andere Betriebsart: Loopbac
 
 Schreibanfragen verlangen gleiche Origin, keine Cross-Site-Kennung und `X-Planner-Request: 1`. Die API liefert keine CORS-Freigabe. Antwortdaten sind nicht öffentlich cachebar. SQL und interne Dateischlüssel werden nicht an den Browser ausgegeben.
 
-## API-Vertrag, Version 0.5 (Schema 2)
+## API-Vertrag, Version 0.6 (Schema 2)
 
 Alle Fehler verwenden `{error:{code,message,details?}}`.
 
@@ -62,9 +62,9 @@ API: PNG/JPEG/GIF/WebP/MP4/WebM mit Signaturprüfung; kein SVG/HTML. Die einfach
 
 Produktobergrenzen: 20 Kanäle, 100 Beiträge, 300 Varianten, 10 Medienreferenzen je Variante, 1 MiB JSON, 20 MiB je API-Datei, 100 Medienobjekte/200 MiB pro Besitzer. Das sind Anwendungsgrenzen, keine zugesagten Hostingtarife oder Plattformquoten.
 
-Noch nicht vorhanden: Medien-Löschendpunkt, Metadatenänderung gespeicherter Bilder, Videorange-Antworten, Transcoding, Backups, Social-Tokens, OAuth, Publisher oder Hintergrundjobs. Für spätere Cloudbereitstellung müssen Migrationen, echte Identität und D1/R2 separat nachgewiesen werden.
+Noch nicht vorhanden: Medien-Löschendpunkt, Metadatenänderung gespeicherter Bilder, Videorange-Antworten, Transcoding, Backups, Publisher oder Hintergrundjobs. LinkedIn-Verknüpfung und verschlüsselte Tokenverwaltung sind getrennt implementiert, aber standardmäßig nicht aktiviert. Für spätere Cloudbereitstellung müssen Migrationen, echte Identität und D1/R2 separat nachgewiesen werden.
 
-## Verbindungsstatus (0.5)
+## Verbindungsstatus (0.6)
 
 `GET /api/providers/status` bleibt ein rein lesender öffentlicher Endpunkt. Er verlangt eine vertrauenswürdige Besucheridentität, prüft Origin und liefert Schema 1 mit vier strikt begrenzten Provider-Statusobjekten und `capabilities:{oauth:false,publishing:false}`. Der lokale Entwicklungsserver setzt seinen separaten Testbesitzer erst nach den bestehenden Loopback-/Headerprüfungen ein.
 
@@ -72,8 +72,12 @@ Der Status enthält ausschließlich Provider, Einrichtungszustand, `accountLabel
 
 Die neue interne `ProviderRepository` besitzt ausschließlich vorbereitende Platzhalter-/Joboperationen. Sie ist kein Publisher und keine Berechtigungsquelle. Kein HTTP-Endpunkt ruft diese Mutatoren auf. Näheres in `provider-preparation.md`.
 
-## Offline-OAuth (0.5)
+## LinkedIn-Webflow (0.6)
 
-`GET /api/providers/linkedin/oauth/readiness` ist ebenfalls authentifiziert und nur lesend. Es liefert Schema 1, `offline_preparation`, den unbestätigten persönlichen Zieltyp, das vorgesehene Scope-Bündel und feste offene Voraussetzungen; sämtliche Fähigkeiten sind false und `authorizationUrl` ist null. Es prüft keine Credentials oder reale App-Freigabe. Schreibmethoden werden abgewiesen.
+Die maßgebliche LinkedIn-Readiness ist `GET /api/providers/linkedin/oauth/readiness`. Das allgemeine Vierer-DTO beschreibt weiterhin nur vorbereitende Platzhalter; seine LinkedIn-Zeile wird von der 0.6-UI bewusst nicht als aktueller Kontostatus verwendet. Auch `externalAccountsConnected:false` im bestehenden Planer-Snapshot ist ein historisches, nicht maßgebliches Planerfeld: Planungskanäle sind nicht an Providerkonten gebunden. Berechtigung und Verbindung niemals daraus ableiten.
 
-Die State-Tabelle aus Migration 0004 und die gekapselte Offline-Flow-Factory sind Entwicklungsbausteine ohne HTTP-Mutatoren. `/api/providers/linkedin/oauth/start`, `/callback` unter demselben eigenen Prefix und `/exchange` sind nicht implementiert. Sites-reservierte Authrouten bleiben unverändert. Keine Provider-Codes oder Roh-State-Werte werden über einen Endpunkt verarbeitet, gespeichert oder zurückgesendet. Siehe `oauth-preparation.md` für genaue Grenzen.
+Readiness-Schema1 hat `provider:'linkedin'`, `stage:'not_configured'|'ready'|'linked'|'expired'|'disconnected'|'error'`, fünf Fähigkeiten mit stets `publishing:false`, `targetConfirmed`, das Scope-Bündel, feste Blockercodes, `authorizationUrl:null`, `canDisconnect` und entweder `connection:null` oder `{id,revision,status,expiresAtMs}`. Keine Subject-/Token-/Ciphertext-/Key-/Receipt-Felder. `linked` erfordert tatsächlichen sicheren Metadaten-Readback mit authentifiziertem Envelope. Fehler liefern keine Ersatzverbindung.
+
+Start ist ein gleich-originiger markierter POST mit ausschließlich `{accountType:'personal'}`. Die Antwort enthält nach State-/Ticketanlage den offiziellen Autorisierungslink und Ablaufzeit sowie einen geschützten Versuchscookie. Callback verarbeitet nur genau gebundene Parameter und Identität, validiert die komplette Token-/OIDC-/Userinfo-Kette und speichert erst danach. Trennung ist ein markierter POST mit `{connectionId,expectedRevision}` und liefert nach lokalem CAS-Erfolg204. Ein fehlender oder veralteter Stand wird nicht automatisch überschrieben.
+
+Es gibt keinen öffentlichen Token-Intake/Export, keine freie Exchange-API, keinen Reconnect/Refresh/Postingendpunkt. Ohne Serverkonfiguration werden aktive Pfade abgewiesen; Readiness erklärt die Sperre. Exakter Ablauf und Livegrenzen: `oauth-preparation.md`.

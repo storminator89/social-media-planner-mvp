@@ -1,4 +1,5 @@
-import {handleOAuthReadiness} from '../modules/oauth/readiness-api.mjs';
+import {handleLinkedInOAuth} from '../modules/oauth/http-router.mjs';
+import {LINKEDIN_CALLBACK_PATH} from '../modules/oauth/linkedin-contract.mjs';
 import {handleProviderStatus} from '../modules/providers/status-api.mjs';
 import { handlePlannerRequest } from '../modules/data/api.mjs';
 
@@ -15,12 +16,15 @@ function validIdentity(request){const owner=request.headers.get('oai-authenticat
 function secure(response){const headers=new Headers(response.headers);for(const [key,value] of Object.entries(SECURITY)){if(!headers.has(key))headers.set(key,value);}return new Response(response.body,{status:response.status,headers});}
 
 /** Hosted-only entry: trust identity solely behind Sites Dispatch, never expose directly. */
-export function createSitesHandler({assets={},providerStatus=handleProviderStatus}={}){
+export function createSitesHandler({assets={},providerStatus=handleProviderStatus,oauthTransport,clock=Date.now}={}){
   return {
     async fetch(request,env={}){
       const url=new URL(request.url);
       // Dispatch owns these endpoints; this Worker must not implement another login flow.
       if(reserved.has(url.pathname))return error(404,'DISPATCH_ROUTE','Dieser Pfad wird vom Sites-Zugang verwaltet.');
+      // Exact provider callback only; the router independently requires full server
+      // configuration, matching Dispatch identity, per-attempt cookie and state.
+      if(url.pathname===LINKEDIN_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleLinkedInOAuth(request,env,{transport:oauthTransport,clock}));}catch{return error(503,'OAUTH_UNAVAILABLE','Die Kontoverbindung ist nicht verfügbar.');}}
       if(!validIdentity(request)){
         if(url.pathname==='/'&&request.method==='GET')return new Response('<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Takt · Anmelden</title><main><h1>Dein geschützter Planer</h1><p>Melde dich mit ChatGPT an, um deine Planung zu öffnen.</p><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Mit ChatGPT anmelden</a><p>Social-Media-Konten werden dadurch nicht verbunden.</p></main></html>',{status:401,headers:{...SECURITY,'Content-Type':'text/html; charset=utf-8'}});
         return error(401,'SIGN_IN_REQUIRED','Bitte mit ChatGPT anmelden.');
@@ -34,7 +38,7 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
           if(!providerStatus)return error(503,'PROVIDER_STATUS_UNAVAILABLE','Der Verbindungsstatus ist noch nicht verfügbar.');
           return secure(await providerStatus(request,env));
         }
-        const readiness=await handleOAuthReadiness(request);if(readiness)return secure(readiness);
+        const oauth=await handleLinkedInOAuth(request,env,{transport:oauthTransport,clock});if(oauth)return secure(oauth);
         const api=await handlePlannerRequest(request,env);if(api)return secure(api);
         if(url.pathname.startsWith('/api/'))return error(404,'NOT_FOUND','Endpunkt nicht vorhanden.');
         if(!['GET','HEAD'].includes(request.method))return error(405,'METHOD_NOT_ALLOWED','Methode nicht erlaubt.');

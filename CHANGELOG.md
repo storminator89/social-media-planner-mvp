@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.6.0
+
+- Echte serverseitige LinkedIn-Webpfade für expliziten Start, validierten Callback, Readiness und lokale Zugriffsentfernung, vollständig gesperrt ohne autorisierte Runtime-Konfiguration.
+- Fester begrenzter Token-/JWKS-/Userinfo-Transport; vollständige RS256-/Issuer-/Audience-/Zeit-/Nonce-/Subjectprüfung vor Tokenverwendung oder Speicherung. Keine Provider-Aufrufe während Entwicklung oder Auslieferung.
+- Additive Migration 0005, AES-256-GCM mit bereitgestelltem nicht exportierbarem Runtime-Key, besitzer-/kontextgebundene AAD und einmalige Installtickets. Erstes gültiges Install gewinnt; Widerruf und Keyrotation sind revisionsgeschützt.
+- LinkedIn-UI mit streng geprüfter offizieller Weiterleitung, expliziter lokaler Trennbestätigung und Readback. Keine Tokens im Browser und keine Erfolgsmeldung allein aus Callback-Query.
+- Reconnect, Refresh, providerseitiger Widerruf und Publishing bleiben gesperrt. Gehostete Identity-/Cookie-/Nonce-/Tokenantwort-Verträge müssen weiterhin tatsächlich geprüft werden.
+
 ## 0.5.0
 
 - X als vierte, ehrlich unverbundene Option mit ausdrücklichem Kostenfreigabe-Hinweis; keine X-Verbindungs-/Jobpersistenz und keine bezahlte Aktivierung.

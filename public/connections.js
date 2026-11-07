@@ -1,4 +1,5 @@
-/** Read-only provider readiness. No OAuth, tokens, status mutation or publishing. */
+/** Provider status plus explicitly initiated personal LinkedIn connection controls. */
+import {createLinkedInConnectionController,renderLinkedInConnection} from './linkedin-connection.js';
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const PROVIDERS=Object.freeze([
   {id:'instagram',name:'Instagram',mark:'ig',color:'#b54488',summary:'Bilder und Stories brauchen ein passendes Konto und freigegebene Berechtigungen.',requirement:'Der unterstützte Kontotyp und die Berechtigungen hängen vom gewählten Instagram-Login-Verfahren ab. Diese Einrichtung muss vor einer Kontofreigabe feststehen.'},
@@ -45,9 +46,9 @@ export function renderProviderCard(definition,provider,{loading=false,expanded=f
   const status=loading?{label:'Wird geladen',className:'unknown',description:'Der aktuelle Status wird abgerufen.'}:providerStatusCopy(provider);
   return `<article class="connection-card" aria-labelledby="connection-${definition.id}"><div class="connection-card-heading"><span class="connection-logo" style="--provider-color:${definition.color}" aria-hidden="true">${definition.mark}</span><div><h2 id="connection-${definition.id}">${definition.name}</h2><span class="connection-status ${status.className}"><i aria-hidden="true"></i>${status.label}</span></div></div><p class="connection-description">${status.description}</p><p class="connection-purpose">${definition.summary}</p>${!loading&&provider?.accountLabel?`<p class="connection-account"><strong>Konto zur Einrichtung:</strong> ${escape(provider.accountLabel)}<br><small>Dieser Hinweis bestätigt keine aktive Verbindung.</small></p>`:''}<div class="connection-disabled"><span aria-hidden="true">○</span> Versand hier nicht verfügbar</div><details class="connection-details" data-provider="${definition.id}" ${expanded?'open':''}><summary>Einrichtung für ${definition.name} ansehen<span aria-hidden="true">⌄</span></summary><div class="connection-details-body">${provider&&!loading&&provider.blockerCodes.length?`<h3>Aktuell erforderlich</h3><ul class="connection-blockers">${provider.blockerCodes.map(code=>`<li><strong>${BLOCKERS[code].title}</strong><p>${BLOCKERS[code].description}</p></li>`).join('')}</ul>`:''}<h3>Vor einer echten Verbindung</h3><p>${definition.requirement}</p><ol class="connection-steps"><li><strong>App serverseitig einrichten</strong><p>Diese Oberfläche nimmt keine Passwörter, Tokens oder Client-Secrets entgegen.</p></li><li><strong>Konto bewusst freigeben</strong><p>Erst über einen freigeschalteten Anmeldeablauf beim Anbieter. Hier ist noch keiner aktiv.</p></li><li><strong>Versand separat prüfen</strong><p>Eine Kontofreigabe ist noch keine erfolgreiche Veröffentlichung. Upload und Versand müssen gesondert geprüft werden.</p></li></ol></div></details></article>`;
 }
-export function renderConnections({phase='idle',state=null,checkedAt=null,expanded=[]}={}){
+export function renderConnections({phase='idle',state=null,checkedAt=null,expanded=[],linkedin}={}){
   const loading=phase==='loading',error=phase==='error',ready=phase==='ready'&&state;
-  return `<div class="connections-intro"><div><span class="eyebrow">ECHTE KONTEN. KLARE FREIGABEN.</span><h2>Alles beginnt mit einer sicheren Verbindung.</h2><p>Hier siehst du, was für Instagram, LinkedIn, YouTube und X noch fehlt. Die Demo-Kanäle im Kalender bleiben davon getrennt.</p></div><button type="button" class="button subtle" data-connection-refresh aria-disabled="${loading}">${loading?'Wird geladen …':'Status aktualisieren'}</button></div><div class="connection-capability-note"><span class="connection-note-symbol" aria-hidden="true">i</span><div><strong>Vorbereitung, noch keine Anmeldung oder Veröffentlichung</strong><p>Einrichtungshinweise lassen sich ansehen. Konten verbinden, Berechtigungen erteilen und Beiträge versenden sind hier nicht freigeschaltet.</p></div></div><div class="connection-feedback ${error?'has-error':''}" role="${error?'alert':'status'}" aria-live="polite">${error?'<strong>Verbindungsstatus nicht verfügbar.</strong> Bitte später erneut prüfen. Deine Planung bleibt nutzbar.':loading?'Verbindungsstatus wird geladen.':ready?`Serverstatus abgerufen${checkedAt?` am ${escape(new Date(checkedAt).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))}`:''}. Versand aus dieser Ansicht deaktiviert.`:'Status noch nicht abgerufen.'}</div><div class="connection-grid">${PROVIDERS.map(def=>renderProviderCard(def,ready?state.providers.find(p=>p.provider===def.id):null,{loading,expanded:expanded.includes(def.id)})).join('')}</div><div class="connections-footer"><p>Ein geplanter Kalenderbeitrag ist keine Veröffentlichungsbestätigung. Neue Verbindungen ändern deine vorhandenen Entwürfe nicht.</p><button type="button" class="button subtle" data-view="calendar">Zur Planung</button></div>`;
+  return `<div class="connections-intro"><div><span class="eyebrow">ECHTE KONTEN. KLARE FREIGABEN.</span><h2>Alles beginnt mit einer sicheren Verbindung.</h2><p>Hier siehst du, was für Instagram, LinkedIn, YouTube und X noch fehlt. Die Demo-Kanäle im Kalender bleiben davon getrennt.</p></div><button type="button" class="button subtle" data-connection-refresh aria-disabled="${loading}">${loading?'Wird geladen …':'Status aktualisieren'}</button></div><div class="connection-capability-note"><span class="connection-note-symbol" aria-hidden="true">i</span><div><strong>Kontofreigabe und Versand bleiben getrennt</strong><p>Nur die LinkedIn-Karte zeigt, ob die persönliche Kontofreigabe bereits eingerichtet ist. Die Freigabe erfolgt bewusst bei LinkedIn. Für alle Anbieter bleibt der Versand aus dieser Ansicht gesperrt.</p></div></div><div class="connection-feedback ${error?'has-error':''}" role="${error?'alert':'status'}" aria-live="polite">${error?'<strong>Status der übrigen Anbieter nicht verfügbar.</strong> Bitte später erneut prüfen. Deine Planung bleibt nutzbar.':loading?'Status von Instagram, YouTube und X wird geladen.':ready?`Status von Instagram, YouTube und X abgerufen${checkedAt?` am ${escape(new Date(checkedAt).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}))}`:''}. Versand aus dieser Ansicht deaktiviert.`:'Status noch nicht abgerufen.'}</div><div class="connection-grid">${PROVIDERS.map(def=>def.id==='linkedin'?renderLinkedInConnection(linkedin,{expanded:expanded.includes(def.id)}):renderProviderCard(def,ready?state.providers.find(p=>p.provider===def.id):null,{loading,expanded:expanded.includes(def.id)})).join('')}</div><div class="connections-footer"><p>Ein geplanter Kalenderbeitrag ist keine Veröffentlichungsbestätigung. Neue Verbindungen ändern deine vorhandenen Entwürfe nicht.</p><button type="button" class="button subtle" data-view="calendar">Zur Planung</button></div>`;
 }
 export function createProviderStatusClient({fetcher=globalThis.fetch.bind(globalThis),timeoutMs=10000}={}){
   return {async load(){
@@ -60,17 +61,52 @@ export function createProviderStatusClient({fetcher=globalThis.fetch.bind(global
     }finally{clearTimeout(timer);}
   }};
 }
-export function createConnectionsPanel({container,client=createProviderStatusClient(),now=()=>Date.now()}={}){
-  let phase='idle',state=null,checkedAt=null,visible=false,generation=0,disposed=false;const expanded=new Set();
-  function render(){if(disposed)return;const focused=container.contains(document.activeElement)?document.activeElement:null;const restore=focused?.matches('[data-connection-refresh]');container.innerHTML=renderConnections({phase,state,checkedAt,expanded:[...expanded]});container.setAttribute('aria-busy',String(phase==='loading'));if(restore&&!container.hidden)container.querySelector('[data-connection-refresh]').focus();}
+export function createConnectionsPanel({container,client=createProviderStatusClient(),linkedinClient,navigate,now=()=>Date.now(),siteOrigin=globalThis.location?.origin,windowTarget=globalThis.window}={}){
+  let phase='idle',state=null,checkedAt=null,visible=false,generation=0,disposed=false,linkedin,restoreAfterPageShow=false;
+  const expanded=new Set();
+  const documentTarget=container.ownerDocument||globalThis.document;
+  const linkedinController=createLinkedInConnectionController({client:linkedinClient,navigate,now,siteOrigin,onChange:next=>{linkedin=next;render();}});
+  linkedin=linkedinController.snapshot;
+  const focusable=['[data-connection-refresh]','[data-linkedin-start]','[data-linkedin-disconnect]','[data-linkedin-disconnect-cancel]','[data-linkedin-disconnect-confirm]'];
+  function focus(selector){const element=container.querySelector?.(selector);if(element&&!element.disabled&&!container.hidden)element.focus();}
+  function render(){
+    if(disposed)return;
+    const active=(container.ownerDocument||globalThis.document)?.activeElement;
+    const restore=active&&container.contains(active)?focusable.find(selector=>active.matches?.(selector)):null;
+    container.innerHTML=renderConnections({phase,state,checkedAt,expanded:[...expanded],linkedin});
+    container.setAttribute('aria-busy',String(phase==='loading'||linkedin.phase==='loading'));
+    if(restore)focus(restore);
+  }
   async function refresh(){
-    if(disposed||phase==='loading')return;const request=++generation;phase='loading';state=null;render();
-    try{const next=normalizeProviderState(await client.load());if(disposed||request!==generation)return;state=next;checkedAt=new Date(now()).toISOString();phase='ready';}
-    catch{if(disposed||request!==generation)return;state=null;checkedAt=null;phase='error';}
+    if(disposed||!visible)return;
+    void linkedinController.refresh();
+    if(phase==='loading')return;
+    const request=++generation;phase='loading';state=null;render();
+    try{const next=normalizeProviderState(await client.load());if(disposed||!visible||request!==generation)return;state=next;checkedAt=new Date(now()).toISOString();phase='ready';}
+    catch{if(disposed||!visible||request!==generation)return;state=null;checkedAt=null;phase='error';}
     render();
   }
-  function click(event){if(event.target.closest('[data-connection-refresh]'))void refresh();}
+  function click(event){
+    if(!visible||disposed)return;
+    const target=event.target;
+    if(target.closest?.('[data-connection-refresh]'))void refresh();
+    else if(target.closest?.('[data-linkedin-start]'))void linkedinController.start();
+    else if(target.closest?.('[data-linkedin-disconnect]')){linkedinController.askDisconnect();focus('[data-linkedin-disconnect-cancel]');}
+    else if(target.closest?.('[data-linkedin-disconnect-cancel]')){linkedinController.cancelDisconnect();focus('[data-linkedin-disconnect]');}
+    else if(target.closest?.('[data-linkedin-disconnect-confirm]'))void linkedinController.confirmDisconnect();
+  }
+  function keydown(event){if(event.key==='Escape'&&linkedin.operation==='confirmDisconnect'){event.preventDefault();linkedinController.cancelDisconnect();focus('[data-linkedin-disconnect]');}}
   function toggle(event){const details=event.target;if(!details.matches?.('details[data-provider]'))return;if(details.open)expanded.add(details.dataset.provider);else expanded.delete(details.dataset.provider);}
-  container.addEventListener('click',click);container.addEventListener('toggle',toggle,true);
-  return {show(){visible=true;container.hidden=false;if(phase==='idle'||(phase!=='loading'&&checkedAt&&now()-Date.parse(checkedAt)>60000))void refresh();else render();},hide(){visible=false;container.hidden=true;},refresh,destroy(){disposed=true;generation++;container.removeEventListener('click',click);container.removeEventListener('toggle',toggle,true);},get visible(){return visible;}};
+  function hide(){visible=false;generation++;phase='idle';state=null;checkedAt=null;linkedinController.hide();linkedin=linkedinController.snapshot;container.hidden=true;}
+  function show(){if(disposed)return;visible=true;container.hidden=false;linkedinController.show();if(phase==='idle'||(phase!=='loading'&&checkedAt&&now()-Date.parse(checkedAt)>60000))void refresh();else render();}
+  function pagehide(){restoreAfterPageShow=visible;hide();}
+  function pageshow(){if(restoreAfterPageShow){restoreAfterPageShow=false;show();}}
+  function recheckExpiry(){if(documentTarget?.visibilityState!=='hidden')linkedinController.checkExpiry();}
+  container.addEventListener('click',click);container.addEventListener('toggle',toggle,true);container.addEventListener('keydown',keydown);
+  windowTarget?.addEventListener('pagehide',pagehide);windowTarget?.addEventListener('pageshow',pageshow);windowTarget?.addEventListener('focus',recheckExpiry);documentTarget?.addEventListener?.('visibilitychange',recheckExpiry);
+  return {
+    show,hide,refresh,
+    destroy(){disposed=true;visible=false;generation++;linkedinController.destroy();container.removeEventListener('click',click);container.removeEventListener('toggle',toggle,true);container.removeEventListener('keydown',keydown);windowTarget?.removeEventListener('pagehide',pagehide);windowTarget?.removeEventListener('pageshow',pageshow);windowTarget?.removeEventListener('focus',recheckExpiry);documentTarget?.removeEventListener?.('visibilitychange',recheckExpiry);},
+    get visible(){return visible;}
+  };
 }

@@ -17,7 +17,7 @@ async function bundle(path){path=resolve(path);if(!path.startsWith(root)||path.i
   const names=[...source.matchAll(/^export\s+(?:async\s+)?(?:function|class|const|let)\s+(\w+)/gm)].map(m=>m[1]);source=source.replace(/^export\s+/gm,'');if(/^\s*(?:import|export)\s/m.test(source))throw new Error('Unsupported module syntax');const id='serverModule'+ids.size;ids.set(path,id);pending.delete(path);output+=`\nconst ${id}=(()=>{\n${imports}${source}\nreturn {${names.join(',')}};\n})();\n`;return id;
 }
 const entry=await bundle(resolve(root,'worker/handler.mjs'));
-output+=`\nconst assets=${JSON.stringify(assets)};\nexport default ${entry}.createSitesHandler({assets});\n`;
+output+=`\nconst assets=${JSON.stringify(assets)};\nexport default ${entry}.createSitesHandler({assets,oauthTransport:request=>globalThis.fetch(request)});\n`;
 const outputArg=process.argv.indexOf('--output-directory');
 if(process.argv.length>2&&(outputArg!==2||process.argv.length!==4))throw new Error('Use --output-directory <path> or no arguments');
 const destination=outputArg>=0?resolve(process.argv[outputArg+1]):resolve(root,'dist/server');await mkdir(destination,{recursive:true});await writeFile(resolve(destination,'index.js'),output);
