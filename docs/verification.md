@@ -35,3 +35,13 @@ Die Anleitung ersetzt nicht die tatsächliche App-Einrichtung, autorisierte sich
 LinkedIn besitzt keinen aktiven Publisher; Instagram/X benötigen noch sichere HTTP-/Persistenzintegration. YouTube bleibt standardmäßig deaktiviert und würde nur nach separater Freigabe private Uploadschritte erlauben. Es gibt keinen Refresh, Reconnect oder Hintergrundbetrieb. Eine separate private Testbereitstellung eines älteren Standes wird durch dieses Paket nicht verändert.
 
 Die bisherigen 0.9-Nachweise stehen historisch unter `provider-setup/verification-0.9-history.md`; sie sind kein neu ausgeführter Browserdurchgang dieses Inkrements. Ältere Komponenten-/Versionsmanifeste sind ebenfalls historische Belege, das Rootmanifest bindet den jeweiligen Endkandidaten. REA v60 wurde erneut einbezogen: vollständige eigene Quellen werden mit normalen Source-/Test-/Browserwerkzeugen geprüft, ohne behauptete Decompilation oder fremden Live-Capture.
+
+## YouTube-Rückkehrhinweise, 7. November 2026
+
+Im bestehenden 0.10-Quellstand ergänzte Rückkehrbehandlung: `linked`, `cancelled`, `failed`, `unconfirmed` sind ausschließlich Hinweise. Frische Serverdaten bleiben die einzige Verbindungsbestätigung. Doppelte/unbekannte URL-Werte werden verworfen; die URL wird ohne Navigation bereinigt. Andere Parameter und `history.state` bleiben erhalten. Kein automatischer OAuth-Retry.
+
+- `npm test`: **1442 bestanden, 0 fehlgeschlagen**; inklusive 3 neuer Rückkehrtests und vollständiger Worker-Neuerzeugung.
+- `npm run check`: alle JavaScript-Syntaxprüfungen bestanden.
+- Geprüft: manipulierte Erfolgsmeldung bei unkonfiguriertem Server, Abbruch/Fehler/Unklarheit, unterbrochene Statusabfrage, keine zweite Freigabe, Historienerhalt und blockiertes `replaceState`.
+- Kein neuer visueller Browserdurchgang und keine Live-Google-/Sites-Abnahme in diesem Inkrement. Vorherige Browserbelege gelten nicht als neue Prüfung.
+- REA v60 gelesen: vollständiger eigener Quellbaum, deshalb reguläre Source-/Runtime-Tests, keine REA-Engine oder Decompilation erforderlich.

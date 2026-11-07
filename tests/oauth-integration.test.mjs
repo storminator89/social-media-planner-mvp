@@ -71,7 +71,7 @@ test('same factory configuration persists across local restart but does not crea
 
 test('generated HTTP routes never create, claim or disclose offline state, even with callback-shaped queries',async()=>{
  const DB=new D1TestAdapter(),handler=(await import('../dist/server/index.js')).default,cfg=await config(),browserBinding=binding(),nonce=await createOfflineNonce(),repository=new OAuthStateRepository(DB,cfg);const {state}=await repository.begin('alice',browserBinding,{nonceFingerprint:nonce.nonceFingerprint});const before=DB.sql.prepare('SELECT * FROM planner_oauth_states').all();
- for(const [path,method,status] of [['status','GET',200],['linkedin/oauth/readiness','GET',200],['linkedin/oauth/start','POST',503],['linkedin/oauth/callback','GET',503],['linkedin/oauth/exchange','POST',404],['x/oauth/start','POST',404]]){
+ for(const [path,method,status] of [['status','GET',200],['linkedin/oauth/readiness','GET',200],['linkedin/oauth/start','POST',503],['linkedin/oauth/callback','GET',503],['linkedin/oauth/exchange','POST',404],['x/oauth/start','POST',503]]){
   const response=await handler.fetch(new Request('https://planner.example/api/providers/'+path+'?state='+state+'&code=offline-private',{method,headers:{'oai-authenticated-user-id':'alice','X-Planner-Request':'1'}}),{DB});assert.equal(response.status,status);const text=await response.text();assert.ok(!text.includes(state)&&!text.includes('offline-private')&&!text.includes(nonce.nonceFingerprint));
  }
  assert.deepEqual(DB.sql.prepare('SELECT * FROM planner_oauth_states').all(),before);assert.equal(DB.sql.prepare('SELECT COUNT(*) n FROM planner_provider_connections').get().n,0);

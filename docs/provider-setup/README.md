@@ -2,6 +2,8 @@
 
 Version 0.10 ergänzt die Oberfläche von 0.9, keine Providerfreischaltung. Unter **Verbindungen → Einrichtung ansehen** hat jeder Anbieter drei kurze Schritte. Einzelheiten, Grenzen und der tatsächliche technische Serverstatus bleiben getrennte aufklappbare Bereiche.
 
+Für die erste echte YouTube-Verbindung: [Aktivierung und offene Schritte](youtube-activation.md).
+
 ## Was der Nutzer vorbereiten kann
 
 - **YouTube:** eigenen Zielkanal festlegen, geeignetes Google-Projekt mit YouTube Data API v3 und Web-OAuth-Client bereitstellen. Testing/Testnutzer, genau `openid`, `youtube.upload` und `youtube.readonly`, exakte HTTPS-Rückkehradresse und gegebenenfalls Googles Domain-/App-Voraussetzungen prüfen. Danach autorisierte sichere Servereinrichtung und echte Rückkehrabnahme; ein Upload bleibt eine eigene ausdrückliche Aktion.

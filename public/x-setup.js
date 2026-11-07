@@ -25,7 +25,7 @@ export const X_SETUP_DATA=freeze({
       description:'Die X-App und der geschützte Rückweg zum Planer müssen eingerichtet und geprüft werden. Dieser Schritt ist noch offen.',
       details:[
         'Vorgesehen ist eine serverseitige Web-App mit OAuth 2.0 und PKCE S256. Die bei X registrierte Rücksprungadresse muss exakt zum geprüften Planer passen.',
-        'Der getestete OAuth-Kern allein reicht nicht: X-spezifische verschlüsselte Speicherung, Browser-Anbindung und verlässliche Statusprüfung fehlen noch.',
+        'OAuth-Kern, verschlüsselte Speicherung und geschützte Serverrouten sind lokal vorbereitet. Die freigegebene Live-Konfiguration, Prüfung auf dem echten Host und die bedienbare Browser-Anbindung fehlen noch.',
         'Es gibt noch keine aktive X-Rücksprungroute. Client-Secrets und Tokens gehören ausschließlich in eine freigegebene sichere Serverablage, nicht in diese Ansicht oder einen Chat.'
       ],
       links:[{label:'Offizielle X-OAuth-Anleitung lesen',url:'https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code'}]

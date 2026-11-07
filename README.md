@@ -1,3 +1,5 @@
+> X integration candidate: server-side OAuth routes, encrypted SQL storage and explicit refresh/local disconnect are now implemented but disabled. Browser controls, live setup and hosting acceptance remain pending. No external accounts or grants were created. See `docs/x-connection-integration.md`; earlier 0.10 statements below describe the baseline.
+
 # Takt 0.10.0: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.

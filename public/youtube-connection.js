@@ -63,6 +63,25 @@ export function createYouTubeConnectionClient({fetcher=globalThis.fetch.bind(glo
   };
 }
 
+/** Return hints are untrusted navigation context, never connection evidence. */
+const RETURN_MESSAGES=Object.freeze({
+ linked:'Zurück von Google. Ob der Kanal verbunden ist, zeigt ausschließlich der neu geprüfte Serverstatus.',
+ cancelled:'Die Google-Freigabe wurde abgebrochen. Der gespeicherte Serverstatus wird erneut geprüft.',
+ failed:'Die Google-Rückkehr konnte nicht bestätigt werden. Prüfe zuerst den Serverstatus, bevor du erneut verbindest.',
+ unconfirmed:'Das Ergebnis der Google-Freigabe ist unklar. Es wird nur der Serverstatus geprüft, keine Freigabe wiederholt.'
+});
+export function consumeYouTubeReturn(windowTarget){
+ try{
+  const url=new URL(windowTarget.location.href);
+  if(url.pathname!=='/'||url.hash!=='#connections'||!url.searchParams.has('youtube'))return null;
+  const values=url.searchParams.getAll('youtube');
+  const outcome=values.length===1&&Object.hasOwn(RETURN_MESSAGES,values[0])?values[0]:null;
+  url.searchParams.delete('youtube');
+  windowTarget.history.replaceState(windowTarget.history.state,'',url.pathname+url.search+url.hash);
+  return outcome;
+ }catch{return null;}
+}
+
 const STATUS=Object.freeze({
  not_configured:{label:'Einrichtung erforderlich',className:'setup',description:'Die YouTube-Kanalverknüpfung ist noch nicht freigeschaltet.'},
  ready:{label:'Bereit zur Kanalfreigabe',className:'approval',description:'Der bestätigte Zielkanal kann über die offizielle Google-Freigabe verknüpft werden.'},
@@ -77,8 +96,9 @@ const canDisconnect=s=>s.phase==='ready'&&s.readiness?.canDisconnect===true&&['l
 const initial=()=>({phase:'idle',readiness:null,operation:'idle',message:'',checkedAt:null});
 
 /** Inject navigation for tests. Every side effect requires a visible, explicit action. */
-export function createYouTubeConnectionController({siteOrigin=globalThis.location?.origin,now=()=>Date.now(),client=createYouTubeConnectionClient({siteOrigin,now}),onChange=()=>{},navigate=url=>globalThis.top.location.assign(url),setTimer=globalThis.setTimeout,clearTimer=globalThis.clearTimeout}={}){
+export function createYouTubeConnectionController({returnOutcome=null,siteOrigin=globalThis.location?.origin,now=()=>Date.now(),client=createYouTubeConnectionClient({siteOrigin,now}),onChange=()=>{},navigate=url=>globalThis.top.location.assign(url),setTimer=globalThis.setTimeout,clearTimer=globalThis.clearTimeout}={}){
   let state=initial(),visible=false,disposed=false,generation=0,controller=null,expiryTimer=null;
+  let returnMessage=Object.hasOwn(RETURN_MESSAGES,returnOutcome)?RETURN_MESSAGES[returnOutcome]:'';
   const MAX_TIMER_DELAY=2147483647;
   const snapshot=()=>structuredClone(state);
   function emit(){if(!disposed)onChange(snapshot());}
@@ -105,6 +125,7 @@ export function createYouTubeConnectionController({siteOrigin=globalThis.locatio
   function current(request){return !disposed&&visible&&request.generation===generation&&!request.signal.aborted;}
   async function load({message=''}={}){
     if(!visible||disposed||state.phase==='loading'||['starting','disconnecting','navigating'].includes(state.operation))return;
+    message=message||returnMessage;returnMessage='';
     const request=begin();clearExpiry();state={...initial(),phase:'loading',message};emit();
     try{
       const readiness=normalizeYouTubeReadiness(await client.load({signal:request.signal}));

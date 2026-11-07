@@ -6,7 +6,7 @@ import {YOUTUBE_SETUP_DATA} from './youtube-setup.js';
 const SETUP_DATA={instagram:INSTAGRAM_SETUP,x:X_SETUP_DATA,linkedin:LINKEDIN_SETUP_DATA,youtube:YOUTUBE_SETUP_DATA};
 /** Provider status plus explicitly initiated personal LinkedIn connection controls. */
 import {createLinkedInConnectionController,renderLinkedInConnection} from './linkedin-connection.js';
-import {createYouTubeConnectionController,renderYouTubeConnection} from './youtube-connection.js';
+import {createYouTubeConnectionController,renderYouTubeConnection,consumeYouTubeReturn} from './youtube-connection.js';
 import {createYouTubeUploadUI} from './youtube-upload.js';
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const PROVIDERS=Object.freeze([
@@ -76,7 +76,7 @@ export function createConnectionsPanel({container,client=createProviderStatusCli
   const documentTarget=container.ownerDocument||globalThis.document;
   const linkedinController=createLinkedInConnectionController({client:linkedinClient,navigate,now,siteOrigin,onChange:next=>{linkedin=next;render();}});
   linkedin=linkedinController.snapshot;
-  const youtubeController=createYouTubeConnectionController({client:youtubeClient,navigate,now,siteOrigin,onChange:next=>{youtube=next;uploadUI?.setReadiness(next);render();}});
+  const youtubeController=createYouTubeConnectionController({returnOutcome:consumeYouTubeReturn(windowTarget),client:youtubeClient,navigate,now,siteOrigin,onChange:next=>{youtube=next;uploadUI?.setReadiness(next);render();}});
   youtube=youtubeController.snapshot;
   const focusable=['[data-connection-refresh]','[data-linkedin-start]','[data-linkedin-disconnect]','[data-linkedin-disconnect-cancel]','[data-linkedin-disconnect-confirm]','[data-youtube-start]','[data-youtube-disconnect]','[data-youtube-disconnect-cancel]','[data-youtube-disconnect-confirm]','[data-youtube-upload]','[data-youtube-history]',...['linkedin','youtube'].map(id=>`[data-provider-setup-copy="${id}"]`),...['instagram','linkedin','youtube','x'].flatMap(id=>[...SETUP_DATA[id].steps.map(step=>step.id),'callback','limits','blockers'].map(key=>`[data-setup-key="setup-${id}-${key}"] > summary`)),...['linkedin','youtube'].map(id=>`#setup-${id}-callback-value`)];
   function focus(selector){const element=container.querySelector?.(selector);if(element&&!element.disabled&&!container.hidden)element.focus();}

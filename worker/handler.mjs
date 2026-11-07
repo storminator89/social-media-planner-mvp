@@ -1,3 +1,5 @@
+import {handleXOAuth,X_CALLBACK_PATH} from '../modules/oauth/x/http-router.mjs';
+import {handleInstagramOAuth} from '../modules/instagram/http-router.mjs';
 import {handleHostedWorkspaces} from '../modules/workspaces/runtime.mjs';
 import {handleYouTube} from '../modules/youtube/http-router.mjs';
 import {YOUTUBE_CALLBACK_PATH} from '../modules/oauth/youtube-contract.mjs';
@@ -19,7 +21,7 @@ function validIdentity(request){const owner=request.headers.get('oai-authenticat
 function secure(response){const headers=new Headers(response.headers);for(const [key,value] of Object.entries(SECURITY)){if(!headers.has(key))headers.set(key,value);}return new Response(response.body,{status:response.status,headers});}
 
 /** Hosted-only entry: trust identity solely behind Sites Dispatch, never expose directly. */
-export function createSitesHandler({assets={},providerStatus=handleProviderStatus,oauthTransport,clock=Date.now}={}){
+export function createSitesHandler({assets={},providerStatus=handleProviderStatus,oauthTransport,xAuthorizeAction,clock=Date.now}={}){
   return {
     async fetch(request,env={}){
       const url=new URL(request.url);
@@ -28,6 +30,7 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
       // Exact provider callback only; the router independently requires full server
       // configuration, matching Dispatch identity, per-attempt cookie and state.
       if(url.pathname===LINKEDIN_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleLinkedInOAuth(request,env,{transport:oauthTransport,clock}));}catch{return error(503,'OAUTH_UNAVAILABLE','Die Kontoverbindung ist nicht verfügbar.');}}
+      if(url.pathname===X_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleXOAuth(request,env,{transport:oauthTransport,authorizeAction:xAuthorizeAction,clock}));}catch{return error(503,'X_OAUTH_UNAVAILABLE','Die X-Verbindung ist nicht verfügbar.');}}
       if(url.pathname===YOUTUBE_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleYouTube(request,env,{transport:oauthTransport,clock}));}catch{return error(503,'YOUTUBE_UNAVAILABLE','Die YouTube-Verbindung ist nicht verfügbar.');}}
       if(!validIdentity(request)){
         if(url.pathname==='/'&&request.method==='GET')return new Response('<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Takt · Anmelden</title><main><h1>Dein geschützter Planer</h1><p>Melde dich mit ChatGPT an, um deine Planung zu öffnen.</p><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Mit ChatGPT anmelden</a><p>Social-Media-Konten werden dadurch nicht verbunden.</p></main></html>',{status:401,headers:{...SECURITY,'Content-Type':'text/html; charset=utf-8'}});
@@ -42,6 +45,8 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
           if(!providerStatus)return error(503,'PROVIDER_STATUS_UNAVAILABLE','Der Verbindungsstatus ist noch nicht verfügbar.');
           return secure(await providerStatus(request,env));
         }
+        const instagram=await handleInstagramOAuth(request);if(instagram)return secure(instagram);
+        const x=await handleXOAuth(request,env,{transport:oauthTransport,authorizeAction:xAuthorizeAction,clock});if(x)return secure(x);
         const youtube=await handleYouTube(request,env,{transport:oauthTransport,clock});if(youtube)return secure(youtube);
         const oauth=await handleLinkedInOAuth(request,env,{transport:oauthTransport,clock});if(oauth)return secure(oauth);
         const workspace=await handleHostedWorkspaces(request,env,{clock});if(workspace)return secure(workspace);

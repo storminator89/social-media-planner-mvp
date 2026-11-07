@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createContext,runInContext} from 'node:vm';
+import {webcrypto} from 'node:crypto';
+import {input,OWNER} from './support.mjs';
+test('generated Worker cannot activate X using configuration, secrets or environment policy',async()=>{
+ let calls=0,writes=0;
+ const context=createContext({crypto:webcrypto,Request,Response,Headers,URL,URLSearchParams,TextEncoder,TextDecoder,Uint8Array,AbortController,performance,setTimeout,clearTimeout,atob,btoa,fetch(){calls++;throw new Error('Unexpected network');}});
+ const source=readFileSync(new URL('../../dist/server/index.js',import.meta.url),'utf8');
+ runInContext(source.replace('export default ','globalThis.worker = '),context);
+ const env={DB:{prepare(){writes++;throw new Error('Unexpected DB access');},batch(){writes++;throw new Error('Unexpected DB access');}},TAKT_X_ENABLED:'true',TAKT_X_CONFIGURATION:JSON.stringify(input),TAKT_X_CLIENT_SECRET:'fixture-secret',TAKT_X_KEYRING_JSON:JSON.stringify({activeKeyId:'fixture',keys:{fixture:Buffer.alloc(32,9).toString('base64')}}),xAuthorizeAction:()=>true};
+ const request=(path,method='GET',owner=OWNER)=>context.worker.fetch(new Request(input.siteOrigin+'/api/providers/x/'+path,{method,headers:{'oai-authenticated-user-id':owner,Origin:input.siteOrigin,'Content-Type':'application/json','X-Planner-Request':'1'},...(method==='POST'?{body:'{}'}:{})}),env);
+ const readiness=await request('oauth/readiness');assert.equal(readiness.status,200);const dto=await readiness.json();assert.equal(dto.connected,false);assert.equal(dto.canStart,false);assert.equal(dto.canPublish,false);assert.equal(dto.canRefresh,false);assert.equal(dto.canDisconnect,false);
+ for(const path of ['oauth/start','refresh','disconnect'])assert.equal((await request(path,'POST')).status,503);
+ assert.equal((await request('oauth/callback?state=fixture&code=fixture')).status,503);
+ assert.equal((await request('oauth/readiness','GET','')).status,401);
+ assert.equal(calls,0);assert.equal(writes,0);
+ assert.equal(runInContext('typeof process + ":" + typeof Buffer',context),'undefined:undefined');
+});
