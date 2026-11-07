@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## 0.10.0
+
+- Einheitliche Einrichtungshilfe für LinkedIn, YouTube, Instagram und X: drei kurze Schritte, aufklappbare Details und feste offizielle Quellen.
+- HTTPS-Callbackanzeige und bewusste Kopie für vorhandene LinkedIn-/YouTube-Routen; keine fiktiven Callbackadressen für Instagram/X oder lokale Vorschauen.
+- Refresh erhält geöffnete Details und Tastaturfokus. Verlassen/Zerstören invalidiert späte Kopierrückmeldungen; Fehler behaupten keinen Erfolg.
+- Unveränderte Server-, OAuth-, Provider-, Planer- und Workspace-Verträge. Keine neue App, Secrets, Grants, kostenpflichtige Aktivierung, Veröffentlichung oder Hostingänderung.
+
 ## 0.9.0
 
 - Dauerhafte Posting-Zeiten je Kanal, gemeinsame freie Slots und explizite Queue-Bindung. Regeländerungen verschieben weder feste noch gebundene Beiträge.

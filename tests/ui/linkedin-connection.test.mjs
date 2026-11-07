@@ -1,3 +1,4 @@
+import {assertSetupHelpLinks} from './setup-link-assertions.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -146,8 +147,8 @@ test('linked card replaces legacy LinkedIn status while YouTube awaits its own r
 test('unknown LinkedIn remains unknown even when general route claims not connected',()=>{
   for(const phase of ['idle','error']){const html=renderConnections({phase:'ready',state:general(),linkedin:{phase}});const card=linkedInCard(html);assert.match(card,/Status unbekannt/);assert.doesNotMatch(card,/Nicht verbunden|OLD ACCOUNT PII|Verbunden ·/);assert.match(card,/data-linkedin-start disabled/);}
 });
-test('blocked card explains official personal-account flow without links, tokens or enabled starts',()=>{
-  for(const stage of ['not_configured','expired','disconnected','error']){const html=renderLinkedInConnection(readySnapshot(stage));assert.match(html,/persönliches LinkedIn-Konto|Persönliches LinkedIn-Konto/);assert.match(html,/offiziellen LinkedIn-Freigabe/);assert.match(html,/Versand bleibt gesperrt/);assert.doesNotMatch(html,/<(?:a|input|form)\b|https?:|data-publish/);if(stage!=='expired')assert.match(html,/data-linkedin-start disabled/);}
+test('blocked card offers fixed help links without tokens or enabled starts',()=>{
+  for(const stage of ['not_configured','expired','disconnected','error']){const html=renderLinkedInConnection(readySnapshot(stage));assert.match(html,/persönliches LinkedIn-Konto|Persönliches LinkedIn-Konto/);assert.match(html,/offiziellen LinkedIn-Freigabe/);assert.match(html,/Versand bleibt gesperrt/);assert.doesNotMatch(html,/<(?:input|form)\b|data-publish/);assertSetupHelpLinks(html);if(stage!=='expired')assert.match(html,/data-linkedin-start disabled/);}
   const html=renderLinkedInConnection(readySnapshot('ready'));assert.match(html,/data-linkedin-start >/);assert.doesNotMatch(html,/data-linkedin-start disabled/);
 });
 test('disconnect disclosure does not claim provider revocation and names absent reconnect',()=>{
