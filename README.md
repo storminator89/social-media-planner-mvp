@@ -1,4 +1,4 @@
-# Takt 0.7.1: lokaler Social-Media-Planer
+# Takt 0.8.0: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -23,6 +23,7 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 - Google-/YouTube-Webflow mit PKCE S256, vollständiger OIDC-Prüfung und Abgleich eines vorab bestätigten Zielkanals. Eigene verschlüsselte State-, Credential- und Installticket-Persistenz; kein Refresh oder Reconnect. Ohne Runtime-Freigaben bleibt auch dieser Pfad gesperrt.
 - Private YouTube-Uploads als eigener bewusster Ablauf: MP4/WebM bis 8 MiB und 20 gespeicherte Dateien, erst private Site-Speicherung, dann unveränderliche Zusammenfassung und ausdrücklicher Uploadstart. Kinder-/KI-Angaben sind Pflichtentscheidungen. Sichtbarkeit ist fest privat, Abonnentenbenachrichtigung aus; keine öffentliche Planung. Ungewisse Übertragungen werden nicht automatisch neu gestartet.
 - Dependency-freier Sites-Worker-Entwurf mit eingebetteten UI-Dateien und identitätsgebundener Daten-API. `npm run build:worker` erzeugt ein lokales Worker-Artefakt, keinen gehosteten Dienst.
+- Separate serverseitige Arbeitsfassungen sichern unvollständige Composer-Eingaben nach bestätigtem Speicherzugang. Sie verändern keine Beiträge. Wiederaufnahme prüft die aktuelle Planung; veränderte Herkunft erlaubt nur eine bewusste neue Kopie. Mehrtab-Konflikte und unklare Speicherantworten lösen keinen automatischen Retry aus.
 - Ideen-Inbox mit optionalem Titel, Notizen, Labels, Suche und Label-Filter. Ideen brauchen weder Kanal noch Termin. Erst ein erfolgreicher Beitragssave verschiebt die Idee mit derselben ID in Entwürfe oder Planung.
 - UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export. Normale Beiträge unterstützen jetzt redaktionelle Labels; exakte Label-Filter kombinieren sich mit Kanal und Suche. Labels werden nicht in den Beitragstext eingefügt.
 - Eigene Kanaltexte mit expliziter Basisvererbung, Vorschau und Zeichenprüfung. Auch absichtlich leere oder aktuell identische eigene Fassungen bleiben unabhängig.
@@ -49,15 +50,17 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 - Ungewisse Medienablagen zählen zur Quote und können nicht als Uploadquelle verwendet werden. Gleicher Dateiinhalt ist dauerhaft gegen doppelte Reservierung gesperrt, einschließlich ausstehender Einträge. Es gibt noch keine UI für Löschung, Retention oder manuelle Wiederherstellung. Lokales Trennen löscht keine Google-Videos und widerruft den Google-Grant nicht.
 - Gespeicherte Bild-Alttexte sind sichtbar schreibgeschützt mit Erklärung; zur Änderung Bild erneut auswählen. Alttexte neuer lokaler Bilder bleiben bearbeitbar. Kein Medien-Löschendpunkt. Entfernte Beiträge können Bilddateien zurücklassen.
 - Rückgängig ist eine kurze Sitzungsfunktion, kein Papierkorb: UI-Angebot 12 Sekunden; kanonische Wiederherstellungsdaten höchstens 60 Sekunden und 100 Einträge pro Store. Neuladen löscht diesen Zwischenspeicher. Bei einem Konflikt bleibt die gelöschte UI-Fassung sichtbar kopierbar, sie wird nicht automatisch wiederhergestellt.
+- Arbeitsfassungen haben eine Wiederaufnahmefrist von 30 Tagen seit letzter bestätigter neuer Sicherung, höchstens 20 aktive und 100 insgesamt während der Lebenszeit eines Besitzerbereichs. Verwerfen/Ablauf schließen die normale Wiederaufnahme, löschen aber keine Daten und geben keinen Gesamtplatz frei. Kein automatisches Archiv, Purge oder Backup.
+- Lokale Bilddateien werden durch die separate Sicherung nicht hochgeladen. Der Hinweis auf eine fehlende Datei bleibt nach Wiederaufnahme erhalten; vorhandene Bilder werden nur über besitzergeprüfte Referenzen verwendet.
 - Die temporäre Arbeitsumgebung ist kein zugesicherter langfristiger Speicher.
 
 ## Sites als nächste Stufe
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
 
-Version 0.7.1 nutzt unverändert API-Schema 2 und UI-State 1. Sie ergänzt keine Migration; alle sechs SQL-Dateien bleiben bytegleich zu 0.7. Gesicherte Editor-Arbeitsfassungen und dauerhafte kanalbezogene Posting-Zeitpläne sind noch nicht Bestandteil dieses Releases. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
+Version 0.8.0 nutzt weiter API-Schema 2 und UI-State 1. Die eigene Arbeitsfassungs-API hat Schema 1 und additive Migration 0007. SQL 0001–0006 bleiben unverändert. Dauerhafte kanalbezogene Posting-Zeitpläne und API3/0008 sind nicht enthalten. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Für gehostete Arbeitsfassungen sind ein fest konfigurierter Site-Kontext und physisch Site-private D1-Datenbank notwendig. Siehe `docs/workspaces/integration.md` und `docs/migration.md`.
 
-Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/token-lifecycle.md`, `docs/linkedin-web-transport.md`, `docs/editorial-labels/README.md`, `docs/youtube-http-contract.md`, `docs/youtube-operation.md` und `docs/verification.md`.
+Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/token-lifecycle.md`, `docs/linkedin-web-transport.md`, `docs/editorial-labels/README.md`, `docs/workspaces/integration.md`, `docs/youtube-http-contract.md`, `docs/youtube-operation.md` und `docs/verification.md`.
 
 ## Lizenzstatus
 

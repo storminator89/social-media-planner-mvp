@@ -2,10 +2,11 @@ import { createServer } from 'node:http';
 import { Readable } from 'node:stream';
 import { createLocalHandler } from './handler.mjs';
 
-const app = createLocalHandler();
 const args = process.argv.slice(2);
 const portArg = args.indexOf('--port');
 const port = Number(portArg >= 0 ? args[portArg + 1] : process.env.PORT || 3000);
+if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid local preview port');
+const app = createLocalHandler({siteOrigin:`http://127.0.0.1:${port}`});
 const server = createServer(async (req, res) => {
   try {
     const request = new Request(`http://${req.headers.host || `localhost:${port}`}${req.url}`, { method: req.method, headers: req.headers, ...(['GET', 'HEAD'].includes(req.method) ? {} : { body: Readable.toWeb(req), duplex: 'half' }) });

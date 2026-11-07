@@ -1,0 +1,17 @@
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync} from 'node:fs';
+import {EditorWorkspaceRepository} from '../../modules/workspaces/workspace-repository.mjs';
+export class D1TestAdapter{
+ constructor({migrate=true}={}){this.sql=new DatabaseSync(':memory:');this.sql.exec('PRAGMA foreign_keys=ON');for(const n of ['0001_planner.sql','0002_variant_inheritance.sql','0003_provider_jobs.sql','0004_oauth_state.sql','0005_provider_credentials.sql','0006_youtube_lifecycle.sql'])this.sql.exec(readFileSync(new URL(`../../server/${n}`,import.meta.url),'utf8'));if(migrate)this.migrate();}
+ migrate(){this.sql.exec(readFileSync(new URL('../../server/0007_editor_workspaces.sql',import.meta.url),'utf8'));}
+ prepare(query){if(this.failPrepare)throw Error('SYNTHETIC_PRIVATE_SQL_DETAIL');const adapter=this;let values=[];return{bind(...args){if(adapter.failBind)throw Error('SYNTHETIC_PRIVATE_BIND_DETAIL');values=args;return this;},_exec(){const st=adapter.sql.prepare(query);return /^\s*SELECT/i.test(query)?{results:st.all(...values),meta:{changes:0}}:{results:[],meta:{changes:Number(st.run(...values).changes)}};}};}
+ async batch(stmts){if(this.beforeBatch){const h=this.beforeBatch;this.beforeBatch=null;await h();}this.sql.exec('BEGIN');let r;try{r=stmts.map((s,i)=>{if(this.failStatement===i)throw Error('SYNTHETIC_PRIVATE_SQL_DETAIL');return s._exec();});this.sql.exec('COMMIT');}catch(e){this.sql.exec('ROLLBACK');throw e;}if(this.afterBatch){const h=this.afterBatch;this.afterBatch=null;await h();}if(this.unknownBatch){this.unknownBatch=false;throw Error('SYNTHETIC_PRIVATE_COMMIT_DETAIL');}return r;}
+}
+export function seed(db){for(const owner of ['alice','bob']){db.sql.prepare("INSERT INTO planner_profiles(owner_id,revision,updated_at) VALUES(?,7,'2026-01-01')").run(owner);db.sql.prepare("INSERT INTO planner_posts(owner_id,id,title,body,stage,timezone,created_at,updated_at) VALUES(?,'post-1','Original','Original body','draft','Europe/Berlin','2026-01-01','2026-01-01')").run(owner);for(const [id,mime] of [['image-1','image/png'],['video-1','video/mp4']])db.sql.prepare("INSERT INTO planner_media VALUES(?,?,?,?,?,?,?,?)").run(owner,id,owner+'/'+id,'My image.png',mime,12,'Original alt','2026-01-01');}}
+export function setup(){const db=new D1TestAdapter();seed(db);let now=1_000_000;const repo=new EditorWorkspaceRepository(db,{siteId:'test-site',clock:()=>now});return{db,repo,setNow:v=>now=v,getNow:()=>now};}
+export const uuid=n=>`test-identifier-${String(n).padStart(6,'0')}`;
+export const payload=(overrides={})=>({title:'  title  ',tags:[' tag ','tag','tag'],rawTags:'"unfinished\r\n',baselineRenderedTags:' tag ,tag,tag',text:' Line 1\r\nLine 2 ',variantTexts:{linkedin:'',youtube:' Line 1\r\nLine 2 '},channels:['linkedin','youtube'],date:'2026-',time:'2:',timeZone:'unfinished/',media:{kind:'planner_image',id:'image-1',alt:' edited\r\nalt '},cover:null,activeTextTarget:'linkedin',localMediaOmitted:false,...overrides});
+export const saveInput=(overrides={})=>({schemaVersion:1,workspaceId:uuid(1),expectedRevision:0,writeId:uuid(100),sourcePostId:'post-1',basePlannerRevision:7,payload:payload(),...overrides});
+export const discardInput=(overrides={})=>({schemaVersion:1,workspaceId:uuid(1),expectedRevision:1,writeId:uuid(200),...overrides});
+export const row=(db,owner='alice',id=uuid(1))=>db.sql.prepare('SELECT * FROM planner_editor_workspaces WHERE owner_id=? AND workspace_id=?').get(owner,id);
+export const errorCode=code=>e=>e.code===code;

@@ -1,3 +1,5 @@
+import {EditorWorkspaceRepository} from '../modules/workspaces/workspace-repository.mjs';
+import {createEditorWorkspaceApi} from '../modules/workspaces/workspace-api.mjs';
 import {handleYouTube} from '../modules/youtube/http-router.mjs';
 import {handleLinkedInOAuth} from '../modules/oauth/http-router.mjs';
 import {handleProviderStatus} from '../modules/providers/status-api.mjs';
@@ -13,8 +15,9 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const SECURITY = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" };
 const errorResponse = (status, message) => new Response(JSON.stringify({ error: { code: 'LOCAL_PREVIEW_ONLY', message } }), { status, headers: { ...SECURITY, 'Content-Type': 'application/json' } });
 
-export function createLocalHandler({ directory = join(ROOT, '.local'), publicDirectory = join(ROOT, 'public') } = {}) {
+export function createLocalHandler({ directory = join(ROOT, '.local'), publicDirectory = join(ROOT, 'public'), siteOrigin = 'http://localhost:3000' } = {}) {
   const DB = new LocalDatabase(directory), BUCKET = new LocalBucket(join(directory, 'media'));
+  const workspace = createEditorWorkspaceApi({repository:new EditorWorkspaceRepository(DB,{siteId:'local-preview-site'}),siteOrigin,allowLoopbackHttp:true,authenticateRequest:()=>LOCAL_OWNER});
   return {
     close: () => DB.close(),
     async fetch(request) {
@@ -27,7 +30,7 @@ export function createLocalHandler({ directory = join(ROOT, '.local'), publicDir
       if (url.pathname.startsWith('/api/')) {
         const headers = new Headers(request.headers); headers.set('oai-authenticated-user-id', LOCAL_OWNER);
         const internal = new Request(request, { headers });
-        const response = await handleYouTube(internal, {DB, BUCKET}) ?? await handleLinkedInOAuth(internal, {DB, BUCKET}) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await handlePlannerRequest(internal, { DB, BUCKET });
+        const response = await handleYouTube(internal, {DB, BUCKET}) ?? await handleLinkedInOAuth(internal, {DB, BUCKET}) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await workspace(internal) ?? await handlePlannerRequest(internal, { DB, BUCKET });
         if (!response) return errorResponse(404, 'Endpunkt nicht vorhanden.');
         // Keep capability labels truthful: this is disk-backed emulation, not deployed D1/R2.
         if (url.pathname === '/api/planner/state' && response.ok) {

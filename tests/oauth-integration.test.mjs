@@ -34,9 +34,9 @@ async function v3Directory(t){
  memory.sql.close();return {directory,db};
 }
 
-test('actual v3→v6 constructor preserves planning, blocked jobs, owners and migration digests',async t=>{
+test('actual v3→v7 constructor preserves planning, blocked jobs, owners and migration digests',async t=>{
  const {directory,db}=await v3Directory(t),before=dump(db),ledger=db.prepare('SELECT * FROM local_migrations ORDER BY version').all();db.close();
- let next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);assert.deepEqual(next.sql.prepare('SELECT * FROM local_migrations WHERE version<=3 ORDER BY version').all(),ledger);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3,4,5,6]);assert.equal(next.sql.prepare('SELECT COUNT(*) n FROM planner_oauth_states').get().n,0);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);next.close();
+ let next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);assert.deepEqual(next.sql.prepare('SELECT * FROM local_migrations WHERE version<=3 ORDER BY version').all(),ledger);assert.deepEqual(next.sql.prepare('SELECT version FROM local_migrations ORDER BY version').all().map(r=>r.version),[1,2,3,4,5,6,7]);assert.equal(next.sql.prepare('SELECT COUNT(*) n FROM planner_oauth_states').get().n,0);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),before);next.close();
 });
 
 test('failed migration4 rolls back schema and ledger and retains all previous rows',async t=>{

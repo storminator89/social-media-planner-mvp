@@ -1,3 +1,4 @@
+import {handleHostedWorkspaces} from '../modules/workspaces/runtime.mjs';
 import {handleYouTube} from '../modules/youtube/http-router.mjs';
 import {YOUTUBE_CALLBACK_PATH} from '../modules/oauth/youtube-contract.mjs';
 import {handleLinkedInOAuth} from '../modules/oauth/http-router.mjs';
@@ -43,6 +44,7 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
         }
         const youtube=await handleYouTube(request,env,{transport:oauthTransport,clock});if(youtube)return secure(youtube);
         const oauth=await handleLinkedInOAuth(request,env,{transport:oauthTransport,clock});if(oauth)return secure(oauth);
+        const workspace=await handleHostedWorkspaces(request,env,{clock});if(workspace)return secure(workspace);
         const api=await handlePlannerRequest(request,env);if(api)return secure(api);
         if(url.pathname.startsWith('/api/'))return error(404,'NOT_FOUND','Endpunkt nicht vorhanden.');
         if(!['GET','HEAD'].includes(request.method))return error(405,'METHOD_NOT_ALLOWED','Methode nicht erlaubt.');

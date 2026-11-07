@@ -10,7 +10,7 @@ Der Build hat keine Hosting-ID, erstellt keine Ressourcen und führt kein Deploy
 
 Der Worker darf ausschließlich hinter Sites Dispatch bereitgestellt werden. Nur Dispatch darf `oai-authenticated-user-id` liefern; ein direkt erreichbarer Worker mit selbst behauptetem Header wäre unsicher. Fehlende Identität führt bei normalen Routen zu 401. Ein vollständig konfigurierter eigener Providercallback kann stattdessen sauber auf eine feste Fehleransicht zurückleiten, ohne Code/State in einen Anmeldelink zu übernehmen. Ein anonymer Aufruf von `/` zeigt einen normalen Top-Level-Link auf `/signin-with-chatgpt?return_to=%2F`. Der Worker implementiert weder diese Route noch `/signout-with-chatgpt` oder `/callback`.
 
-Die Sites-ID ist sitegebunden und wird als Eigentümer sämtlicher Planungs-/Mediendaten verwendet. E-Mail und Anzeigename werden nicht als Schlüssel oder Berechtigungsbeweis genutzt. Ein Service-Access-Bearer ersetzt keine Besucheridentität. Sites-Zugang bedeutet keine Social-Provider-Berechtigung.
+Die von Dispatch eingefügte Besucher-ID ist sitegebunden und wird als Eigentümer sämtlicher Planungs-/Mediendaten verwendet. E-Mail und Anzeigename werden nicht als Schlüssel oder Berechtigungsbeweis genutzt. Ein Service-Access-Bearer ersetzt keine Besucheridentität. Sites-Zugang bedeutet keine Social-Provider-Berechtigung.
 
 Der bisherige lokale Entwicklungsserver bleibt davon getrennt: nur Loopback, eigener Testbesitzer, keine echte Anmeldung. Dort ankommende Identitätsheader werden abgewiesen. Die lokale Browserprüfung belegt daher keine echte Dispatch-Authentifizierung.
 
@@ -51,3 +51,12 @@ Eine zweite enge GET-Callbackausnahme gilt nur für `/api/providers/youtube/oaut
 Der native Worker bündelt die Google-Web- und privaten Uploadpfade, bleibt ohne ausdrückliche Konfiguration jedoch vollständig gesperrt. Für Videoobjekte werden maximal 8 MiB vollständig zur Signatur-/SHA-Prüfung gelesen. Das ist eine bewusst kleine Produktgrenze, keine Zusicherung der großen Google-Uploadlimits oder ausreichender realer Worker-Ressourcen. R2.put muss ein passendes Objekt mit Key, Größe und ETag bestätigen; eine leere/unklare Antwort führt nicht zu Ready.
 
 Vor Aktivierung sind echte D1-/R2-Transaktions-, Antwort- und Speicherverträge, Dispatch-/Cookie-Rückkehr, Googles App-/Scope-/Kanal- und Projektquoten, Response-URLs, Laufzeit-/Speicherbudgets sowie Plattform-Querylogs zu prüfen. Die fünf neuen Tabellen sind noch nicht gehostet angewandt. Secretbereitstellung, Grant und konkreter privater Upload benötigen die passende Freigabe. Siehe `youtube-operation.md`.
+
+
+## Arbeitsfassungen in 0.8
+
+`TAKT_SITE_ID` und `TAKT_SITE_ORIGIN` sind ausdrücklich serverseitig gesetzte Nicht-Secret-Konfiguration. Die ID bezeichnet diese eine Site; der Origin muss deren exakte HTTPS-Origin ohne Pfad/Query sein. Fehlende/ungültige Werte sperren ausschließlich die neue Arbeitsfassungsroute mit 503. Sie werden niemals aus Host-/Originheadern, Browser-JSON oder Providerkonfiguration geraten. Die authentifizierte Besucher-ID kommt weiterhin allein aus der vertrauenswürdigen Dispatch-Schicht.
+
+Migration 0007 erweitert eine physisch private Site-D1-Datenbank. Die älteren Planertabellen sind nur ownergebunden: dieselbe physische Datenbank darf deshalb nicht zwischen Sites geteilt werden. Ein WeakMap-Check erkennt nur denselben JavaScript-Handle unter anderer Site-ID; er ersetzt keine native Bindingprüfung. Kein Request installiert Schema.
+
+Der lokale Server übergibt seinen fest gewählten Loopback-Origin ausdrücklich mit HTTP-Opt-in. Diese Konfiguration und sein geteilter Testbesitzer sind kein gehosteter Authnachweis. Siehe `workspaces/integration.md`.

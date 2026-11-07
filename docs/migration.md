@@ -70,3 +70,10 @@ PKCE-Verifier, Access-Tokens und Resumable-Sessionadressen sind mit unterschiedl
 Der tatsächliche lokale Constructor wird auf 5→6, Wiederstart, bytegleichen Altbestand, geänderten v5-Digest und vollständigen DDL-/Ledger-Rollback bei einem kollidierenden neuen Index geprüft. Dies ist keine gehostete D1-Abnahme. Alte Instanzen dürfen nicht parallel gegen die aktualisierte Datenbank laufen; vorher vollständige Sicherung anlegen. Ein Downgrade erfolgt nur aus getrennter Sicherung, nicht durch Entfernen von Ledgerzeilen.
 
 Pending-Medien und manuell zu klärende Übertragungen werden nicht automatisch gelöscht oder zurückgesetzt. Ein späterer autorisierter Recovery-/Retentionplan ist erforderlich, bevor diese Grenzen im echten Betrieb genutzt werden.
+
+
+## 0007: separate Arbeitsfassungen
+
+Version 0.8 ergänzt `0007_editor_workspaces.sql` mit eigener Tabelle/Index. SQL 0001–0006 sind unverändert. Der lokale Constructor prüft die komplette Ledgergeschichte, wendet ausstehende Schritte atomar an und rollt Schema/Ledger bei Fehler zurück. Der 6→7-Pfad, Wiederstart, Altdigestfehler und absichtliche Indexkollision werden geprüft. Keine Post-/Medien-/Credentialdaten werden umgeschrieben. Die Quellen enthalten kein 0008 und keine API 3.
+
+Vor einem Upgrade eine konsistente Sicherung der lokalen Datenbank einschließlich vorhandener WAL-Daten erstellen. Der Quellstand führt keine automatische Datensicherung oder Rückwärtsmigration aus. Gehostetes D1-Packaging und tatsächliche Migration bleiben eine eigene Betriebsabnahme.

@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.8.0
+
+- Separate serverseitige Arbeitsfassungen für unvollständige Composer-Eingaben, einschließlich roher CSV-Labels und eigener Kanaltexte. Kein Ersatzschreiben von Beiträgen und kein localStorage-Fallback.
+- Ownergebundene Vollsnapshot-CAS, bekannte Schreib-ID für unklaren Commit-Readback, Mehrtab409, explizite Wiederaufnahme mit unveränderlicher Herkunftsrevision.
+- Lokale Dateien werden nicht mitgesichert; vorhandene Bildreferenzen und geänderte Alttexte werden explizit geprüft.
+- Additive Migration 0007; 20 aktive/100 Gesamtidentitäten, 30 Tage Wiederaufnahmefrist ohne automatische Datenlöschung. Queue 0008 und API 3 bleiben getrennt.
+- Neue Workerroute benötigt serverseitig festen Site-/Origin-Kontext. Kein Hosting, Providerzugriff oder neuer Grant.
+
 ## 0.7.1
 
 - Redaktionelle Labels im normalen Beitragseditor, sichtbare Label-Badges und kombinierbare exakte Filter für Kalender, Liste und Entwürfe.

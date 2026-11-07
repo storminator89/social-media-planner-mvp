@@ -1,6 +1,6 @@
 # Redaktionelle Labels und Bild-Alttext: Version 0.7.1
 
-Dieses Inkrement erweitert den lokalen Planer. Es aktiviert keinen Provider, veröffentlicht keine Site und ändert weder API noch Datenbankschema. Die acht übernommenen Implementierungs-/Testdateien sind in `SOURCE.sha256` gebunden; das Root-Manifest beschreibt den vollständigen Release.
+Dieses Inkrement erweitert den lokalen Planer. Es aktiviert keinen Provider, veröffentlicht keine Site und ändert weder API noch Datenbankschema. Die acht übernommenen Implementierungs-/Testdateien sind in `SOURCE-v 0.7.1.sha256` gebunden; das Root-Manifest beschreibt den vollständigen Release.
 
 ## Bedienung
 
@@ -33,3 +33,6 @@ Als Produktreferenzen dienten öffentliche Buffer-Anleitungen zu Kalender, Planu
 - https://support.buffer.com/articles/creating-and-managing-tags-2XU5Rft4ri
 
 REA v60 wurde erneut berücksichtigt. Vollständiger Quellbaum bedeutet normale Source-/Testprüfung, keine REA-Engine oder Live-Capture-Behauptung.
+
+
+Dieses Komponentenmanifest ist historisch für 0.7.1. App/HTML und einzelne Tests wurden in 0.8 durch Arbeitsfassungen erweitert; für die aktuelle Integrität gilt ausschließlich das Root-Manifest.

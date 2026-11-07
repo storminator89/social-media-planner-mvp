@@ -52,6 +52,7 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
   }
   return{
     get timezone(){return currentZone;},
+    get plannerRevision(){return snapshot?.revision??null;},
     async load(){if(busy)error('Speicherung läuft noch.','BUSY');pruneDeleted();const loaded=await client.load();currentZone=loaded.revision===0?timezone:loaded.settings.timezone;const state=toUI(loaded);deletedPosts.clear();snapshot=loaded;onTimezone(currentZone);return state;},
     async save(ui){
       if(busy)error('Speicherung läuft noch.','BUSY');if(!snapshot)error('Planer zuerst laden.','NOT_LOADED');busy=true;
