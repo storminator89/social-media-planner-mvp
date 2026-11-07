@@ -1,4 +1,4 @@
-# Takt 0.4: lokaler Social-Media-Planer
+# Takt 0.5: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -17,7 +17,8 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 
 ## Daten und tatsächlicher Funktionsumfang
 
-- Lesende Verbindungsübersicht für Instagram, LinkedIn und YouTube. Sie zeigt echte lokale Serverzustände und unterscheidet technische Einrichtung, Plattformfreigabe und persönliche Berechtigung. Es existieren keine aktiven Verbindungen oder Anmelde-/Versandaktionen.
+- Lesende Verbindungsübersicht für Instagram, LinkedIn, YouTube und X. X bleibt ohne gespeicherte Verbindung; möglicher API-Zugang und Kosten erfordern eine ausdrückliche Freigabe. Sie zeigt echte lokale Serverzustände und unterscheidet technische Einrichtung, Plattformfreigabe und persönliche Berechtigung. Es existieren keine aktiven Verbindungen oder Anmelde-/Versandaktionen.
+- Isolierte LinkedIn-OAuth-Vorbereitung mit strikter serverseitiger Konfiguration, Callbackparser und kurzlebigem Einmal-State. Die Ablaufbibliothek ist nicht an HTTP angeschlossen, tauscht keine Codes gegen Tokens und verbindet kein Konto. Ein lesender Readiness-Endpunkt zeigt die offenen Voraussetzungen.
 - Dependency-freier Sites-Worker-Entwurf mit eingebetteten UI-Dateien und identitätsgebundener Daten-API. `npm run build:worker` erzeugt ein lokales Worker-Artefakt, keinen gehosteten Dienst.
 - Ideen-Inbox mit optionalem Titel, Notizen, Labels, Suche und Label-Filter. Ideen brauchen weder Kanal noch Termin. Erst ein erfolgreicher Beitragssave verschiebt die Idee mit derselben ID in Entwürfe oder Planung.
 - UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export.
@@ -50,9 +51,9 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
 
-Version 0.4 nutzt weiterhin API-Schema 2 und ergänzt die rein vorbereitende Migration 0003. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
+Version 0.5 nutzt weiterhin API-Schema 2 und ergänzt nur die vorbereitende Migration 0004 für gehashte OAuth-State-Bindungen. Die Migrationen 0001–0003 bleiben unverändert. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
 
-Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/verification.md`.
+Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/verification.md`.
 
 ## Lizenzstatus
 

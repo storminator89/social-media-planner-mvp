@@ -12,7 +12,7 @@ export class LocalDatabase {
     this.sql.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
     this.sql.exec('CREATE TABLE IF NOT EXISTS local_migrations (version INTEGER PRIMARY KEY, digest TEXT NOT NULL)');
     // Validate the entire known ledger before any upgrade. Never rewrite old SQL.
-    const migrations = ['0001_planner.sql', '0002_variant_inheritance.sql', '0003_provider_jobs.sql'].map((name, index) => {
+    const migrations = ['0001_planner.sql', '0002_variant_inheritance.sql', '0003_provider_jobs.sql', '0004_oauth_state.sql'].map((name, index) => {
       const source = readFileSync(new URL(`./${name}`, import.meta.url), 'utf8');
       return { version: index + 1, source, digest: createHash('sha256').update(source).digest('hex') };
     });

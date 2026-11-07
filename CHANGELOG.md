@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## 0.5.0
+
+- X als vierte, ehrlich unverbundene Option mit ausdrücklichem Kostenfreigabe-Hinweis; keine X-Verbindungs-/Jobpersistenz und keine bezahlte Aktivierung.
+- Strikter servereigener LinkedIn-Konfigurationsvertrag und ablehnender Callbackparser. Die gekapselte Offline-Flow-Factory bindet Parser und State-Repository an dieselbe unveränderliche Konfiguration.
+- Additive Migration 0004 für 256-Bit-State, gehashte Browserbindung und Nonce-Fingerprint, fünf Minuten Ablauf, ownergebundene Begrenzung und atomaren Einmal-Claim. Keine Roh-State-, Code-, Verifier- oder Tokenablage.
+- Authentifizierter GET-Readiness-Endpunkt mit ausschließlich gesperrten Fähigkeiten. Kein HTTP-Start, Callback oder Tokenaustausch; keine neue Ausnahme von Origin-/Sites-Identitätsgrenzen.
+- Automatisierte Migration-/Protokollregressionen und Browserprüfung der realen Vierer-Statusroute. Siehe Verifikationsbericht; gehostete Laufzeit und echte Provider bleiben ungeprüft.
+
 ## 0.4.0
 
 - Eigener Worker-Einstieg für spätere Sites-Bereitstellung, ohne Node-Laufzeitabhängigkeiten, mit eingebettetem UI-Inventar und Dispatch-Identitätspflicht.

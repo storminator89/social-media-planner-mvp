@@ -1,3 +1,4 @@
+import {handleOAuthReadiness} from '../modules/oauth/readiness-api.mjs';
 import {handleProviderStatus} from '../modules/providers/status-api.mjs';
 import { readFile, realpath } from 'node:fs/promises';
 import { resolve, sep, extname, join } from 'node:path';
@@ -25,7 +26,7 @@ export function createLocalHandler({ directory = join(ROOT, '.local'), publicDir
       if (url.pathname.startsWith('/api/')) {
         const headers = new Headers(request.headers); headers.set('oai-authenticated-user-id', LOCAL_OWNER);
         const internal = new Request(request, { headers });
-        const response = await handleProviderStatus(internal, { DB, BUCKET }) ?? await handlePlannerRequest(internal, { DB, BUCKET });
+        const response = await handleOAuthReadiness(internal) ?? await handleProviderStatus(internal, { DB, BUCKET }) ?? await handlePlannerRequest(internal, { DB, BUCKET });
         if (!response) return errorResponse(404, 'Endpunkt nicht vorhanden.');
         // Keep capability labels truthful: this is disk-backed emulation, not deployed D1/R2.
         if (url.pathname === '/api/planner/state' && response.ok) {

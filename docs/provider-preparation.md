@@ -19,3 +19,13 @@ Die Vorbereitung liest ausschließlich eigene Quellen, schützt den Insert mit d
 Serverseitige OAuth-Konfiguration, konkrete Konto-/Kanalverifikation, benutzerspezifische sichere Credentialablage, Provider-Freigaben, geschützte Freigabedatensätze, Mediensicherung und produktiver Transport fehlen. Anbieter-Adapter mit lokalen Antwortfixtures sind nicht in diesen Runtime-Build übernommen. Eine Bibliotheksprüfung ersetzt keinen echten Account-/Cloud-Test.
 
 Eine private Testübertragung benötigt eine konkrete Nutzerfreigabe für Zielkonto, Inhalt und Medium. Dauerhafte Zugriffsberechtigungen benötigen die gesonderte sichere Freigabe. Es werden keine Secrets im Chat oder Browser gesammelt. Vor geplanter öffentlicher Veröffentlichung müssen zusätzlich Provider-Zustände, unklare Ergebnisse, sichere Wiederaufnahme und das tatsächliche Hintergrundsystem nachgewiesen werden.
+
+## X in Version 0.5
+
+Die Statusübersicht enthält vier Karten: Instagram, LinkedIn, YouTube und X. X wird mit `not_connected`, `accountLabel:null`, `canPublish:false` und den Blockern `OAUTH_NOT_CONFIGURED`, `COST_APPROVAL_REQUIRED`, `PUBLISHING_DISABLED` ausgegeben. Dies ist eine gesperrte Produktoption, kein aus einem Providerkonto gelesener Live-Zustand.
+
+Für X sind API-Zugang, verfügbarer Funktionsumfang und mögliche Nutzungskosten vor einer Aktivierung zu prüfen und ausdrücklich freizugeben. Die UI nennt keine dauerhaften Preise und besitzt keine Zahlungs-, Verbindungs- oder Veröffentlichungsaktion. Die aktuelle Preisquelle ist [X API Pricing](https://docs.x.com/x-api/getting-started/pricing); dieses Projekt hat weder einen Tarif bestellt noch ein Kostenlimit autorisiert.
+
+Die ursprünglichen drei Provider besitzen weiterhin nur vorbereitende Platzhaltertabellen. X ist darin nicht persistierbar: Verbindungs- und Jobmethoden lehnen X ausdrücklich ab. Der Status-GET bleibt nicht mutierend, fehlende Tabellen bleiben Fehler und liefern keinen erfundenen Ersatzstatus. Bestehende SQL-Dateien werden für die Anzeige nicht geändert.
+
+Die LinkedIn-Vorbereitung wird in `oauth-preparation.md` beschrieben. Sie verändert keinen dieser Verbindungszustände und schaltet keine Publishing-Fähigkeit frei. Extern entwickelte Provider-Adapter sind nicht Teil des Runtime-Bundles.

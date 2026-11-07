@@ -1,3 +1,4 @@
+import {handleOAuthReadiness} from '../modules/oauth/readiness-api.mjs';
 import {handleProviderStatus} from '../modules/providers/status-api.mjs';
 import { handlePlannerRequest } from '../modules/data/api.mjs';
 
@@ -33,6 +34,7 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
           if(!providerStatus)return error(503,'PROVIDER_STATUS_UNAVAILABLE','Der Verbindungsstatus ist noch nicht verfügbar.');
           return secure(await providerStatus(request,env));
         }
+        const readiness=await handleOAuthReadiness(request);if(readiness)return secure(readiness);
         const api=await handlePlannerRequest(request,env);if(api)return secure(api);
         if(url.pathname.startsWith('/api/'))return error(404,'NOT_FOUND','Endpunkt nicht vorhanden.');
         if(!['GET','HEAD'].includes(request.method))return error(405,'METHOD_NOT_ALLOWED','Methode nicht erlaubt.');

@@ -1,7 +1,7 @@
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 export class D1TestAdapter {
-  constructor({through=3}={}){this.sql=new DatabaseSync(':memory:');this.sql.exec('PRAGMA foreign_keys = ON;');this.sql.exec(readFileSync(new URL('../../server/0001_planner.sql',import.meta.url),'utf8'));if(through>=2)this.sql.exec(readFileSync(new URL('../../server/0002_variant_inheritance.sql',import.meta.url),'utf8'));if(through>=3)this.sql.exec(readFileSync(new URL('../../server/0003_provider_jobs.sql',import.meta.url),'utf8'));}
+  constructor({through=4}={}){this.sql=new DatabaseSync(':memory:');this.sql.exec('PRAGMA foreign_keys = ON;');this.sql.exec(readFileSync(new URL('../../server/0001_planner.sql',import.meta.url),'utf8'));if(through>=2)this.sql.exec(readFileSync(new URL('../../server/0002_variant_inheritance.sql',import.meta.url),'utf8'));if(through>=3)this.sql.exec(readFileSync(new URL('../../server/0003_provider_jobs.sql',import.meta.url),'utf8'));if(through>=4)this.sql.exec(readFileSync(new URL('../../server/0004_oauth_state.sql',import.meta.url),'utf8'));}
   prepare(sql){const db=this;let values=[];return{bind(...args){values=args;return this;},async all(){return{results:db.sql.prepare(sql).all(...values)};},async first(){return db.sql.prepare(sql).get(...values)??null;},async run(){return{meta:{changes:db.sql.prepare(sql).run(...values).changes}};},_exec(){const stmt=db.sql.prepare(sql);if(/^SELECT/i.test(sql))return{results:stmt.all(...values),meta:{changes:0}};return{results:[],meta:{changes:stmt.run(...values).changes}};}};}
   async batch(statements){this.sql.exec('BEGIN');try{const results=statements.map(s=>s._exec());this.sql.exec('COMMIT');return results;}catch(error){this.sql.exec('ROLLBACK');throw error;}}
 }

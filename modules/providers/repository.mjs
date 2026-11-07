@@ -1,15 +1,17 @@
 /** Preparation-only D1 module. It has no fetch, OAuth, credential, dispatch or
  * scheduler implementation. No method can mark a provider connected or publish. */
-export const PROVIDERS=Object.freeze(['instagram','linkedin','youtube']);
-export const PUBLIC_BLOCKER_CODES=Object.freeze(['OAUTH_NOT_CONFIGURED','ACCOUNT_NOT_VERIFIED','PLATFORM_APPROVAL_REQUIRED','USER_AUTHORIZATION_REQUIRED','PUBLISHING_DISABLED','CONNECTION_ERROR','STATUS_UNAVAILABLE']);
+export const DISPLAY_PROVIDERS=Object.freeze(['instagram','linkedin','youtube','x']);
+export const PERSISTABLE_PROVIDERS=Object.freeze(['instagram','linkedin','youtube']);
+export const PUBLIC_BLOCKER_CODES=Object.freeze(['OAUTH_NOT_CONFIGURED','ACCOUNT_NOT_VERIFIED','PLATFORM_APPROVAL_REQUIRED','USER_AUTHORIZATION_REQUIRED','PUBLISHING_DISABLED','CONNECTION_ERROR','STATUS_UNAVAILABLE','COST_APPROVAL_REQUIRED']);
 export const PROVIDER_CAPABILITIES=Object.freeze({oauth:false,publishing:false});
 export class ProviderDataError extends Error{constructor(status,code,message){super(message);this.status=status;this.code=code;}}
 function reject(status,code,message){throw new ProviderDataError(status,code,message);}
 function ownerId(owner){if(typeof owner!=='string'||!owner.trim()||owner.length>256)reject(401,'SIGN_IN_REQUIRED','Eine authentifizierte Besucheridentität ist erforderlich.');return owner;}
 function id(value,label='ID'){if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(value))reject(400,'INVALID_INPUT',`${label} ist ungültig.`);return value;}
-function providerId(provider){if(!PROVIDERS.includes(provider))reject(400,'UNSUPPORTED_PROVIDER','Dieser Provider ist noch nicht vorgesehen.');return provider;}
+function providerId(provider){if(provider==='x')reject(409,'PROVIDER_PERSISTENCE_UNAVAILABLE','X ist nur als gesperrte Option sichtbar. Verbindungs- und Jobpersistenz sind noch nicht freigegeben.');if(!PERSISTABLE_PROVIDERS.includes(provider))reject(400,'UNSUPPORTED_PROVIDER','Dieser Provider ist noch nicht vorgesehen.');return provider;}
 function rows(result){return result.results??[];}
 function publicConnection(provider,row){
+  if(provider==='x')return{provider,status:'not_connected',accountLabel:null,canPublish:false,blockerCodes:['OAUTH_NOT_CONFIGURED','COST_APPROVAL_REQUIRED','PUBLISHING_DISABLED']};
   if(!row)return{provider,status:'not_connected',accountLabel:null,canPublish:false,blockerCodes:['OAUTH_NOT_CONFIGURED','PUBLISHING_DISABLED']};
   const states=['not_connected','setup_required','approval_required','error'];
   let status=row.status==='disabled'?'not_connected':states.includes(row.status)?row.status:'error';
@@ -30,7 +32,7 @@ export class ProviderRepository {
     ownerId(owner);
     // Explicit safe-column projection. This read never creates placeholder rows.
     const found=rows(await this.stmt('SELECT provider,status,reason_code FROM planner_provider_connections WHERE owner_id=?',owner).all());
-    return PROVIDERS.map(provider=>publicConnection(provider,found.find(row=>row.provider===provider)));
+    return DISPLAY_PROVIDERS.map(provider=>publicConnection(provider,found.find(row=>row.provider===provider)));
   }
   async ensureUnconfiguredConnection(owner,provider){
     ownerId(owner);providerId(provider);const time=this.now();

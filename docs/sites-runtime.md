@@ -33,3 +33,9 @@ Ein Browser-Queue-Termin ist kein Scheduler. Ein Worker-`setTimeout` wird nicht 
 ## Native App-Connectoren
 
 Sites-eigene App-Connectoren sind grundsätzlich eine mögliche Alternative zu eigener Tokenverwaltung. Ihre Nutzung setzt eine aktuelle native Eligibility-Prüfung für den konkreten Provider und die benötigten Aktionen voraus. Ein sichtbares Plugin oder eine ähnliche App-Bezeichnung beweist weder Sites-Eignung noch Publishing-Unterstützung. Diese Version deklariert keine Connectoren, installiert keine Grants und richtet keinen Vorschau-Relay ein. Ohne bestätigte Eligibility und Aktionen wird kein Provider-Proxy gebaut.
+
+## Offline-OAuth-Vorbereitung in 0.5
+
+Nur `/api/providers/linkedin/oauth/readiness` wurde als authentifizierter GET ergänzt. Er beschreibt den gesperrten Entwicklungsstand, nicht eine vorhandene App-Konfiguration oder verifizierte Kontoanmeldung. Er verarbeitet keine Codes, erstellt keine Cookies/States und liefert keinen OAuth-Link. Sites-reservierte Routen und der allgemeine Cross-Site-Schutz bleiben unverändert.
+
+Die tatsächliche State-/Flow-Bibliothek liegt außerhalb des HTTP-Importgraphen. Migration 0004 ist schema-only vorbereitet, aber nie gehostet ausgeführt. Eine echte Provider-Rückleitung benötigt zuvor Nachweis der unveränderten initiierenden Sites-Identität und Browserbindung. Dafür wäre später eine eng auf Methode und eigenen Callbackpfad begrenzte Protokollausnahme nötig; eine solche Ausnahme wurde hier bewusst nicht eingerichtet.

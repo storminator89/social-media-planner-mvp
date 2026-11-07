@@ -19,7 +19,7 @@ Der lokale Entwicklungsserver ist ausdrücklich eine andere Betriebsart: Loopbac
 
 Schreibanfragen verlangen gleiche Origin, keine Cross-Site-Kennung und `X-Planner-Request: 1`. Die API liefert keine CORS-Freigabe. Antwortdaten sind nicht öffentlich cachebar. SQL und interne Dateischlüssel werden nicht an den Browser ausgegeben.
 
-## API-Vertrag, Version 0.4 (Schema 2)
+## API-Vertrag, Version 0.5 (Schema 2)
 
 Alle Fehler verwenden `{error:{code,message,details?}}`.
 
@@ -64,10 +64,16 @@ Produktobergrenzen: 20 Kanäle, 100 Beiträge, 300 Varianten, 10 Medienreferenze
 
 Noch nicht vorhanden: Medien-Löschendpunkt, Metadatenänderung gespeicherter Bilder, Videorange-Antworten, Transcoding, Backups, Social-Tokens, OAuth, Publisher oder Hintergrundjobs. Für spätere Cloudbereitstellung müssen Migrationen, echte Identität und D1/R2 separat nachgewiesen werden.
 
-## Verbindungsstatus (0.4)
+## Verbindungsstatus (0.5)
 
-`GET /api/providers/status` ist der einzige neue öffentliche Endpunkt. Er verlangt eine vertrauenswürdige Besucheridentität, prüft Origin und liefert Schema 1 mit drei whitelisted Provider-Statusobjekten und `capabilities:{oauth:false,publishing:false}`. Der lokale Entwicklungsserver setzt seinen separaten Testbesitzer erst nach den bestehenden Loopback-/Headerprüfungen ein.
+`GET /api/providers/status` bleibt ein rein lesender öffentlicher Endpunkt. Er verlangt eine vertrauenswürdige Besucheridentität, prüft Origin und liefert Schema 1 mit vier strikt begrenzten Provider-Statusobjekten und `capabilities:{oauth:false,publishing:false}`. Der lokale Entwicklungsserver setzt seinen separaten Testbesitzer erst nach den bestehenden Loopback-/Headerprüfungen ein.
 
-Der Status enthält ausschließlich Provider, Einrichtungszustand, `accountLabel:null`, `canPublish:false` und vorgegebene Blockercodes. Keine Account-ID, Credential-Referenz, Rohfehler oder Jobpayload. Fehlende Migration/DB-Fehler liefern 503, keinen erfundenen „nicht verbunden“-Erfolg. Fehlende Zeilen nach einer erfolgreichen DB-Abfrage bedeuten tatsächlich, dass keine Connection für diesen Besitzer registriert ist. POST/PUT/DELETE werden abgewiesen.
+Der Status enthält ausschließlich Provider, Einrichtungszustand, `accountLabel:null`, `canPublish:false` und vorgegebene Blockercodes. Keine Account-ID, Credential-Referenz, Rohfehler oder Jobpayload. Fehlende Migration/DB-Fehler liefern 503, keinen erfundenen „nicht verbunden“-Erfolg. Für die drei persistierbaren Provider bedeuten fehlende Zeilen nach erfolgreicher DB-Abfrage, dass kein Platzhalter dieses Besitzers registriert ist. X ist ausdrücklich noch nicht persistierbar und wird nur als gesperrte Option mit Kostenfreigabe-Blocker angezeigt. POST/PUT/DELETE werden abgewiesen.
 
 Die neue interne `ProviderRepository` besitzt ausschließlich vorbereitende Platzhalter-/Joboperationen. Sie ist kein Publisher und keine Berechtigungsquelle. Kein HTTP-Endpunkt ruft diese Mutatoren auf. Näheres in `provider-preparation.md`.
+
+## Offline-OAuth (0.5)
+
+`GET /api/providers/linkedin/oauth/readiness` ist ebenfalls authentifiziert und nur lesend. Es liefert Schema 1, `offline_preparation`, den unbestätigten persönlichen Zieltyp, das vorgesehene Scope-Bündel und feste offene Voraussetzungen; sämtliche Fähigkeiten sind false und `authorizationUrl` ist null. Es prüft keine Credentials oder reale App-Freigabe. Schreibmethoden werden abgewiesen.
+
+Die State-Tabelle aus Migration 0004 und die gekapselte Offline-Flow-Factory sind Entwicklungsbausteine ohne HTTP-Mutatoren. `/api/providers/linkedin/oauth/start`, `/callback` unter demselben eigenen Prefix und `/exchange` sind nicht implementiert. Sites-reservierte Authrouten bleiben unverändert. Keine Provider-Codes oder Roh-State-Werte werden über einen Endpunkt verarbeitet, gespeichert oder zurückgesendet. Siehe `oauth-preparation.md` für genaue Grenzen.
