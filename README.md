@@ -1,4 +1,4 @@
-# Takt 0.2: lokaler Social-Media-Planer
+# Takt 0.3: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -17,6 +17,7 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 
 ## Daten und tatsächlicher Funktionsumfang
 
+- Ideen-Inbox mit optionalem Titel, Notizen, Labels, Suche und Label-Filter. Ideen brauchen weder Kanal noch Termin. Erst ein erfolgreicher Beitragssave verschiebt die Idee mit derselben ID in Entwürfe oder Planung.
 - UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export.
 - Eigene Kanaltexte mit expliziter Basisvererbung, Vorschau und Zeichenprüfung. Auch absichtlich leere oder aktuell identische eigene Fassungen bleiben unabhängig.
 - Temporäre Queue-Slots im Editor: gemeinsame Wochentage/Uhrzeit, IANA-Zone, Mindestabstand, bis zu drei freie Vorschläge. Erst bewusste Auswahl ändert den Termin, erst normales Speichern persistiert.
@@ -40,15 +41,16 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 - Ein reiner localStorage-/Static-Modus ist gesperrt. Fehlender Serveradapter oder ungültige Ladeantworten erzeugen weder leere Ersatzschreibvorgänge noch Demo-Beiträge. Alte Browser-only-Daten werden nicht automatisch importiert.
 - Keine Social-OAuth-Verbindungen, Tokens, API-Veröffentlichung, Hintergrund-Scheduler, Webhooks, Analytics oder Inbox.
 - Keine direkte Bearbeitung gespeicherter Bild-Alttexte; Bild erneut auswählen. Kein Medien-Löschendpunkt. Entfernte Beiträge können Bilddateien zurücklassen.
+- Rückgängig ist eine kurze Sitzungsfunktion, kein Papierkorb: UI-Angebot 12 Sekunden; kanonische Wiederherstellungsdaten höchstens 60 Sekunden und 100 Einträge pro Store. Neuladen löscht diesen Zwischenspeicher. Bei einem Konflikt bleibt die gelöschte UI-Fassung sichtbar kopierbar, sie wird nicht automatisch wiederhergestellt.
 - Die temporäre Arbeitsumgebung ist kein zugesicherter langfristiger Speicher.
 
 ## Sites als nächste Stufe
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
 
-Version 0.2 verwendet API-Schema 2. Vor einem lokalen Upgrade Daten sichern; Migration 0002 wird additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
+Version 0.3 nutzt weiterhin API-Schema 2 und dieselben Datenbankmigrationen wie 0.2. Vor einem lokalen Upgrade Daten sichern; Migration 0002 wird additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
 
-Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/verification.md`.
+Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/verification.md`.
 
 ## Lizenzstatus
 

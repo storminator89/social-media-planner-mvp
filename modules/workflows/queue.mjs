@@ -146,5 +146,7 @@ export function duplicateTaktDraft(post, { id, now = new Date().toISOString() })
   const current = new Date(absoluteTime(now)).toISOString();
   const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post)], status: 'draft', scheduledAt: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, media: clone(post.media ?? null), createdAt: current, updatedAt: current };
   if (post.variantTexts !== undefined) draft.variantTexts = clone(post.variantTexts);
+  if (post.title !== undefined) draft.title = post.title;
+  if (post.tags !== undefined) draft.tags = clone(post.tags);
   return draft;
 }

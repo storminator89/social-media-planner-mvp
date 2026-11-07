@@ -1,3 +1,4 @@
+import { normalizeEditorialMetadata, validateIdea } from './ideas.js';
 import { effectiveText, selectedVariantTexts, channelTextChecks, searchableText } from './variants.js';
 import { resolveLocalTime as resolveWorkflowTime } from './workflows/workflows.mjs';
 export const CHANNELS = [
@@ -23,7 +24,9 @@ export function postDate(post) { return post.scheduledAt ? new Date(post.schedul
 export function displayTitle(post) { const text = (post.text.trim()||(post.channels||[]).map(id=>effectiveText(post,id)).find(t=>t?.trim())||'').trim().split('\n')[0]; return text.length > 68 ? `${text.slice(0,65)}…` : text || 'Neuer Entwurf'; }
 export function characterCount(text) { return Array.from(text).length; }
 export function validatePost(post, now = new Date()) {
+  if(post.status==='idea')return validateIdea(post);
   const errors = [];
+  try{normalizeEditorialMetadata(post)}catch(error){errors.push(error.message)}
   if (!post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
   if (!Array.isArray(post.channels) || !post.channels.length) errors.push('Wähle mindestens einen Kanal.');
   for (const result of channelTextChecks(post,CHANNELS)) {
@@ -52,15 +55,17 @@ export function createDemoState(now = new Date()) {
   const posts = entries.map((e,i) => ({id:`demo-${i+1}`,text:e[0],channels:e[1],scheduledAt:localDateTime(addDays(week,e[2]),e[3]),status:'scheduled',cover:e[4],media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()}));
   posts.push({id:'demo-draft-1',text:'3 Dinge, die wir diesen Monat gelernt haben.\n\n1. Gute Fragen sind oft wertvoller als schnelle Antworten.\n2. Kleine Schritte bringen uns weiter.\n3. …',channels:['linkedin'],scheduledAt:null,status:'draft',cover:null,media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()});
   posts.push({id:'demo-draft-2',text:'Eine neue Idee nimmt Form an.\n\nMehr dazu bald. ✨',channels:['instagram'],scheduledAt:null,status:'draft',cover:'forms',media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()});
-  return {schemaVersion:SCHEMA_VERSION,settings:{timezone:defaultTimeZone()},posts:posts.map(p=>({...p,timeZone:defaultTimeZone(),variantTexts:{}}))};
+  return {schemaVersion:SCHEMA_VERSION,settings:{timezone:defaultTimeZone()},posts:posts.map(p=>({...p,title:'',tags:[],timeZone:defaultTimeZone(),variantTexts:{}}))};
 }
 export function normalizeState(value) {
   if (!value || value.schemaVersion !== SCHEMA_VERSION || !Array.isArray(value.posts)) throw new Error('Die gespeicherten Planungsdaten haben ein unbekanntes Format.');
   const timezone=isTimeZone(value.settings?.timezone)?value.settings.timezone:defaultTimeZone();
   const ids = new Set();
   const posts = value.posts.map(p => {
-    if (!p || typeof p.id !== 'string' || ids.has(p.id) || typeof p.text !== 'string' || !Array.isArray(p.channels) || p.channels.some(id=>!CHANNELS.some(c=>c.id===id)) || !['draft','scheduled'].includes(p.status)) throw new Error('Die gespeicherten Planungsdaten sind beschädigt.');
+    if (!p || typeof p.id !== 'string' || ids.has(p.id) || typeof p.text !== 'string' || !Array.isArray(p.channels) || p.channels.some(id=>!CHANNELS.some(c=>c.id===id)) || !['idea','draft','scheduled'].includes(p.status)) throw new Error('Die gespeicherten Planungsdaten sind beschädigt.');
     ids.add(p.id);
+    const metadata=normalizeEditorialMetadata(p);
+    if(p.status==='idea'&&(p.channels.length||p.scheduledAt||p.media||p.cover||Object.keys(p.variantTexts||{}).length))throw new Error('Eine Idee enthält noch nicht unterstützte Kanal-, Bild- oder Terminangaben.');
     if (p.status==='scheduled' && (!p.scheduledAt || !Number.isFinite(new Date(p.scheduledAt).getTime()))) throw new Error('Ein gespeicherter Termin ist ungültig.');
     let media=null;
     if(p.media){
@@ -68,7 +73,7 @@ export function normalizeState(value) {
       if(typeof p.media.dataUrl==='string'&&/^data:image\/(png|jpeg|webp);base64,/.test(p.media.dataUrl))media={...metadata,dataUrl:p.media.dataUrl};
       else if(typeof p.media.url==='string'&&/^\/api\/planner\/media\/[A-Za-z0-9_-]+$/.test(p.media.url))media={...metadata,id:String(p.media.id||p.media.url.split('/').pop()),url:p.media.url};
     }
-    return {id:p.id,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,scheduledAt:p.scheduledAt||null,timeZone:isTimeZone(p.timeZone)?p.timeZone:timezone,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
+    return {id:p.id,...metadata,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,scheduledAt:p.scheduledAt||null,timeZone:isTimeZone(p.timeZone)?p.timeZone:timezone,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
   });
   return {schemaVersion:SCHEMA_VERSION,settings:{timezone},posts};
 }

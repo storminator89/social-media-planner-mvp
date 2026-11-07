@@ -1,47 +1,45 @@
-# Verifikation: Version 0.2
+# Verifikation: Version 0.3
 
 Stand: 7. November 2026. Getrennter lokaler Prototyp, keine Veröffentlichung.
 
 ## Automatisierte Prüfungen
 
-**143 Tests bestanden**, jeweils in der Standardumgebung sowie mit `TZ=America/Los_Angeles` und `TZ=Asia/Tokyo`. Alle JavaScript-Dateien bestanden die Syntaxprüfung. Aufruf: `npm test` und `npm run check`.
+**214 Tests bestanden**, jeweils in der Standardumgebung UTC sowie mit `TZ=America/Los_Angeles` und `TZ=Asia/Tokyo`. Alle JavaScript-Dateien bestanden die Syntaxprüfung. Aufruf: `npm test` und `npm run check`.
 
 Abgedeckt sind unter anderem:
 
-- API-Schema 2, atomare Revisionskonflikte, Besitzertrennung und fehlende Identität. Tests mit simuliertem vertrauenswürdigem Besucherheader, nicht mit echter Anmeldung.
-- Realer lokaler SQLite-Upgradepfad von 0001 auf 0002: bytegleiche alte Migration, konservative Textvererbung, Erhalt aller Daten/Revisionen, Wiederöffnung und Abbruch/Rollback bei geänderter oder unbekannter Historie und DDL-Fehler.
-- Alte API-Schreibanfragen werden auch mit passender Revision abgewiesen. Der Browser-only-Fallback liest/schreibt keine alten localStorage-Daten; null-Ladeantworten erzeugen keine Demos.
-- Varianten-Roundtrips einschließlich absichtlich leerer/identischer Texte, späterer Basisänderung, explizitem Reset, verborgenen Titeln und Statusnotizen. Bilder ohne Kanäle werden vor Mutation abgewiesen.
-- Queue-Vorschau ohne Mutation, explizite Übernahme, Belegungen, gemeinsame Kanäle, Mindestabstände, geänderte Regeln/Inhalte, IANA-Zonen und DST-Lücken/doppelte Stunden.
-- Durchgehende Queue→Adapter→SQLite-Prüfung inklusive UTC-Erhaltung, eigenem Kanaltext und 409 gegen konkurrierende Clients.
-- API-Medienprüfung, Besitzerschutz, Quoten und dateibasierter Medien-Roundtrip. Dieser Ausbau hat keine neuen Browser-Dateiuploads durchgeführt.
-- Statische Modulpfade, keine Freigabe der Datenbank, Serverquellen oder fremder Symlinks.
-- Tatsächliche Editorfunktionen mit verzögertem I/O: volle Commit-Feldsperre, Schutz neuerer Texte/Varianten, Doppelklick, späte Bild-Callbacks, Dirty-Duplicate und mobile Wochenfilterung.
-- Queue-Panel-Bedienlogik: Vorschau allein speichert nichts, Auswahl liefert eine Kopie, veraltete Vorschläge werden verworfen, Commit-Sperre und temporäre Regeln.
+- Vollständige Snapshot-Saves, atomare Revisionen/409, API-Schema 2, Besitzertrennung, Medienberechtigungen und fehlende Identität. Identitäten sind simuliert, kein echter Login.
+- Reale lokale SQLite-Dateien und Upgrade 0001→0002: unveränderte Migrationen, konservative Textvererbung, Erhalt von Daten/Revisionen, Wiederöffnung und transaktionales Rollback bei ungültigem Ledger oder DDL-Fehler. 0.3 benötigt keine neue Migration.
+- Ideen-Normalisierung, Titel-/Notizgrenzen, Label-Syntax, Suche und Label-Filter einschließlich echtem Label „all“, CRLF und nicht gepaarten UTF-16-Surrogaten. Unveränderte Titel/Notizen/Labels behalten ihre kanonische Form, einschließlich Rand-Leerzeichen und vorhandener Duplikate.
+- Vorbereiten ohne Mutation; expliziter Übergang gleicher ID; Titel-only-Ideen sind keine veröffentlichungsfähigen Beiträge. Durchgehender Idee→Queue→Adapter→SQLite-Pfad mit Titel, Labels, Varianten und UTC-Zeitpunkt.
+- Echte alte 0.2-Adapter werden bei stale write durch 409 geschützt; nach Neuladen lehnen sie Ideen/Tags ausdrücklich ab. Kein stiller Rückfall in alten localStorage.
+- Varianten einschließlich leerer/identischer unabhängiger Texte; Titel, Statusnotizen, Medien und Labels bei unabhängigen Änderungen. Nicht unterstützte reichere Daten werden abgewiesen.
+- Bestätigtes Delete/Undo bewahrt Varianten-ID, Statusnotiz, Erstelldatum und exakten UTC-Zeitpunkt in der doppelten DST-Stunde. Prüfung mit unabhängiger Änderung zwischen Delete/Undo, Fehler/409, TTL, Neuladen und begrenztem Wiederherstellungscache.
+- Tatsächliche UI-Funktionskörper: Commit-Sperren, verzögerte Texte/Varianten/Medien, Dirty-Close, Ideenübergang, unveränderte Metadaten und readonly Recovery bei gescheitertem Undo. Bestehende gleiche IDs werden nicht ersetzt.
+- Queue-Vorschläge ohne Save, ausdrückliche Übernahme, Fingerabdruck-/Belegungsprüfung, Mindestabstände und IANA-/DST-Grenzen. Mobile Wochenansicht filtert den gewählten Zeitraum.
+- Medien-Signaturprüfung, Quoten, Besitzertrennung, dateibasierter Medien-Roundtrip und statische Pfadgrenzen. Kein neuer Browser-Dateiupload in diesem Ausbau.
 
-Die unabhängige Nachprüfung wird separat am eingefrorenen Quellsnapshot dokumentiert. Die Testanzahl umfasst auch weiterführende Workflow-Bibliotheksfunktionen, die nicht vollständig in der Oberfläche verfügbar sind.
+Die unabhängige Quellprüfung hat dieselben 186 rein speicherbasierten Tests in drei Host-Zeitzonen sowie Syntax und eigene zusätzliche Reproduktionen geprüft. Gemeldete Datenverlustfälle in Undo und unveränderten Metadaten wurden behoben und erneut nachgeprüft. Die verbleibenden Tests verwenden temporäre lokale SQLite-/Dateiadapter. Die Anzahl enthält auch Bibliotheksfunktionen, die nicht vollständig in der UI erreichbar sind.
 
-## Integrierte Browserprüfung
+## Integrierte Desktop-Browserprüfung
 
-Im Chromium-Hauptfenster beobachtet:
+Mit der echten lokalen SQLite-API in Chromium beobachtet:
 
-- Leerer Serverzustand und wahrheitsgemäße lokale Speicherkennzeichnung.
-- Instagram-Basis plus eigene Bluesky-Fassung; Basisänderung verändert eigene Fassung nicht. Save, Reload und vollständiger Entwicklungsserver-Neustart bewahren die Fassung.
-- Queue-Suche mit bearbeiteter Uhrzeit 09:30 liefert drei gemeinsame freie Slots. Textänderung verwirft die Vorschläge. Bewusste Übernahme ändert erst das Formular; reguläres Einplanen speichert.
-- Ein belegter gemeinsamer Kanaltermin wird bei der nächsten Suche ausgelassen. Ein Abstand von genau 30 Minuten bleibt bei Mindestabstand 30 zulässig.
-- Ein veralteter Tab erhält einen sichtbaren Konflikthinweis und behält seine eigene Kanaltext-Eingabe. Kein automatisches Retry oder Überschreiben.
-- 301 Zeichen für Bluesky blockieren Planung, bleiben aber als Entwurf speicherbar und nach Reload vollständig vorhanden.
-- Expliziter Reset-Dialog stellt Basisvererbung her; nach Save/Reload ist der Kanal wieder als Basistext gekennzeichnet.
-- Commit sperrt auch sämtliche Queue-Eingaben. Selbst erstellte Testbeiträge wurden abschließend entfernt; der neu geladene Serverzustand zeigt 0 geplante und 0 Entwurfsbeiträge.
+- Neue Datenbank leer; Kanalprofile als unverbundene Beispiele und Speicher als lokaler Entwicklungsmodus gekennzeichnet.
+- Titel-only-Idee ohne Kanal/Termin gespeichert und neu geladen; Labels mit Komma und Anführungszeichen exakt erhalten. Reales Label „all“ separat filterbar.
+- Vorbereiten wählt keinen Kanal vor und erzeugt keinen Beitrag. Fehlender Beitragstext/Kanal verhindert Save. Abbrechen lässt die Idee unverändert.
+- Zwei Tabs: neuere Ideenänderung gewinnt; stale Umwandlung erhält sichtbaren 409 und behält eigene Eingabe. Keine automatische Wiederholung.
+- Idee mit LinkedIn/Bluesky und eigenem Bluesky-Text über Queue in Planung verschoben. Gleiche ID, ein Objekt, Idee aus Inbox entfernt, keine Zwischenveröffentlichung.
+- Löschen und sofortiges Undo wiederhergestellt. Zweites Delete mit konkurrierender Idee im anderen Tab: Undo bekommt 409, die gelöschte Fassung bleibt als kopierbare readonly Wiederherstellung sichtbar. Fremde Änderung bleibt erhalten.
+- Mehrzeilige Titel/Labels, Filter nach mehrzeiligem Label und reine Notizänderung gespeichert; Reload sowie vollständiger lokaler Serverneustart bewahren Metadaten und neuen Notiztext.
+- Eigene synthetische Testideen/-beiträge anschließend per UI entfernt. Keine Nutzerdaten, Testmedien oder Laufzeitdaten im Quellsnapshot.
 
 ## Responsive Prüfung und Grenze
 
-Die integrierte Oberfläche wurde zusätzlich in einem vorübergehenden 390-Pixel-Testframe mit 375 CSS-Pixeln tatsächlicher Inhaltsbreite geprüft. Dokumentbreite und Scrollbreite waren beide 375 Pixel; das Queue-Panel war 320 Pixel breit und hatte keinen horizontalen Überlauf. Suche und explizite Übernahme waren bedienbar.
-
-Dies ist ein Layoutnachweis, kein vollständiger mobiler End-to-End-Nachweis: Das `srcdoc`-Prüfharness kann nach einem erfolgreichen Schreibvorgang den History-URL-Wechsel nicht ausführen. Die Speicherung wurde anschließend im Hauptfenster verifiziert; der Harnessfehler wurde nicht als erfolgreicher Abschluss ausgegeben. Der Prüfharness wurde entfernt und ist nicht Teil des Produkts. Einbettung in fremde Frames ist kein unterstützter Betriebsmodus. Kein echtes Smartphone-/Safari-/Screenreader-Audit.
+Der getrennt entwickelte Ideen-UI-Stand wurde vor Integration in einem echten schmalen Browserfenster mit 400 CSS-Pixeln Außen- und 388 Pixeln Inhaltsbreite geprüft: Idee→Entwurf→geplanter Beitrag mit echten SQLite-Saves, ohne Frame-Harness oder Lockerung der CSP. Am final integrierten Stand wurde zusätzlich ein eigenes natives Chromium-Fenster schmal gezogen und auf 125 % gezoomt: 400 CSS-Pixel Ansichtsbreite, 388 Pixel Client- und Scrollbreite. Mehrzeilige Titel/Labels ließen sich ohne horizontalen Überlauf speichern, neu laden und über bewusste Kanalauswahl zum Entwurf umwandeln. Der Dialog war ebenfalls 388 Pixel breit. Der Testentwurf wurde entfernt, der Zoom zurückgesetzt und das eigene Fenster geschlossen. Die Recovery-Ansicht wurde im Desktop und per Funktionskörpertests geprüft. Ein tatsächliches Smartphone-, Safari- oder Screenreader-Audit ist nicht erfolgt.
 
 ## Aussagegrenzen
 
-Echte Sites-Dispatch-Identität, Cloud-D1/R2, gehostete Migrationen, Produktionssicherheit, Backup/Wiederherstellung, Social-OAuth, Provider-API, autonome Veröffentlichung und Hintergrundscheduler wurden nicht verifiziert. Lokale kompatible Adapter und simulierte Besitzer sind kein Cloud- oder Mehrbenutzernachweis.
+Echte Sites-Dispatch-Identität, Cloud-D1/R2, gehostete Migrationen, Produktionssicherheit, Backup/Wiederherstellung, Social-OAuth, Provider-API, autonome Veröffentlichung und Hintergrundscheduler wurden nicht verifiziert. Lokale kompatible Adapter und simulierte Besitzer sind kein Cloud- oder Mehrbenutzernachweis. Unabhängige Prüfung ist keine allgemeine Sicherheitsgarantie.
 
-Der Entwicklungsserver bindet ausschließlich an Loopback und verwendet einen gemeinsamen Testarbeitsbereich ohne Anmeldung. Keine vertraulichen Daten eingeben. Er ist nicht zur öffentlichen Bereitstellung vorgesehen. Queue-Regeln gelten nur für den geöffneten Editor und sind keine dauerhaft gespeicherte Kanalplanung oder Empfehlung einer optimalen Reichweitenzeit.
+Der Entwicklungsserver bindet ausschließlich an Loopback und verwendet einen gemeinsamen Testarbeitsbereich ohne Anmeldung. Keine vertraulichen Daten eingeben. Er ist nicht zur öffentlichen Bereitstellung vorgesehen. Queue-Regeln sind temporär. Undo ist kein dauerhafter Papierkorb; Recovery-JSON ist keine vollständige kanonische Daten- oder Mediendateisicherung.

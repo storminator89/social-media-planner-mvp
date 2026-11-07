@@ -1,5 +1,14 @@
 # Änderungsprotokoll
 
+## 0.3.0
+
+- Ideen-Inbox mit Titel, Notizen, Labels, Suche und Label-Filter; keine Kanäle oder Termine erforderlich.
+- Expliziter Übergang Idee → Entwurf/geplanter Beitrag mit derselben ID, ohne vorzeitige Mutation oder separates Duplikat.
+- Titel/Labels bleiben bei Varianten, Queue, Duplizieren und unabhängigen Änderungen erhalten. Unveränderte Metadaten werden nicht beim Öffnen normalisiert.
+- Begrenztes Undo bewahrt kanonische Varianten-IDs, Statusnotizen und exakte UTC-Zeitpunkte. Fehlgeschlagene Wiederherstellung zeigt eine kopierbare Fassung statt stillen Verlusts.
+- Weiter API-Schema 2 und unveränderte Migrationen; keine Cloud- oder Social-Verbindung.
+- 214 automatisierte Tests, Syntaxprüfung und integrierte Browserprüfung. Umfang und Grenzen im Verifikationsbericht.
+
 ## 0.2.0
 
 - Eigene Kanaltexte, ausdrückliche Vererbung, Reset-Dialoge und kanalbezogene Zeichenprüfung.

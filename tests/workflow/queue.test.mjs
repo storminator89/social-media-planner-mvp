@@ -102,9 +102,10 @@ test('absolute instants cannot be silently normalized from invalid dates', () =>
   code(() => suggestQueueSlots(opts({ after: '2026-11-09T24:00:00Z' })), 'INVALID_INSTANT');
 });
 test('safe duplication preserves variants and media but removes workflow and outcome evidence', () => {
-  const original = { ...post(), variantTexts: { linkedin: '' }, status: 'scheduled', scheduledAt: '2026-11-09T09:00', media: { id: 'img', alt: 'Bild' }, review: { status: 'approved' }, deliveries: [{ status: 'published' }], publishedAt: now };
+  const original = { ...post(), title: 'Redaktioneller Titel', tags: ['Kampagne'], variantTexts: { linkedin: '' }, status: 'scheduled', scheduledAt: '2026-11-09T09:00', media: { id: 'img', alt: 'Bild' }, review: { status: 'approved' }, deliveries: [{ status: 'published' }], publishedAt: now };
   const copy = duplicateTaktDraft(original, { id: 'p2', now });
   assert.equal(copy.status, 'draft'); assert.equal(copy.scheduledAt, null); assert.equal(copy.variantTexts.linkedin, ''); assert.equal(copy.review, undefined); assert.equal(copy.deliveries, undefined); assert.equal(copy.publishedAt, undefined);
+  assert.equal(copy.title, original.title); assert.deepEqual(copy.tags, original.tags); copy.tags.push('Neu'); assert.deepEqual(original.tags, ['Kampagne']);
   copy.media.alt = 'Anders'; assert.equal(original.media.alt, 'Bild');
 });
 test('duplicate IDs are rejected rather than overwriting the original', () => code(() => duplicateTaktDraft(post(), { id: 'p1', now }), 'NEW_ID_REQUIRED'));

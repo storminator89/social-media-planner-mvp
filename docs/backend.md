@@ -19,7 +19,7 @@ Der lokale Entwicklungsserver ist ausdrücklich eine andere Betriebsart: Loopbac
 
 Schreibanfragen verlangen gleiche Origin, keine Cross-Site-Kennung und `X-Planner-Request: 1`. Die API liefert keine CORS-Freigabe. Antwortdaten sind nicht öffentlich cachebar. SQL und interne Dateischlüssel werden nicht an den Browser ausgegeben.
 
-## API-Vertrag, Version 0.2
+## API-Vertrag, Version 0.3 (Schema 2)
 
 Alle Fehler verwenden `{error:{code,message,details?}}`.
 
@@ -52,9 +52,9 @@ Die Snapshot-Ersetzung bewahrt die Medienbibliothek. Das Entfernen eines Beitrag
 }
 ```
 
-Zustände des Beitrags: `idea`, `draft`, `planned`, `archived`; je Zielkanal: `draft`, `ready`, `planned`, `published`, `failed`. Der Status `published` ist nur manuelle Dokumentation und verlangt Datum sowie gegebenenfalls einen HTTPS-Link. Er beweist keinen API-Versand. Die Oberfläche unterstützt eigene Kanaltexte mit `inheritsBody:boolean`. Fehlender UI-Key in `variantTexts` bedeutet Vererbung; vorhandener Key ist unabhängig, auch bei leerem oder identischem Inhalt. Gemeinsame Termine/Medien und Entwurfs-/Planungsstatus bleiben Pflicht; reichere Varianten, Phasen, Tags oder Formate werden geschützt abgewiesen.
+Zustände des Beitrags: `idea`, `draft`, `planned`, `archived`; je Zielkanal: `draft`, `ready`, `planned`, `published`, `failed`. Der Status `published` ist nur manuelle Dokumentation und verlangt Datum sowie gegebenenfalls einen HTTPS-Link. Er beweist keinen API-Versand. Die Oberfläche unterstützt eigene Kanaltexte mit `inheritsBody:boolean`. Fehlender UI-Key in `variantTexts` bedeutet Vererbung; vorhandener Key ist unabhängig, auch bei leerem oder identischem Inhalt. Gemeinsame Termine/Medien und Entwurfs-/Planungsstatus bleiben Pflicht; reichere Varianten, Archiv-/Publikationsphasen oder Formate werden geschützt abgewiesen.
 
-Der UI-Adapter hält Titel und Varianten-Statusnotizen verlustfrei, obwohl die Oberfläche diese Felder nicht zeigt. Ein Bild ohne Zielkanal wird vor dem Upload abgewiesen. Nach `save()` muss die UI die normalisierte Rückgabe übernehmen, insbesondere Medien-ID/URL anstelle einer Data-URL.
+Der UI-Adapter bildet Ideen sowie Titel und Tags ab. Varianten-Statusnotizen bleiben bei normalen Änderungen erhalten, obwohl die Oberfläche sie nicht bearbeitet. Für kurzzeitiges Löschen/Rückgängig gelten die Sitzungsgrenzen aus `interface.md`; dies ist keine dauerhafte Löschhistorie. Ein Bild ohne Zielkanal wird vor dem Upload abgewiesen. Nach `save()` muss die UI die normalisierte Rückgabe übernehmen, insbesondere Medien-ID/URL anstelle einer Data-URL.
 
 ## Medien und Grenzen
 

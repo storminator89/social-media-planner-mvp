@@ -1,3 +1,5 @@
+import { createIdea, prepareIdeaDraft, commitIdeaDraft } from '../../public/workflows/ideas.mjs';
+import { CHANNELS } from '../../public/model.js';
 import {selectedVariantTexts} from '../../public/variants.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,8 +10,8 @@ import vm from 'node:vm';
 const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
 function functionSource(name){const start=source.search(new RegExp(`(?:async )?function ${name}\\(`));assert.ok(start>=0);const next=source.slice(start+1).search(/\n(?:async )?function /);return source.slice(start,next<0?undefined:start+1+next);}
 function context(extra={}){
-  const fields={'#post-text':{value:'Gesendete Fassung'},'#post-date':{value:'2027-01-15'},'#post-time':{value:'10:30'},'#post-zone':{value:'Europe/Berlin'},'#composer':{open:true},'#media-alt':{focus(){}},'#media-file':{value:'file'},'#save-draft':{},'#schedule-post':{}};
-  const c={fields,$:selector=>fields[selector],$$:()=>[{value:'instagram'}],state:{posts:[]},editingId:null,composerMedia:null,composerCover:null,composerBaseText:'Gesendete Fassung',composerVariantTexts:{},selectedVariantTexts,saving:false,mediaLoading:false,composerGeneration:1,mediaGeneration:0,initialEditor:'',view:'drafts',crypto:{randomUUID:()=> 'new-post'},Date,Map,Promise,structuredClone,validatePost:()=>[],notify:()=>{},render:()=>{},renderMediaEditor:()=>{},renderPreview:()=>{},setComposerBusy:()=>{},updateSaveAvailability:()=>{},closeCount:0,closeComposer:()=>c.closeCount++,editorSnapshot:()=>JSON.stringify({text:c.composerBaseText,variantTexts:c.composerVariantTexts}),...extra};
+  const fields={'#search':{value:'Suchfilter'},'#post-text':{value:'Gesendete Fassung'},'#post-date':{value:'2027-01-15'},'#post-time':{value:'10:30'},'#post-zone':{value:'Europe/Berlin'},'#composer':{open:true},'#media-alt':{focus(){}},'#media-file':{value:'file'},'#save-draft':{},'#schedule-post':{}};
+  const c={fields,$:selector=>fields[selector],$$:()=>[{value:'instagram'}],state:{posts:[]},editingId:null,composerIdeaFingerprint:null,composerMedia:null,composerCover:null,composerBaseText:'Gesendete Fassung',composerVariantTexts:{},selectedVariantTexts,commitIdeaDraft,CHANNELS,saving:false,mediaLoading:false,composerGeneration:1,mediaGeneration:0,initialEditor:'',view:'drafts',crypto:{randomUUID:()=> 'new-post'},Date,Map,Promise,structuredClone,validatePost:()=>[],notify:()=>{},render:()=>{},renderMediaEditor:()=>{},renderPreview:()=>{},setComposerBusy:()=>{},updateSaveAvailability:()=>{},closeCount:0,closeComposer:()=>c.closeCount++,editorSnapshot:()=>JSON.stringify({text:c.composerBaseText,variantTexts:c.composerVariantTexts}),...extra};
   return vm.createContext(c);
 }
 
@@ -63,4 +65,21 @@ test('mobile week agenda receives only the selected week, not all posts',()=>{
   vm.runInContext(functionSource('renderWeek'),c);
   c.renderWeek([{id:'before',scheduledAt:'2026-11-01T10:00'},{id:'inside',scheduledAt:'2026-11-08T10:00'},{id:'after',scheduledAt:'2026-11-09T10:00'}]);
   assert.deepEqual(c.received.map(p=>p.id),['inside']);
+});
+
+
+test('actual composer save moves an idea with identical ID and preserves title/tags',async()=>{
+  const idea=createIdea({id:'idea-actual',title:'Redaktionell',text:'Gesendete Fassung',tags:['A, B'],timezone:'Europe/Berlin'});const prepared=prepareIdeaDraft(idea);let candidate;
+  const c=context({state:{posts:[idea]},editingId:idea.id,composerIdeaFingerprint:prepared.sourceFingerprint,persist:async next=>{candidate=next;return true;},query:'Suchfilter',channel:'bluesky'});vm.runInContext(functionSource('savePost'),c);await c.savePost('draft');
+  assert.equal(candidate.posts.length,1);assert.equal(candidate.posts[0].id,idea.id);assert.equal(candidate.posts[0].status,'draft');assert.equal(candidate.posts[0].title,'Redaktionell');assert.deepEqual([...candidate.posts[0].tags],['A, B']);assert.equal(c.closeCount,1);assert.equal(c.channel,'all');assert.equal(c.query,'');assert.equal(c.composerIdeaFingerprint,null);
+});
+
+test('actual composer retains idea and conversion guard after failed save',async()=>{
+  const idea=createIdea({id:'idea-actual',text:'Gesendete Fassung',timezone:'Europe/Berlin'}),prepared=prepareIdeaDraft(idea);
+  const c=context({state:{posts:[idea]},editingId:idea.id,composerIdeaFingerprint:prepared.sourceFingerprint,persist:async()=>false});vm.runInContext(functionSource('savePost'),c);await c.savePost('draft');assert.equal(c.state.posts[0].status,'idea');assert.equal(c.composerIdeaFingerprint,prepared.sourceFingerprint);assert.equal(c.closeCount,0);
+});
+
+test('actual composer rejects changed idea before any write',async()=>{
+  const idea=createIdea({id:'idea-actual',text:'Gesendete Fassung',timezone:'Europe/Berlin'}),prepared=prepareIdeaDraft(idea);let writes=0;
+  const c=context({state:{posts:[{...idea,text:'Andere Fassung'}]},editingId:idea.id,composerIdeaFingerprint:prepared.sourceFingerprint,persist:async()=>{writes++;return true;}});c.fields['#form-errors']={hidden:true};vm.runInContext(functionSource('savePost'),c);await c.savePost('draft');assert.equal(writes,0);assert.equal(c.closeCount,0);assert.match(c.fields['#form-errors'].textContent,/inzwischen geändert/);assert.equal(c.saving,false);
 });

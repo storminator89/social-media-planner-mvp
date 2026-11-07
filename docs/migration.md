@@ -1,4 +1,4 @@
-# Lokales Upgrade von 0.1 auf 0.2
+# Lokales Upgrade auf 0.3
 
 ## Vorher
 
@@ -24,3 +24,11 @@ Der integrierte 0.2-Stand unterstützt nur den expliziten Serveradapter. Er lies
 ## Nachweisgrenze
 
 Tests prüfen echte lokale SQLite-Dateien, wiederholte Starts, alte Mehrbesitzerdaten und absichtliche Fehler im Ledger/DDL. Die unabhängige Nachprüfung übt den echten Constructor zusätzlich mit isoliertem Memory-SQLite aus. Gehostete D1-Migrationen und authentifizierte Sites-Dispatch-Aufrufe sind damit nicht nachgewiesen.
+
+## Von 0.2 auf 0.3
+
+0.3 ergänzt nur UI, Adapter und reine Workflowfunktionen. Beide SQL-Migrationen, API-Schema 2, Repository und lokaler Server bleiben unverändert. Ideen nutzen den vorhandenen `stage:'idea'` mit Titel und Tags. Es gibt keine separate Ideen-Tabelle oder neue Datenmigration.
+
+Auch hier vor dem Upgrade Server stoppen und den gesamten lokalen Datenordner sichern. Alten Server nicht parallel gegen dieselbe Datei laufen lassen. Ein alter 0.2-UI-Adapter mit veralteter Revision erhält 409. Nach erneutem Laden weist dieser Adapter Ideen/Tags bewusst ab, anstatt sie zu reduzieren. Das gilt für den geprüften vollständigen 0.2-Adapter, nicht als pauschales Kompatibilitätsversprechen beliebiger Drittclients.
+
+Unveränderte Metadaten werden exakt übernommen; neue bzw. bewusst bearbeitete Labels werden auf die UI-Regeln normalisiert. Ein Undo-Zwischenspeicher wird nicht migriert oder persistent gemacht. Für eine Rückkehr auf einen älteren Stand eine getrennte Sicherung verwenden, nicht durch alte UI-Normalisierung schreiben.
