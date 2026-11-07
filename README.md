@@ -1,4 +1,4 @@
-# Takt 0.7: lokaler Social-Media-Planer
+# Takt 0.7.1: lokaler Social-Media-Planer
 
 Dieser Prototyp führt Oberfläche, Planungslogik und eine persistente lokale Daten-API zusammen. Er ist **nicht auf Sites veröffentlicht**. Es wurden keine externen Konten verbunden und keine Beiträge an Social-Media-Dienste gesendet.
 
@@ -24,7 +24,7 @@ Die lokale Adresse wird beim Start ausgegeben. Eine Entwicklungsansicht ist kein
 - Private YouTube-Uploads als eigener bewusster Ablauf: MP4/WebM bis 8 MiB und 20 gespeicherte Dateien, erst private Site-Speicherung, dann unveränderliche Zusammenfassung und ausdrücklicher Uploadstart. Kinder-/KI-Angaben sind Pflichtentscheidungen. Sichtbarkeit ist fest privat, Abonnentenbenachrichtigung aus; keine öffentliche Planung. Ungewisse Übertragungen werden nicht automatisch neu gestartet.
 - Dependency-freier Sites-Worker-Entwurf mit eingebetteten UI-Dateien und identitätsgebundener Daten-API. `npm run build:worker` erzeugt ein lokales Worker-Artefakt, keinen gehosteten Dienst.
 - Ideen-Inbox mit optionalem Titel, Notizen, Labels, Suche und Label-Filter. Ideen brauchen weder Kanal noch Termin. Erst ein erfolgreicher Beitragssave verschiebt die Idee mit derselben ID in Entwürfe oder Planung.
-- UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export.
+- UI mit Kalender, Liste, Entwürfen, Suche/Filter, Editor, Vorschau, Duplizieren, Löschen/Rückgängig und Export. Normale Beiträge unterstützen jetzt redaktionelle Labels; exakte Label-Filter kombinieren sich mit Kanal und Suche. Labels werden nicht in den Beitragstext eingefügt.
 - Eigene Kanaltexte mit expliziter Basisvererbung, Vorschau und Zeichenprüfung. Auch absichtlich leere oder aktuell identische eigene Fassungen bleiben unabhängig.
 - Temporäre Queue-Slots im Editor: gemeinsame Wochentage/Uhrzeit, IANA-Zone, Mindestabstand, bis zu drei freie Vorschläge. Erst bewusste Auswahl ändert den Termin, erst normales Speichern persistiert.
 - SQLite-Daten unter `.local/planner.sqlite`, Bilddateien unter `.local/media/`. Beide überstehen einen Serverneustart in derselben Arbeitsumgebung. Kein Synchronisations- oder Backupversprechen.
@@ -47,7 +47,7 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 - Ein reiner localStorage-/Static-Modus ist gesperrt. Fehlender Serveradapter oder ungültige Ladeantworten erzeugen weder leere Ersatzschreibvorgänge noch Demo-Beiträge. Alte Browser-only-Daten werden nicht automatisch importiert.
 - Keine tatsächlich eingerichtete Social-Verbindung oder reale Credentials in diesem Quellstand. LinkedIn-/Google-OAuth, Tokenverschlüsselung und private YouTube-Übertragung sind mit lokalen kryptografischen und HTTP-Fixtures geprüft, aber nicht live aktiviert. Kein öffentlicher Publisher, Hintergrund-Scheduler, Webhooks, Analytics oder Inbox. YouTube-Schritte funktionieren nur bis zum Ablauf des aktuellen Access-Tokens und nur über sichtbare, bewusst gestartete Interaktion. OAuth allein ist keine Uploadfreigabe.
 - Ungewisse Medienablagen zählen zur Quote und können nicht als Uploadquelle verwendet werden. Gleicher Dateiinhalt ist dauerhaft gegen doppelte Reservierung gesperrt, einschließlich ausstehender Einträge. Es gibt noch keine UI für Löschung, Retention oder manuelle Wiederherstellung. Lokales Trennen löscht keine Google-Videos und widerruft den Google-Grant nicht.
-- Keine direkte Bearbeitung gespeicherter Bild-Alttexte; Bild erneut auswählen. Kein Medien-Löschendpunkt. Entfernte Beiträge können Bilddateien zurücklassen.
+- Gespeicherte Bild-Alttexte sind sichtbar schreibgeschützt mit Erklärung; zur Änderung Bild erneut auswählen. Alttexte neuer lokaler Bilder bleiben bearbeitbar. Kein Medien-Löschendpunkt. Entfernte Beiträge können Bilddateien zurücklassen.
 - Rückgängig ist eine kurze Sitzungsfunktion, kein Papierkorb: UI-Angebot 12 Sekunden; kanonische Wiederherstellungsdaten höchstens 60 Sekunden und 100 Einträge pro Store. Neuladen löscht diesen Zwischenspeicher. Bei einem Konflikt bleibt die gelöschte UI-Fassung sichtbar kopierbar, sie wird nicht automatisch wiederhergestellt.
 - Die temporäre Arbeitsumgebung ist kein zugesicherter langfristiger Speicher.
 
@@ -55,9 +55,9 @@ Die wiederverwendbare API in `modules/data/api.mjs` ist dagegen für die servers
 
 Noch nicht angelegt: Site-Projekt, Hosting-ID, Cloud-Datenbank, Bucket und Zugriffsrechte. Bei ausdrücklich freigegebener Veröffentlichung sind Sites-Worker, Dispatch-Identität, D1-Migrationen, R2, Quoten und Browserabläufe separat nachzuweisen. Keine Zugangsdaten oder lokale `.local/`-Dateien hochladen. Für echtes Auto-Publishing gelten zusätzlich die Voraussetzungen in `docs/security-architecture-de.md`.
 
-Version 0.7 nutzt weiterhin API-Schema 2 und ergänzt ausschließlich Migration 0006 mit fünf eigenen YouTube-Tabellen. Migrationen 0001–0005 bleiben bytegleich. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
+Version 0.7.1 nutzt unverändert API-Schema 2 und UI-State 1. Sie ergänzt keine Migration; alle sechs SQL-Dateien bleiben bytegleich zu 0.7. Gesicherte Editor-Arbeitsfassungen und dauerhafte kanalbezogene Posting-Zeitpläne sind noch nicht Bestandteil dieses Releases. Vor einem lokalen Upgrade Daten sichern; Migrationen werden additiv und transaktional angewandt. Alte API-Clients werden schreibend abgewiesen. Siehe `docs/migration.md`.
 
-Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/token-lifecycle.md`, `docs/linkedin-web-transport.md`, `docs/youtube-http-contract.md`, `docs/youtube-operation.md` und `docs/verification.md`.
+Weitere Details: `docs/backend.md`, `docs/workflow-integration.md`, `docs/ideas.md`, `docs/sites-runtime.md`, `docs/provider-preparation.md`, `docs/oauth-preparation.md`, `docs/token-lifecycle.md`, `docs/linkedin-web-transport.md`, `docs/editorial-labels/README.md`, `docs/youtube-http-contract.md`, `docs/youtube-operation.md` und `docs/verification.md`.
 
 ## Lizenzstatus
 

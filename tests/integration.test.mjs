@@ -173,3 +173,20 @@ test('same-revision legacy API writes fail without clearing the variant planner'
   const s=await setup(t),ui=store(s.client),initial=await ui.load();await ui.save({...initial,posts:[post({variantTexts:{linkedin:'Eigener Text'}})]});
   const current=await s.client.load();await assert.rejects(s.client.save({...current,schemaVersion:1,posts:[]}),error=>error.status===409&&error.code==='STATE_SCHEMA_CHANGED');assert.deepEqual(await s.client.load(),current);
 });
+
+test('normal post labels roundtrip through actual SQLite with variants, media and scheduled UTC intact', async t => {
+  const s=await setup(t),ui=store(s.client),initial=await ui.load();
+  const original=post({title:'Redaktioneller Titel',tags:[' Label ','A\r\nB','A','A','<tag>'],variantTexts:{linkedin:'Eigener Text'},media:{dataUrl:`data:image/png;base64,${Buffer.from(png).toString('base64')}`,name:'labels.png',type:'image/png',alt:'Unverändert'}});
+  const saved=await ui.save({...initial,posts:[original]}),before=saved.posts[0];
+  const changed=await ui.save({...saved,posts:[{...before,tags:['Kampagne','A, B','Sie sagt "ja"']}]});
+  for(const key of ['title','text','variantTexts','timeZone','scheduledAt','media','createdAt'])assert.deepEqual(changed.posts[0][key],before[key]);
+  s.restart();const reloaded=(await store(s.client).load()).posts[0];assert.deepEqual(reloaded.tags,['Kampagne','A, B','Sie sagt "ja"']);assert.deepEqual(reloaded.media,before.media);assert.equal((await s.client.load()).posts[0].scheduledAt,'2027-01-15T09:30:00.000Z');
+});
+
+test('stale label-only save conflicts without replacing the winning labels or variants', async t => {
+  const s=await setup(t),seedStore=store(s.client),initial=await seedStore.load();await seedStore.save({...initial,posts:[post({tags:['Original'],variantTexts:{linkedin:'Originalvariante'}})]});
+  const one=store(s.client),two=store(s.client),a=await one.load(),b=await two.load();
+  await one.save({...a,posts:[{...a.posts[0],tags:['Gewinner']}]});
+  await assert.rejects(two.save({...b,posts:[{...b.posts[0],tags:['Veraltet']}]}),e=>e.status===409);
+  const saved=(await store(s.client).load()).posts[0];assert.deepEqual(saved.tags,['Gewinner']);assert.deepEqual(saved.variantTexts,{linkedin:'Originalvariante'});
+});

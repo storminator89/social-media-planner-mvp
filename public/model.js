@@ -77,7 +77,7 @@ export function normalizeState(value) {
   });
   return {schemaVersion:SCHEMA_VERSION,settings:{timezone},posts};
 }
-export function filterPosts(posts,{channel='all',query='',status='all'}={}) {
+export function filterPosts(posts,{channel='all',query='',status='all',tag=''}={}) {
   const needle=query.trim().toLocaleLowerCase('de');
-  return posts.filter(p=>(channel==='all'||p.channels.includes(channel))&&(status==='all'||p.status===status)&&(!needle||searchableText(p).toLocaleLowerCase('de').includes(needle)));
+  return posts.filter(p=>(channel==='all'||p.channels.includes(channel))&&(status==='all'||p.status===status)&&(tag===''||(p.tags||[]).includes(tag))&&(!needle||searchableText(p).toLocaleLowerCase('de').includes(needle)));
 }

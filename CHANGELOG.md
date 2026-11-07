@@ -1,5 +1,12 @@
 # Änderungsprotokoll
 
+## 0.7.1
+
+- Redaktionelle Labels im normalen Beitragseditor, sichtbare Label-Badges und kombinierbare exakte Filter für Kalender, Liste und Entwürfe.
+- Unveränderte kanonische Labels bleiben einschließlich Whitespace/CRLF/Unicode erhalten; nur bewusst bearbeitete Eingaben werden geparst. Dirty-/409-/Async-Schutz umfasst das neue Feld.
+- Gespeicherte Bild-Alttexte sind ehrlich schreibgeschützt; neue lokale Bilder bleiben editierbar. Keine neue Medien-API.
+- Keine Backend-, OAuth-, Provider-, Schema- oder Hostingänderung. Workspace-/Posting-Schedule-Ausbau bleibt separat.
+
 ## 0.7.0
 
 - Standardmäßig gesperrter Google-Webflow mit PKCE S256, vollständiger RS256-/Nonce-/Subjectprüfung und fest bestätigtem YouTube-Zielkanal.
