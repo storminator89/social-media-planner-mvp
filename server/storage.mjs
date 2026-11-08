@@ -12,15 +12,15 @@ export class LocalDatabase {
     this.sql.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
     this.sql.exec('CREATE TABLE IF NOT EXISTS local_migrations (version INTEGER PRIMARY KEY, digest TEXT NOT NULL)');
     // Validate the entire known ledger before any upgrade. Never rewrite old SQL.
-    const migrations = ['0001_planner.sql', '0002_variant_inheritance.sql', '0003_provider_jobs.sql', '0004_oauth_state.sql', '0005_provider_credentials.sql', '0006_youtube_lifecycle.sql', '0007_editor_workspaces.sql', '0008_posting_schedules.sql','0014_workspace_attachments.sql'].map((name) => {
+    const migrations = ['0001_planner.sql', '0002_variant_inheritance.sql', '0003_provider_jobs.sql', '0004_oauth_state.sql', '0005_provider_credentials.sql', '0006_youtube_lifecycle.sql', '0007_editor_workspaces.sql', '0008_posting_schedules.sql'].map((name, index) => {
       const source = readFileSync(new URL(`./${name}`, import.meta.url), 'utf8');
-      return { version: Number(name.slice(0,4)), source, digest: createHash('sha256').update(source).digest('hex') };
+      return { version: index + 1, source, digest: createHash('sha256').update(source).digest('hex') };
     });
     try {
       this.sql.exec('BEGIN IMMEDIATE');
       const applied = this.sql.prepare('SELECT version, digest FROM local_migrations ORDER BY version').all();
       for (const [index, row] of applied.entries()) {
-        if (row.version !== migrations[index]?.version || migrations[index]?.digest !== row.digest)
+        if (row.version !== index + 1 || migrations[index]?.digest !== row.digest)
           throw new Error('Unknown, incomplete or changed local migration history. Upgrade aborted.');
       }
       for (const migration of migrations.slice(applied.length)) {

@@ -190,4 +190,3 @@ test('stale label-only save conflicts without replacing the winning labels or va
   await assert.rejects(two.save({...b,posts:[{...b.posts[0],tags:['Veraltet']}]}),e=>e.status===409);
   const saved=(await store(s.client).load()).posts[0];assert.deepEqual(saved.tags,['Gewinner']);assert.deepEqual(saved.variantTexts,{linkedin:'Originalvariante'});
 });
-test('local preview CSP allows only self and local video sources without widening scripts or connections',async t=>{const s=await setup(t),response=await s.request(request('/'));const policy=response.headers.get('content-security-policy');assert.match(policy,/(?:^|;) media-src 'self' data: blob:;/);assert.match(policy,/script-src 'self';/);assert.match(policy,/connect-src 'self';/);assert.doesNotMatch(policy,/media-src[^;]*(?:https?:|\*)/);});

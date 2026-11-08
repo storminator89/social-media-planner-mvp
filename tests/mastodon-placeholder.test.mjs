@@ -4,8 +4,8 @@ import {renderMastodonPlaceholder,renderConnections,PROVIDERS} from '../public/c
 test('Mastodon is visible in accounts, links to profile setup without claiming a connection',()=>{
  const card=renderMastodonPlaceholder();
  assert.match(card,/id="connection-mastodon">Mastodon/);
- assert.match(card,/kanoa\.de/);assert.match(card,/Profiltest separat prüfen/);
- assert.match(card,/Versand bleibt deaktiviert/);
+ assert.match(card,/kanoa\.de/);assert.match(card,/Status nicht verfügbar/);
+ assert.match(card,/Diese Freigabe erlaubt keinen Versand/);
  assert.match(card,/href="\/mastodon.html"/); assert.doesNotMatch(card,/data-.*(?:start|confirm)|oauth/);
  assert.match(renderConnections(),/id="connection-mastodon"/);
  assert.match(renderConnections({expanded:['mastodon']}),/data-provider="mastodon" open/);

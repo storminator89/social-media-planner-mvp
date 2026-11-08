@@ -30,7 +30,7 @@ issue only one request. All profile values use textContent.
 
 Own CUA tab 78, isolated synthetic fixture at http://127.0.0.1:4178.
 Server started inside test desktop, not production. Source is copied from this
-checkout into /workspace/shared/takt-mastodon-integrated-qa (test-only fixture,
+checkout into [local review checkout] (test-only fixture,
 not part of build). Desktop approx. 1165px, narrow browser approx. 484px and a
 390px iframe viewport were visually inspected with working profile reads.
 

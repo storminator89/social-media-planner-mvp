@@ -12,3 +12,48 @@
 
 .x-actions{margin:0 20px 16px}.x-actions .button{min-height:44px;max-width:100%;white-space:normal;text-align:center;line-height:1.5}.x-actions p,.x-confirm p{font-size:12px;line-height:1.8;color:var(--muted)}.x-actions .button:disabled{opacity:.65;cursor:not-allowed}.x-confirm{margin:0 20px 18px;padding:16px;border:1px solid #d9cdec;border-radius:9px;background:#faf8fe}.x-confirm h3{font-size:14px;line-height:1.5;margin:0}.x-confirm>div{display:flex;flex-wrap:wrap;gap:10px}.x-confirm .button{min-height:44px;white-space:normal;line-height:1.5}.x-feedback{font-size:12px;line-height:1.8;margin:0 20px 16px;color:var(--muted);overflow-wrap:anywhere}.x-feedback:empty{display:none}.x-feedback.has-error{color:#9b4242}.x-connection-card .button:focus-visible{outline:3px solid #9a87e9;outline-offset:3px}
 .x-actions{display:flex;flex-wrap:wrap;gap:10px}.x-actions p{flex-basis:100%;margin:0}
+
+/* Planning selection is not an account connection indicator. */
+.planning-accounts-link{display:flex;justify-content:space-between;gap:8px;text-align:left;color:var(--purple-dark);font-size:12px;min-height:44px;padding:12px 10px;margin:5px 0 14px;border-top:1px solid var(--line)}
+.connection-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.connection-shortcuts a{display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;background:#fff;border:1px solid var(--line);border-radius:24px;text-decoration:none;font-size:13px;color:var(--purple-dark)}
+.connection-shortcuts a:hover{background:var(--purple-light)}
+.connection-card h2{scroll-margin-top:24px}
+@media(max-width:760px){.connection-shortcuts{gap:7px}.connection-shortcuts a{padding:10px 12px}.connection-card h2{scroll-margin-top:18px}}
+/* Compact account overview; detailed provider flows keep their existing guards. */
+.connection-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+.connection-card{box-shadow:none;border-color:#e4ddf2;border-radius:16px}
+.account-row>summary{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:104px;padding:20px 24px;cursor:pointer;list-style:none}
+.account-row>summary::-webkit-details-marker{display:none}
+.account-row>summary:hover{background:#faf8fe}
+.account-row>summary:focus-visible{outline:3px solid #9a87e9;outline-offset:-4px;border-radius:15px}
+.account-row .connection-card-heading{padding:0;flex:1;gap:16px}
+.account-row .connection-card-heading>div{display:flex;align-items:center;gap:24px;flex:1;flex-wrap:wrap}
+.account-row .connection-card-heading h2{font-size:18px;margin:0;min-width:135px}
+.account-row h2 small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:5px;letter-spacing:0}
+.account-row .connection-status{background:#f2eff8;border-radius:20px;padding:7px 11px;font-size:12px}
+.account-row .connection-status.linked{background:#edf6f1}
+.account-row .connection-status.error{background:#fff0ef}
+.account-row-action{font-size:13px;color:var(--purple-dark);display:flex;gap:15px;align-items:center;flex-shrink:0;font-weight:600}
+.account-row[open]>summary{border-bottom:1px solid var(--line)}
+.account-row[open] .account-row-action>span{transform:rotate(180deg)}
+.account-row-body{padding:6px 4px 0;background:#fefeff}
+.account-row-body .connection-description,.account-row-body .connection-purpose{min-height:0}
+.account-row-body .connection-purpose{margin-bottom:12px}
+.account-row-body .connection-disabled{max-width:560px}
+.account-row-body .youtube-actions{max-width:600px}
+.mastodon-actions{margin:0 20px 20px}
+.connections-intro{margin-bottom:16px}.connections-intro h2{font-size:18px}.connections-intro .eyebrow{display:none}
+.connection-capability-note{padding:12px 16px;background:#f8f6fc;border-color:#ece6f5}
+.connection-shortcuts{margin-bottom:16px}.connection-feedback{margin:14px 0}
+@media(max-width:760px){
+.account-row>summary{padding:18px 16px;align-items:flex-start;gap:10px;min-height:110px}
+.account-row .connection-card-heading{gap:12px;align-items:flex-start}
+.account-row .connection-card-heading>div{display:grid;gap:8px}
+.account-row .connection-card-heading h2{font-size:17px;min-width:0}
+.account-row .connection-logo{height:36px;width:36px;font-size:20px;border-radius:10px}
+.account-row .connection-status{font-size:11px;padding:6px 9px;max-width:100%;white-space:normal}
+.account-row-action{font-size:0;gap:0;padding:10px 0 10px 8px}
+.account-row-action>span{font-size:20px}
+.connection-grid{gap:10px}.account-row-body{padding:0}.connection-card h2{scroll-margin-top:16px}
+}

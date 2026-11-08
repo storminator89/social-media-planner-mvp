@@ -1,6 +1,6 @@
 # X connection UI candidate
 
-Isolated source: `/workspace/shared/takt-x-connection-ui`, based on `takt-connections-integrated-reviewed`. Not published or activated. No real credentials, grants, API credits, purchases, provider calls or posts.
+Isolated source: `[local review checkout]`, based on `takt-connections-integrated-reviewed`. Not published or activated. No real credentials, grants, API credits, purchases, provider calls or posts.
 
 ## Implemented
 

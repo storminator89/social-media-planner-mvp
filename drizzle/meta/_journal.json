@@ -71,13 +71,6 @@
       "when": 1794070000001,
       "tag": "0010_mastodon_publishing",
       "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1794070000002,
-      "tag": "0011_workspace_attachments",
-      "breakpoints": true
     }
   ]
 }

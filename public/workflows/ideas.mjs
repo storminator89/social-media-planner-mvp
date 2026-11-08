@@ -31,7 +31,7 @@ function assertIdea(idea) {
   if (!idea || idea.status !== 'idea') fail('NOT_IDEA', 'Dieser Eintrag ist keine offene Idee.');
   id(idea.id);
   if (idea.scheduleBinding != null || idea.scheduledInstant != null || idea.scheduledAt !== null && idea.scheduledAt !== undefined) fail('IDEA_HAS_SCHEDULE', 'Eine Idee darf keinen vorgemerkten Termin tragen.');
-  if ((idea.channels?.length ?? 0) || Object.keys(idea.variantTexts ?? {}).length || idea.media != null || idea.attachments?.length) fail('INVALID_IDEA_STATE', 'Ideen haben noch keine Kanäle, Kanalvarianten oder Medien. Übernimm solche Inhalte als Entwurf.');
+  if ((idea.channels?.length ?? 0) || Object.keys(idea.variantTexts ?? {}).length || idea.media != null) fail('INVALID_IDEA_STATE', 'Ideen haben noch keine Kanäle, Kanalvarianten oder Medien. Übernimm solche Inhalte als Entwurf.');
 }
 function validateContent({ title = '', text: body = '', tags = [] }) {
   const result = { title: text(title, 'Titel', LIMITS.title), text: text(body, 'Notiz', LIMITS.text), tags: normalizeIdeaTags(tags) };

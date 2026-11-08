@@ -7,21 +7,14 @@ const DATA_SCHEMA_VERSION=3;
 const DEFINITIVE_SAVE_REJECTIONS=new Set(['409:REVISION_CONFLICT','409:STATE_SCHEMA_CHANGED','401:SIGN_IN_REQUIRED','403:CROSS_ORIGIN_REQUEST','400:INVALID_JSON','413:PAYLOAD_TOO_LARGE','415:JSON_REQUIRED']);
 const MEDIA_PATH=/^\/api\/planner\/media\/[A-Za-z0-9_-]{1,100}$/;
 function error(message,code='UI_SCHEMA_UNSUPPORTED',status=400){throw new PlannerClientError(message,status,code);}
-function attachmentsOf(post){
- const list=Object.hasOwn(post,'attachments')?post.attachments:(post.media?[post.media]:[]);
- if(!Array.isArray(list)||list.length>10||list.some(m=>!m||typeof m!=='object'||Array.isArray(m)))error('Höchstens 10 gültige Anhänge pro Beitrag.','INVALID_ATTACHMENTS');
- if(Object.hasOwn(post,'attachments')&&JSON.stringify(post.media??null)!==JSON.stringify(list[0]??null))error('Anhangliste und Vorschaumedium stimmen nicht überein.','INVALID_ATTACHMENTS');
- const localKeys=list.filter(m=>!m.id&&typeof m.dataUrl==='string').map(m=>JSON.stringify([m.dataUrl,m.alt??'',m.name||'Bild']));if(new Set(localKeys).size!==localKeys.length)error('Diese Datei ist bereits angehängt. Entferne den doppelten Anhang vor dem Speichern.','DUPLICATE_ATTACHMENT');
- const ids=list.filter(m=>m.id).map(m=>m.id);if(new Set(ids).size!==ids.length)error('Anhänge dürfen nicht doppelt vorkommen.','INVALID_ATTACHMENTS');return list;
-}
 function scheduling(fn){try{return fn();}catch(e){error(e.message,e.code??'INVALID_SCHEDULE');}}
 function wallTime(iso,zone){if(!iso)return null;return new Intl.DateTimeFormat('sv-SE',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(iso)).replace(' ','T');}
-function decodeMedia(media){
-  const match=typeof media.dataUrl==='string'&&media.dataUrl.match(/^data:((?:image\/(?:png|jpeg|webp|gif)|video\/(?:mp4|webm)));base64,([A-Za-z0-9+/]*={0,2})$/);
-  if(!match||match[2].length>Math.ceil(20*1024*1024/3)*4)error('Ungültiges Medium oder Medium größer als 20 MiB.','INVALID_MEDIA');
-  let binary;try{binary=atob(match[2]);}catch{error('Ungültige Mediendaten.','INVALID_MEDIA');}
-  if(!binary.length||binary.length>20*1024*1024)error('Ungültige Mediengröße.','INVALID_MEDIA');
-  if(media.type&&media.type!==match[1])error('Medientyp stimmt nicht mit dem Dateiinhalt überein.','INVALID_MEDIA');
+function decodeImage(media){
+  const match=typeof media.dataUrl==='string'&&media.dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]*={0,2})$/);
+  if(!match||match[2].length>Math.ceil(2*1024*1024/3)*4)error('Ungültiges Bild oder Bild größer als 2 MB.','INVALID_MEDIA');
+  let binary;try{binary=atob(match[2]);}catch{error('Ungültige Bilddaten.','INVALID_MEDIA');}
+  if(!binary.length||binary.length>2*1024*1024)error('Ungültige Bildgröße.','INVALID_MEDIA');
+  if(media.type&&media.type!==match[1])error('Bildtyp stimmt nicht mit dem Dateiinhalt überein.','INVALID_MEDIA');
   const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new File([bytes],media.name||'Bild',{type:match[1]});
 }
 /** Optional bridge for the simple Takt UI. Its zone must be visible in the UI.
@@ -51,20 +44,23 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
     const posts=state.posts.map(p=>{
       if(!['idea','draft','planned'].includes(p.stage))error('Der Planer enthält eine Phase, die diese Ansicht noch nicht unterstützt.');
       if(p.stage==='idea'&&(p.variants.length||p.scheduledAt))error('Diese Idee enthält bereits Kanalvarianten oder einen Termin. Sie wird nicht still vereinfacht.','IDEA_SCHEMA_UNSUPPORTED');
-      let mediaIds=[];const mediaChoices=new Set();const variantEntries=[];
+      let mediaId=null;const mediaChoices=new Set();const variantEntries=[];
       for(const v of p.variants){
         if(typeof v.inheritsBody!=='boolean')error('Bei einer Kanalvariante fehlt die explizite Vererbungseinstellung.');
-        if((v.inheritsBody&&v.body!==p.body)||v.status!==(p.stage==='planned'?'planned':'draft')||v.format!=='post'||v.scheduledAt!==p.scheduledAt||v.timezone!==p.timezone)error('Dieser Beitrag nutzt eigene Kanaltermine, Medien, Formate oder Status. Diese Ansicht unterstützt nur eigene Kanaltexte.');
+        if((v.inheritsBody&&v.body!==p.body)||v.status!==(p.stage==='planned'?'planned':'draft')||v.format!=='post'||v.mediaIds.length>1||v.scheduledAt!==p.scheduledAt||v.timezone!==p.timezone)error('Dieser Beitrag nutzt eigene Kanaltermine, Medien, Formate oder Status. Diese Ansicht unterstützt nur eigene Kanaltexte.');
         if(!v.inheritsBody)variantEntries.push([v.channelId,v.body]);
-        mediaChoices.add(JSON.stringify(v.mediaIds));if(mediaChoices.size>1)error('Kanalvarianten nutzen unterschiedliche Medien.');
-        mediaIds=[...v.mediaIds];
+        mediaChoices.add(v.mediaIds[0]??null);if(mediaChoices.size>1)error('Kanalvarianten nutzen unterschiedliche Medien.');
+        mediaId=v.mediaIds[0]??null;
       }
-      const attachments=mediaIds.map(id=>{const media=ms.get(id);if(!media)error('Ein gespeichertes Medium fehlt.');return{id:media.id,url:media.url,alt:media.altText,name:media.filename,type:media.mimeType};});
+      const media=mediaId?ms.get(mediaId):null;if(mediaId&&!media)error('Ein gespeichertes Medium fehlt.');
       if(!Object.hasOwn(p,'scheduleBinding'))error('Die Queue-Bindung fehlt.','STATE_SCHEMA_CHANGED');
       scheduling(()=>validatePostScheduleBinding(p));
-      return{id:p.id,scheduleBinding:structuredClone(p.scheduleBinding),scheduledInstant:p.scheduledAt,title:p.title,tags:[...p.tags],text:p.body,variantTexts:Object.fromEntries(variantEntries),channels:p.variants.map(v=>v.channelId),status:p.stage==='planned'?'scheduled':p.stage,scheduledAt:wallTime(p.scheduledAt,p.timezone),timeZone:p.timezone,cover:p.cover??null,attachments,media:attachments[0]??null,createdAt:p.createdAt,updatedAt:p.updatedAt};
+      return{id:p.id,scheduleBinding:structuredClone(p.scheduleBinding),scheduledInstant:p.scheduledAt,title:p.title,tags:[...p.tags],text:p.body,variantTexts:Object.fromEntries(variantEntries),channels:p.variants.map(v=>v.channelId),status:p.stage==='planned'?'scheduled':p.stage,scheduledAt:wallTime(p.scheduledAt,p.timezone),timeZone:p.timezone,cover:p.cover??null,media:media?{id:media.id,url:media.url,alt:media.altText,name:media.filename,type:media.mimeType}:null,createdAt:p.createdAt,updatedAt:p.updatedAt};
     });
-    const uiChannels=(state.channels.length?state.channels:definitions).map(c=>{if(!Object.hasOwn(c,'postingSchedule'))error('Posting-Zeiten fehlen.','STATE_SCHEMA_CHANGED');return{...structuredClone(c),postingSchedule:scheduling(()=>normalizePostingSchedule(c.postingSchedule))};});
+    // Add only the newly supported planning target to this UI projection.
+    // No write until the ordinary revision-checked save; retain all existing metadata.
+    const loadedChannels=state.channels.length?[...state.channels,...definitions.filter(c=>c.id==='mastodon'&&!state.channels.some(existing=>existing.id===c.id))]:definitions;
+    const uiChannels=loadedChannels.map(c=>{if(!Object.hasOwn(c,'postingSchedule'))error('Posting-Zeiten fehlen.','STATE_SCHEMA_CHANGED');return{...structuredClone(c),postingSchedule:scheduling(()=>normalizePostingSchedule(c.postingSchedule))};});
     return{schemaVersion:2,revision:state.revision,channels:uiChannels,settings:{timezone:currentZone},posts};
   }
   return{
@@ -84,10 +80,10 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
         if(ui.revision!==snapshot.revision)error('Die geladene Planungsrevision wurde verändert. Bitte neu laden.','REVISION_CONFLICT',409);
         const channelIds=new Set(definitions.map(c=>c.id));
         const selectedChannels=ui.channels.map(c=>{if(!c||!channelIds.has(c.id)||!Object.hasOwn(c,'postingSchedule'))error('Ein Kanal oder seine Posting-Zeiten fehlen.','INVALID_SCHEDULE');return{...structuredClone(c),postingSchedule:scheduling(()=>normalizePostingSchedule(c.postingSchedule))};});
-        const ids=new Set();for(const p of ui.posts){if(!p||typeof p.id!=='string'||ids.has(p.id)||!['idea','draft','scheduled'].includes(p.status)||typeof p.text!=='string'||!Array.isArray(p.channels))error('Ungültiger Beitrag.');if(attachmentsOf(p).length&&!p.channels.length)error('Ein Medium braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.','MEDIA_TARGET_REQUIRED');
+        const ids=new Set();for(const p of ui.posts){if(!p||typeof p.id!=='string'||ids.has(p.id)||!['idea','draft','scheduled'].includes(p.status)||typeof p.text!=='string'||!Array.isArray(p.channels))error('Ungültiger Beitrag.');if(p.media&&!p.channels.length)error('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.','MEDIA_TARGET_REQUIRED');
           if(Object.hasOwn(p,'title')&&typeof p.title!=='string')error('Der Titel muss Text sein.','INVALID_POST_METADATA');
           if(Object.hasOwn(p,'tags')&&(!Array.isArray(p.tags)||p.tags.some(tag=>typeof tag!=='string')))error('Tags müssen eine Liste von Texten sein.','INVALID_POST_METADATA');
-          if(p.status==='idea'&&(p.channels.length||p.scheduledAt||attachmentsOf(p).length||Object.keys(p.variantTexts??{}).length))error('Eine Idee hat noch keine Kanäle, Medien, Kanaltexte oder Termine.','IDEA_FIELDS_UNSUPPORTED');
+          if(p.status==='idea'&&(p.channels.length||p.scheduledAt||p.media||Object.keys(p.variantTexts??{}).length))error('Eine Idee hat noch keine Kanäle, Medien, Kanaltexte oder Termine.','IDEA_FIELDS_UNSUPPORTED');
           if(p.status==='idea'&&(previousPost(p.id)&&previousPost(p.id).stage!=='idea'))error('Ein bestehender Beitrag kann in dieser Ansicht nicht zurück in eine Idee umgewandelt werden.','IDEA_TRANSITION_UNSUPPORTED');
           if(p.variantTexts!=null&&(typeof p.variantTexts!=='object'||Array.isArray(p.variantTexts)))error('Kanaltexte müssen eine Zuordnung von Kanal zu Text sein.','INVALID_VARIANT_TEXTS');
           if(p.variantTexts==null&&previousPost(p.id)?.variants.some(v=>!v.inheritsBody))error('Die eigenen Kanaltexte fehlen im gespeicherten Formular. Bitte neu laden oder die Vererbung ausdrücklich zurücksetzen.','VARIANT_TEXTS_REQUIRED');
@@ -113,29 +109,13 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
             scheduledAt=(await client.resolveTime(p.scheduledAt,postZone)).scheduledAt;
           }
           if(p.status==='scheduled'&&!scheduledAt)error('Geplante Beiträge brauchen einen Zeitpunkt.');
-          const attachments=attachmentsOf(p);
-          if(!Object.hasOwn(p,'attachments')&&previousPost(p.id)?.variants.some(v=>v.mediaIds.length>1))error('Die vollständige Anhangliste fehlt. Bitte neu laden.','ATTACHMENTS_REQUIRED');
-          // Resolve known references and cache hits before uploading anything. A
-          // local file may resolve to a cloud attachment already in this post.
-          const prepared=[];const knownIds=new Set(),localKeys=new Set();
-          const duplicate=()=>error('Diese Datei ist bereits angehängt. Entferne den doppelten Anhang vor dem Speichern.','DUPLICATE_ATTACHMENT');
-          for(const attachment of attachments){
-            let mediaId=null,file=null,key=null;
-            if(attachment.id){const m=snapshot.media.find(m=>m.id===attachment.id);if(!m||!MEDIA_PATH.test(attachment.url)||m.url!==attachment.url)error('Unbekanntes Cloud-Medium.','INVALID_MEDIA');if(attachment.alt!==m.altText)error('Alternativtext eines gespeicherten Bilds kann in dieser Ansicht noch nicht geändert werden. Bitte das Bild neu wählen.','MEDIA_METADATA_UNSUPPORTED');mediaId=m.id;}
-            else {file=decodeMedia(attachment);const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');key=JSON.stringify([digest,attachment.alt??'',file.name]);if(localKeys.has(key))duplicate();localKeys.add(key);mediaId=uploadedImages.get(key)?.id??null;}
-            if(mediaId){if(knownIds.has(mediaId))duplicate();knownIds.add(mediaId);}
-            prepared.push({mediaId,file,key,alt:attachment.alt??''});
-          }
-          const mediaIds=[];const resolvedIds=new Set();
-          for(const item of prepared){let mediaId=item.mediaId;
-            if(!mediaId){const media=await client.uploadMedia(item.file,String(item.alt));snapshot.media.push(media);uploadedImages.set(item.key,media);mediaId=media.id;
-              // Also guard a future server-side upload deduplication receipt.
-              if(knownIds.has(mediaId))duplicate();
-            }
-            if(resolvedIds.has(mediaId))duplicate();resolvedIds.add(mediaId);mediaIds.push(mediaId);
+          let mediaId=null;
+          if(p.media){
+            if(p.media.id){const m=snapshot.media.find(m=>m.id===p.media.id);if(!m||!MEDIA_PATH.test(p.media.url)||m.url!==p.media.url)error('Unbekanntes Cloud-Medium.','INVALID_MEDIA');if(p.media.alt!==m.altText)error('Alternativtext eines gespeicherten Bilds kann in dieser Ansicht noch nicht geändert werden. Bitte das Bild neu wählen.','MEDIA_METADATA_UNSUPPORTED');mediaId=m.id;}
+            else {const file=decodeImage(p.media);const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('');const key=JSON.stringify([digest,p.media.alt??'',file.name]);let media=uploadedImages.get(key);if(!media){media=await client.uploadMedia(file,String(p.media.alt??''));snapshot.media.push(media);uploadedImages.set(key,media);}mediaId=media.id;}
           }
           const previous=previousPost(p.id);
-          posts.push({id:p.id,scheduleBinding:structuredClone(p.scheduleBinding),title:Object.hasOwn(p,'title')?p.title:(previous?.title??p.text.trim().split('\n')[0].slice(0,200)),body:p.text,stage:p.status==='scheduled'?'planned':p.status,tags:Object.hasOwn(p,'tags')?[...p.tags]:[...(previous?.tags??[])],cover:p.cover??null,scheduledAt,timezone:postZone,createdAt:previous?.createdAt??p.createdAt,variants:p.channels.map(channelId=>({id:previous?.variants.find(v=>v.channelId===channelId)?.id??crypto.randomUUID(),channelId,body:Object.hasOwn(p.variantTexts??{},channelId)?p.variantTexts[channelId]:p.text,inheritsBody:!Object.hasOwn(p.variantTexts??{},channelId),format:'post',status:p.status==='scheduled'?'planned':'draft',statusNote:previous?.variants.find(v=>v.channelId===channelId)?.statusNote??'',scheduledAt,timezone:postZone,mediaIds:[...mediaIds]}))});
+          posts.push({id:p.id,scheduleBinding:structuredClone(p.scheduleBinding),title:Object.hasOwn(p,'title')?p.title:(previous?.title??p.text.trim().split('\n')[0].slice(0,200)),body:p.text,stage:p.status==='scheduled'?'planned':p.status,tags:Object.hasOwn(p,'tags')?[...p.tags]:[...(previous?.tags??[])],cover:p.cover??null,scheduledAt,timezone:postZone,createdAt:previous?.createdAt??p.createdAt,variants:p.channels.map(channelId=>({id:previous?.variants.find(v=>v.channelId===channelId)?.id??crypto.randomUUID(),channelId,body:Object.hasOwn(p.variantTexts??{},channelId)?p.variantTexts[channelId]:p.text,inheritsBody:!Object.hasOwn(p.variantTexts??{},channelId),format:'post',status:p.status==='scheduled'?'planned':'draft',statusNote:previous?.variants.find(v=>v.channelId===channelId)?.statusNote??'',scheduledAt,timezone:postZone,mediaIds:mediaId?[mediaId]:[]}))});
         }
         // Do not merge/retry a conflict automatically: let the user reload safely.
         const deletedCandidates=await Promise.all(snapshot.posts.filter(old=>old.scheduleBinding&&!posts.some(post=>post.id===old.id)).map(async post=>({post:structuredClone(post),digest:await scheduleRestoreDigest(post)})));

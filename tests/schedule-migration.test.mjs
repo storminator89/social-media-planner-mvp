@@ -37,7 +37,7 @@ async function baseline(t){
 test('actual7→8 constructor preserves every old row and workspace; new columns are null, proof table empty, restart exact',async t=>{
  const {directory,db}=await baseline(t),oldTables=tables(db),before=dump(db);db.close();let next=new LocalDatabase(directory);
  const after=dump(next.sql,oldTables);after.local_migrations=after.local_migrations.filter(x=>x.version<=7);after.planner_channels=legacyScheduleProjection(after.planner_channels);after.planner_posts=legacyScheduleProjection(after.planner_posts);assert.deepEqual(after,before);
- assert.deepEqual(tables(next.sql),[...oldTables,'planner_schedule_undo'].sort());assert.equal(next.sql.prepare('SELECT count(*) n FROM planner_schedule_undo').get().n,0);assert.equal(next.sql.prepare('SELECT count(*) n FROM local_migrations').get().n,9);
+ assert.deepEqual(tables(next.sql),[...oldTables,'planner_schedule_undo'].sort());assert.equal(next.sql.prepare('SELECT count(*) n FROM planner_schedule_undo').get().n,0);assert.equal(next.sql.prepare('SELECT count(*) n FROM local_migrations').get().n,8);
  const canonical=await new PlannerRepository(next).load('alice');assert.equal(canonical.schemaVersion,3);assert.equal(canonical.revision,9);assert.equal(canonical.posts[0].scheduledAt,'2026-10-25T01:30:17.123Z');assert.equal(canonical.posts[0].scheduleBinding,null);assert.equal(canonical.channels[0].postingSchedule,null);
  const beforeRestart=dump(next.sql);next.close();next=new LocalDatabase(directory);assert.deepEqual(dump(next.sql),beforeRestart);next.close();
 });

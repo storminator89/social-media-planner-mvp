@@ -1,0 +1,84 @@
+/* Scoped to editorial libraries: no changes to planning or connection screens. */
+body[data-editorial-view="ideas"],body[data-editorial-view="drafts"]{--library-ink:#242333;--library-muted:#626071;--library-border:#dedce8}
+body[data-editorial-view]:not([data-editorial-view=""]) .page-heading{margin-bottom:20px;align-items:center}
+body[data-editorial-view]:not([data-editorial-view=""]) .page-heading h1{font-size:34px;letter-spacing:-1px;color:var(--library-ink)}
+body[data-editorial-view]:not([data-editorial-view=""]) .page-heading p{color:var(--library-muted);max-width:620px}
+body[data-editorial-view]:not([data-editorial-view=""]) .view-tabs{display:none}
+body[data-editorial-view]:not([data-editorial-view=""]) .overview{display:none}
+body[data-editorial-view]:not([data-editorial-view=""]) .workspace-entry{margin:0 0 20px;padding:0;min-height:0;gap:10px}
+body[data-editorial-view]:not([data-editorial-view=""]) #open-posting-times{display:none}
+body[data-editorial-view]:not([data-editorial-view=""]) .workspace-entry>span{font-size:12px;color:var(--library-muted)}
+body[data-editorial-view]:not([data-editorial-view=""]) .view-toolbar{margin-bottom:20px;display:block}
+body[data-editorial-view]:not([data-editorial-view=""]) .filter-actions{display:flex;width:100%;gap:12px;margin:0;flex-wrap:wrap}
+body[data-editorial-view]:not([data-editorial-view=""]) .search-field{flex:1 1 250px;width:auto;min-height:46px;background:#fff;border-color:var(--library-border)}
+body[data-editorial-view]:not([data-editorial-view=""]) .search-field input{width:100%;font-size:14px;color:var(--library-ink)}
+body[data-editorial-view]:not([data-editorial-view=""]) .select-wrap{flex:0 1 180px;min-height:46px;border-color:var(--library-border)}
+body[data-editorial-view]:not([data-editorial-view=""]) .select-wrap select{width:100%;min-height:44px;font-size:14px;color:var(--library-ink);padding-right:30px}
+body[data-editorial-view]:not([data-editorial-view=""]) .planner-panel{border-color:var(--library-border);box-shadow:none;overflow:hidden}
+body[data-editorial-view]:not([data-editorial-view=""]) .empty-state{min-height:360px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+body[data-editorial-view]:not([data-editorial-view=""]) .empty-icon{width:70px;height:70px;margin:0 0 22px;border-radius:20px;background:#f0ebfc;color:#6044c7;transform:none}
+body[data-editorial-view]:not([data-editorial-view=""]) .empty-icon svg{width:30px;height:30px}
+body[data-editorial-view]:not([data-editorial-view=""]) .empty-state h3{font-size:24px;line-height:1.3;margin:0 0 12px;color:var(--library-ink);letter-spacing:-.4px}
+body[data-editorial-view]:not([data-editorial-view=""]) .empty-state p{font-size:14px;line-height:1.65;max-width:490px;margin:0 0 26px;color:var(--library-muted)}
+body[data-editorial-view]:not([data-editorial-view=""]) .button.primary{background:#6143cb;color:#fff;box-shadow:0 2px 4px #3f278c12}
+body[data-editorial-view]:not([data-editorial-view=""]) .button.primary:hover{background:#5034b1}
+body[data-editorial-view="ideas"] .ideas-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:24px;align-items:stretch}
+body[data-editorial-view="ideas"] .idea-card{background:#fff;border-color:var(--library-border);box-shadow:none;border-radius:14px}
+body[data-editorial-view="ideas"] .idea-card-main{padding:22px 22px 12px}
+body[data-editorial-view="ideas"] .idea-card-main:hover{background:#faf8ff}
+body[data-editorial-view="ideas"] .idea-card-meta{font-size:12px;color:var(--library-muted)}
+body[data-editorial-view="ideas"] .idea-card h3{font-size:19px;line-height:1.4;margin:14px 0 10px;color:var(--library-ink)}
+body[data-editorial-view="ideas"] .idea-card p{font-size:14px;line-height:1.7;color:var(--library-muted);-webkit-line-clamp:4}
+body[data-editorial-view="ideas"] .idea-labels{padding:0 22px 18px}
+body[data-editorial-view="ideas"] .idea-labels span{font-size:12px;color:#534779;background:#f3effc;border-color:#ebe4fa}
+body[data-editorial-view="ideas"] .idea-card-footer{padding:16px 22px;border-color:#ebe8f0}
+body[data-editorial-view="ideas"] .idea-card-footer .button{font-size:13px}
+body[data-editorial-view="drafts"] .draft-section-head{padding:20px 24px;border-bottom:1px solid #ebe8f0;font-size:14px;color:var(--library-muted)}
+body[data-editorial-view="drafts"] .draft-section-head .button{display:none}
+body[data-editorial-view="drafts"] .draft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:24px;align-items:start}
+body[data-editorial-view="drafts"] .post-card{border:1px solid var(--library-border);border-radius:14px;box-shadow:none;min-width:0;overflow:hidden}
+body[data-editorial-view="drafts"] .post-card:hover{border-color:#9d8cd6;background:#fdfcff}
+body[data-editorial-view="drafts"] .post-card-head{padding:18px 18px 12px}
+body[data-editorial-view="drafts"] .post-time{font-size:12px;color:var(--library-muted)}
+body[data-editorial-view="drafts"] .post-card-text{font-size:16px;line-height:1.6;color:var(--library-ink);margin:12px 18px 20px;-webkit-line-clamp:4;overflow-wrap:anywhere}
+body[data-editorial-view="drafts"] .cover{margin:0 18px;height:160px;border-radius:8px}
+body[data-editorial-view="drafts"] .post-card-footer{padding:14px 18px;gap:8px;flex-wrap:wrap;border-top:1px solid #ebe8f0}
+body[data-editorial-view="drafts"] .draft-continue{font-size:12px;color:#5940ad;margin-left:auto}
+body[data-editorial-view="drafts"] .post-card-footer .status{font-size:12px}
+body[data-editorial-view="ideas"] #idea-dialog #idea-title,body[data-editorial-view="ideas"] #idea-dialog #idea-tags{min-height:72px}
+body[data-editorial-view="ideas"] #idea-dialog #idea-text{min-height:180px}
+@media(max-width:760px){
+ body[data-editorial-view]:not([data-editorial-view=""]) .page-heading h1{font-size:28px}
+ body[data-editorial-view]:not([data-editorial-view=""]) .page-heading{align-items:flex-start}
+ body[data-editorial-view]:not([data-editorial-view=""]) .workspace-entry{flex-wrap:wrap;margin-bottom:16px}
+ body[data-editorial-view]:not([data-editorial-view=""]) .workspace-entry>span{display:none}
+ body[data-editorial-view]:not([data-editorial-view=""]) .filter-actions{gap:10px}
+ body[data-editorial-view]:not([data-editorial-view=""]) .search-field{flex-basis:100%;width:100%}
+ body[data-editorial-view]:not([data-editorial-view=""]) .select-wrap{flex:1 1 130px;max-width:100%}
+ body[data-editorial-view]:not([data-editorial-view=""]) .select-wrap select,body[data-editorial-view]:not([data-editorial-view=""]) .search-field input{font-size:16px}
+ body[data-editorial-view]:not([data-editorial-view=""]) .empty-state{min-height:310px;padding:36px 20px}
+ body[data-editorial-view]:not([data-editorial-view=""]) .empty-state h3{font-size:22px}
+ body[data-editorial-view="ideas"] .ideas-grid,body[data-editorial-view="drafts"] .draft-grid{grid-template-columns:minmax(0,1fr);padding:16px;gap:16px}
+ body[data-editorial-view="drafts"] .draft-section-head{padding:16px;font-size:13px}
+}
+body[data-editorial-view="ideas"] #idea-label-filter-wrap .idea-label-filter{display:block;margin:0;max-width:none;width:100%}
+body[data-editorial-view="ideas"] #idea-label-filter{margin:0;border:0;background:transparent}
+/* The sidebar is absent on narrow screens. Keep its existing alternate routes. */
+@media(max-width:760px){
+ body[data-editorial-view]:not([data-editorial-view=""]) .view-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
+}
+/* Review fix: at high zoom a floating create button intercepted card clicks.
+   Keep the primary action in document flow, including short mobile viewports. */
+@media(max-width:760px){
+ body[data-editorial-view]:not([data-editorial-view=""]) .create-post{position:static;inset:auto;z-index:auto;transform:none;height:auto;min-height:44px;max-width:100%;margin:16px 0 0;border-radius:10px;white-space:normal}
+ body[data-editorial-view]:not([data-editorial-view=""]) main{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+}
+/* v11 base compatibility: keep the reviewed library typography and targets
+   without importing the older candidate's global shell stylesheet. */
+body[data-editorial-view]:not([data-editorial-view=""]) .page-heading .eyebrow{display:none}
+body[data-editorial-view]:not([data-editorial-view=""]) .page-heading p{font-size:14px;line-height:1.5}
+body[data-editorial-view]:not([data-editorial-view=""]) .button{min-height:44px;font-size:13px}
+@media(max-width:760px){
+ body[data-editorial-view]:not([data-editorial-view=""]) .button{font-size:14px}
+ body[data-editorial-view]:not([data-editorial-view=""]) .view-tab{min-height:44px;font-size:12px}
+}

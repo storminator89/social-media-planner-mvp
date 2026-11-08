@@ -117,8 +117,3 @@ test('temporary queue helper cannot silently detach a persisted queue binding', 
   const p = { ...post(), scheduleBinding: { mode: 'queue' } }, suggestion = suggestQueueSlots(opts({ post: p })).suggestions[0];
   code(() => applyQueueSuggestion({ post: p, rules: [rule()], suggestion, now }), 'PERSISTED_QUEUE_BINDING');
 });
-test('duplicate preserves ordered attachments as independent data',()=>{
- const attachments=[{id:'a',url:'/api/planner/media/a'},{id:'b',url:'/api/planner/media/b'}];
- const source={id:'old',text:'hello',channels:['instagram'],media:attachments[0],attachments};
- const copy=duplicateTaktDraft(source,{id:'copy'});assert.deepEqual(copy.attachments,attachments);copy.attachments.reverse();assert.equal(source.attachments[0].id,'a');
-});

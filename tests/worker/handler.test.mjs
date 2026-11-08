@@ -73,4 +73,3 @@ test('Mastodon return document admits authenticated top-level GET only; APIs ret
  for(const method of ['POST','PUT','DELETE','HEAD'])assert.equal((await handler.fetch(req('/mastodon.html',{method,headers:navigation}),env)).status,403);
  assert.equal((await (await handler.fetch(req('/api/planner/state'),env)).json()).revision,0);
 });
-test('hosted editor CSP permits local and private video previews only',async()=>{const response=await createSitesHandler({assets}).fetch(req('/'),environment());const policy=response.headers.get('content-security-policy');assert.match(policy,/(?:^|;) media-src 'self' data: blob:;/);assert.match(policy,/script-src 'self';/);assert.match(policy,/connect-src 'self';/);assert.doesNotMatch(policy,/media-src[^;]*(?:https?:|\*)/);});

@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {CHANNELS} from '../../public/model.js';
+import {calendarPosts} from '../../public/calendar-model.js';
+const app=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
+const html=readFileSync(new URL('../../public/index.html',import.meta.url),'utf8');
+test('v11 Mastodon planning target survives calendar integration',()=>{assert.ok(CHANNELS.some(c=>c.id==='mastodon'));for(const token of ['renderPlanningChannelControls();','refreshMastodonPlanningStatus','clearMastodonPlanningStatus','planning-channel-count'])assert.ok((app+html).includes(token),token);assert.match(html,/data-mastodon-status/);assert.match(app,/document.body.dataset.plannerView=view/);});
+test('all existing v11 views and original editor fields remain available',()=>{for(const view of ['calendar','list','drafts','ideas','connections'])assert.match(html,new RegExp(`data-view="${view}"`));for(const id of ['post-text','post-date','post-time','post-tags','preview-channel','open-workspaces','open-posting-times','jump-date','calendar-status'])assert.match(html,new RegExp(`id="${id}"`));});
+test('Mastodon calendar projection preserves source channel and instant',()=>{const p={id:'test',status:'scheduled',text:'Synthetic',channels:['mastodon'],scheduledAt:'2027-01-01T00:30',timeZone:'Asia/Tokyo',scheduledInstant:null};const before=structuredClone(p),result=calendarPosts([p],'Europe/Berlin')[0];assert.equal(result.calendarTime.local,'2026-12-31T16:30');assert.deepEqual(result.channels,['mastodon']);assert.deepEqual(p,before);});

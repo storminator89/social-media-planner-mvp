@@ -5,7 +5,8 @@ import { normalizePostingSchedule, normalizeScheduleBinding, scheduleLocalTime, 
 export const CHANNELS = [
   { id: 'instagram', name: 'Instagram', handle: '@studio.nord', limit: 2200, color: '#b54488', abbreviation: 'ig' },
   { id: 'linkedin', name: 'LinkedIn', handle: 'Studio Nord', limit: 3000, color: '#2866aa', abbreviation: 'in' },
-  { id: 'bluesky', name: 'Bluesky', handle: '@studionord.example', limit: 300, color: '#1680d9', abbreviation: 'bs' }
+  { id: 'bluesky', name: 'Bluesky', handle: '@studionord.example', limit: 300, color: '#1680d9', abbreviation: 'bs' },
+  { id: 'mastodon', name: 'Mastodon', handle: 'kanoa.de · Planungsziel', limit: 500, color: '#6364ff', abbreviation: 'm' }
 ];
 export const SCHEMA_VERSION = 2;
 export function defaultTimeZone(){return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
@@ -75,7 +76,7 @@ export function validatePost(post, now = new Date()) {
       if(result.overLimit) errors.push(`${result.name}: maximal ${result.limit.toLocaleString('de-DE')} Zeichen (${result.count.toLocaleString('de-DE')} vorhanden).`);
     }
   }
-  try{for(const media of normalizeAttachments(post))if(!['video/mp4','video/webm'].includes(media.type)&&!media.alt.trim())errors.push('Ergänze einen Alternativtext für jedes Bild.');}catch(error){errors.push(error.message)}
+  if (post.media && !post.media.alt?.trim()) errors.push('Ergänze einen Alternativtext für dein Bild.');
   if (post.status === 'scheduled' && schedule) {
     const date=schedule.scheduledInstant===null?zonedInstant(schedule.scheduledAt,schedule.timeZone):new Date(schedule.scheduledInstant);
     if(date<=now)errors.push('Wähle einen Zeitpunkt in der Zukunft.');
@@ -99,22 +100,6 @@ export function createDemoState(now = new Date()) {
   const channels=CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null}));
   return {schemaVersion:SCHEMA_VERSION,revision:0,channels,settings:{timezone},posts:posts.map(p=>({...p,title:'',tags:[],timeZone:timezone,variantTexts:{},scheduleBinding:null,scheduledInstant:null}))};
 }
-/** Ordered attachments; legacy single-media records migrate without dropping data. */
-export function normalizeAttachments(post){
- const explicit=Object.hasOwn(post,'attachments'),list=explicit?post.attachments:(post.media?[post.media]:[]);
- if(!Array.isArray(list)||list.length>10)throw Error('Höchstens 10 Anhänge pro Beitrag.');
- if(explicit&&JSON.stringify(post.media??null)!==JSON.stringify(list[0]??null))throw Error('Anhangliste und Vorschaumedium stimmen nicht überein.');
- const ids=new Set();return list.map(m=>{
-  if(!m||typeof m!=='object'||Array.isArray(m))throw Error('Ungültiger Anhang.');
-  const metadata={alt:String(m.alt||''),name:String(m.name||'Medium'),type:String(m.type||'image/jpeg')};
-  if(!['image/png','image/jpeg','image/webp','image/gif','video/mp4','video/webm'].includes(metadata.type))throw Error('Ungültiger Medientyp.');
-  if(typeof m.dataUrl==='string'&&/^data:(?:image\/(png|jpeg|webp|gif)|video\/(mp4|webm));base64,/.test(m.dataUrl))return {...metadata,dataUrl:m.dataUrl};
-  if(typeof m.url==='string'&&/^\/api\/planner\/media\/[A-Za-z0-9_-]+$/.test(m.url)){
-   const id=String(m.id||m.url.split('/').pop());if(m.url!==`/api/planner/media/${id}`||ids.has(id))throw Error('Ungültige oder doppelte Medienreferenz.');ids.add(id);return {...metadata,id,url:m.url};
-  }
-  throw Error('Ein Anhang kann nicht verlustfrei geladen werden.');
- });
-}
 export function normalizeState(value) {
   if (!value || value.schemaVersion !== SCHEMA_VERSION || !Array.isArray(value.posts)) throw new Error('Die gespeicherten Planungsdaten haben ein unbekanntes Format.');
   if (!Number.isSafeInteger(value.revision) || value.revision<0) throw new Error('Eine bestätigte Planungsrevision ist erforderlich.');
@@ -127,10 +112,15 @@ export function normalizeState(value) {
     if (!p || typeof p.id !== 'string' || ids.has(p.id) || typeof p.text !== 'string' || !Array.isArray(p.channels) || p.channels.some(id=>!channelIds.has(id)) || new Set(p.channels).size!==p.channels.length || !['idea','draft','scheduled'].includes(p.status)) throw new Error('Die gespeicherten Planungsdaten sind beschädigt.');
     ids.add(p.id);
     const metadata=normalizeEditorialMetadata(p);
-    if(p.status==='idea'&&(p.channels.length||p.scheduledAt||p.media||p.attachments?.length||p.cover||Object.keys(p.variantTexts||{}).length))throw new Error('Eine Idee enthält noch nicht unterstützte Kanal-, Bild- oder Terminangaben.');
+    if(p.status==='idea'&&(p.channels.length||p.scheduledAt||p.media||p.cover||Object.keys(p.variantTexts||{}).length))throw new Error('Eine Idee enthält noch nicht unterstützte Kanal-, Bild- oder Terminangaben.');
     const schedule=normalizePostSchedule(p);
-    const attachments=normalizeAttachments(p),media=attachments[0]??null;
-    return {id:p.id,...metadata,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,...schedule,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,...(Object.hasOwn(p,'attachments')?{attachments}:{}),media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
+    let media=null;
+    if(p.media){
+      const metadata={alt:String(p.media.alt||''),name:String(p.media.name||'Bild'),type:String(p.media.type||'image/jpeg')};
+      if(typeof p.media.dataUrl==='string'&&/^data:image\/(png|jpeg|webp);base64,/.test(p.media.dataUrl))media={...metadata,dataUrl:p.media.dataUrl};
+      else if(typeof p.media.url==='string'&&/^\/api\/planner\/media\/[A-Za-z0-9_-]+$/.test(p.media.url))media={...metadata,id:String(p.media.id||p.media.url.split('/').pop()),url:p.media.url};
+    }
+    return {id:p.id,...metadata,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,...schedule,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
   });
   return {schemaVersion:SCHEMA_VERSION,revision:value.revision,channels,settings:{timezone},posts};
 }

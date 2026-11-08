@@ -1,0 +1,59 @@
+/* Calendar hierarchy, based on local v10 and the supplied visual direction.
+   Existing controls and genuine status information stay available. */
+body[data-planner-view="calendar"] #main{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:16px;row-gap:16px;padding-top:24px}
+body[data-planner-view="calendar"] .page-heading{grid-column:1/-1;margin:0;align-items:center}
+body[data-planner-view="calendar"] .page-heading h1{font-size:34px;font-weight:700;line-height:1.2;letter-spacing:-1px}
+body[data-planner-view="calendar"] #page-description{display:none}
+body[data-planner-view="calendar"] .create-post{margin:0;font-size:14px;padding:12px 20px}
+body[data-planner-view="calendar"] .workspace-entry{grid-column:1;margin:0;gap:8px;align-self:center;flex-wrap:wrap}
+body[data-planner-view="calendar"] .workspace-entry>span{display:none}
+body[data-planner-view="calendar"] .workspace-entry>.workspace-warning{flex-basis:100%;margin:0;max-width:360px}
+body[data-planner-view="calendar"] .workspace-entry .button{font-size:12px;padding:8px 12px;background:transparent;box-shadow:none}
+body[data-planner-view="calendar"] .overview{grid-column:2;align-self:center;gap:12px;padding:8px 0;margin:0;background:none;border:0;border-radius:0;box-shadow:none;justify-content:flex-end;flex-wrap:wrap}
+body[data-planner-view="calendar"] .overview-item{min-width:0;flex:0 1 auto;gap:0}
+body[data-planner-view="calendar"] .overview-item>div{display:flex;align-items:baseline;gap:6px}
+body[data-planner-view="calendar"] .overview-item strong{font-size:14px;line-height:1.5}
+body[data-planner-view="calendar"] .overview-item>div>span{font-size:12px;color:var(--muted)}
+body[data-planner-view="calendar"] .overview .stat-icon,body[data-planner-view="calendar"] .overview .stat-divider{display:none}
+body[data-planner-view="calendar"] .overview-note{display:flex;font-size:12px;margin:0;max-width:280px}
+body[data-planner-view="calendar"] .view-toolbar{grid-column:1/-1;margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+body[data-planner-view="calendar"] .view-tabs{flex-shrink:0}
+body[data-planner-view="calendar"] .filter-actions{margin-left:auto;flex-wrap:wrap;gap:8px}
+body[data-planner-view="calendar"] .view-tab{font-size:13px;padding:8px 12px}
+body[data-planner-view="calendar"] .select-wrap select,body[data-planner-view="calendar"] .search-field input{font-size:13px;min-height:44px}
+body[data-planner-view="calendar"] .planner-panel,body[data-planner-view="calendar"] .bottom-note,body[data-planner-view="calendar"] .connections-view{grid-column:1/-1}
+body[data-planner-view="calendar"] .planner-panel{margin:0;border-radius:14px;overflow:hidden}
+body[data-planner-view="calendar"] .calendar-toolbar{padding:12px 16px;gap:12px;flex-wrap:wrap;background:white}
+body[data-planner-view="calendar"] .calendar-period{gap:8px;flex-wrap:wrap}
+body[data-planner-view="calendar"] .calendar-period h2{font-size:15px;font-weight:650;line-height:1.4}
+body[data-planner-view="calendar"] .calendar-options{gap:8px;margin-left:auto;align-items:center}
+body[data-planner-view="calendar"] .segmented button{min-height:40px;padding:8px 16px;font-size:13px}
+body[data-planner-view="calendar"] .calendar-brief{padding:8px 16px;gap:12px;background:#faf9fd;flex-wrap:wrap}
+body[data-planner-view="calendar"] .calendar-brief>div{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+body[data-planner-view="calendar"] .calendar-caption{display:none}
+body[data-planner-view="calendar"] .calendar-brief p{margin:0;font-size:12px}
+body[data-planner-view="calendar"] .calendar-safe{font-size:12px;max-width:none}
+body[data-planner-view="calendar"] .day-heading{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:16px;min-height:86px}
+body[data-planner-view="calendar"] .day-name{font-size:12px;color:#606170;letter-spacing:.03em;font-weight:600}
+body[data-planner-view="calendar"] .day-number{font-size:26px;line-height:1.2;font-weight:650;width:auto;min-width:36px;height:auto;padding:4px 6px;border-radius:8px;color:var(--ink)}
+body[data-planner-view="calendar"] .is-today .day-number{color:white;background:var(--purple)}
+body[data-planner-view="calendar"] .day-cards{padding:12px 8px}
+body[data-planner-view="calendar"] .add-day.empty-day{min-height:104px;border:1px dashed #c8bcef;border-radius:10px;background:#faf8ff;color:var(--purple);gap:12px}
+body[data-planner-view="calendar"] .add-day.empty-day span{font-size:13px;line-height:1.4}
+body[data-planner-view="calendar"] .add-day.empty-day svg{width:22px;height:22px}
+body[data-planner-view="calendar"] .week-grid{min-height:430px}
+body[data-planner-view="calendar"] .bottom-note{margin:0;font-size:12px;gap:12px;flex-wrap:wrap}
+@media(max-width:1180px){body[data-planner-view="calendar"] #main{grid-template-columns:1fr;row-gap:12px}body[data-planner-view="calendar"] .workspace-entry,body[data-planner-view="calendar"] .overview{grid-column:1}body[data-planner-view="calendar"] .overview{justify-content:flex-start;padding:0;gap:12px}body[data-planner-view="calendar"] .overview-note{margin-left:auto}body[data-planner-view="calendar"] .filter-actions{margin-left:0;flex:1}body[data-planner-view="calendar"] .day-heading{padding:12px}body[data-planner-view="calendar"] .calendar-options{margin-left:0}}
+@media(max-width:760px){body[data-planner-view="calendar"] #main{display:flex;flex-direction:column;gap:16px;padding-top:20px}body[data-planner-view="calendar"] .page-heading h1{font-size:26px;letter-spacing:-.5px}body[data-planner-view="calendar"] .page-heading{align-items:center}body[data-planner-view="calendar"] .create-post{font-size:13px;padding:10px 12px}body[data-planner-view="calendar"] .workspace-entry{align-self:stretch}body[data-planner-view="calendar"] .workspace-entry .button{font-size:13px}body[data-planner-view="calendar"] .overview{justify-content:flex-start}body[data-planner-view="calendar"] .overview-note{margin:0;max-width:none;flex-basis:100%}body[data-planner-view="calendar"] .view-toolbar{display:flex;flex-direction:column;align-items:stretch;gap:12px}body[data-planner-view="calendar"] .view-tabs{display:flex;flex-wrap:wrap;align-self:stretch}body[data-planner-view="calendar"] .view-tab{padding:8px 10px;flex:1}body[data-planner-view="calendar"] .filter-actions{margin:0;display:flex;flex-wrap:wrap}body[data-planner-view="calendar"] .search-field{flex:1 0 100%}body[data-planner-view="calendar"] .select-wrap{flex:1;min-width:0}body[data-planner-view="calendar"] .select-wrap select,body[data-planner-view="calendar"] .search-field input{font-size:16px;width:100%}body[data-planner-view="calendar"] .calendar-toolbar{padding:12px;gap:12px}body[data-planner-view="calendar"] .calendar-options{width:100%;justify-content:space-between}body[data-planner-view="calendar"] .calendar-brief{padding:12px;flex-direction:column;align-items:flex-start;gap:8px}body[data-planner-view="calendar"] .calendar-period h2{font-size:14px}body[data-planner-view="calendar"] .calendar-jump{margin-left:0}}
+/* Keep the compact row compact even with inherited field padding. */
+body[data-planner-view="calendar"] .overview{gap:8px}
+body[data-planner-view="calendar"] .overview-item>div{flex-direction:row;gap:4px}
+body[data-planner-view="calendar"] .overview-item>div>span{margin:0}
+body[data-planner-view="calendar"] .overview-note{max-width:190px;padding:0;border:0;line-height:1.4;gap:6px}
+body[data-planner-view="calendar"] .view-tab{padding:8px}
+body[data-planner-view="calendar"] .view-tabs{gap:0}
+body[data-planner-view="calendar"] .search-field{padding:0 10px;height:44px;box-sizing:border-box}
+body[data-planner-view="calendar"] .search-field input{padding:0;width:122px;min-height:42px}
+body[data-planner-view="calendar"] .select-wrap{height:44px;box-sizing:border-box}
+body[data-planner-view="calendar"] .select-wrap select{padding-top:0;padding-bottom:0;min-height:42px}
+@media(max-width:760px){body[data-planner-view="calendar"] .overview-note{max-width:none}body[data-planner-view="calendar"] .search-field input{width:100%}}
