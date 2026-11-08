@@ -19,6 +19,6 @@ const allowed=new Set([
 ]);
 export function assertSetupHelpLinks(html){
  const tags=[...html.matchAll(/<a\b[^>]*>/g)].map(m=>m[0]);assert.ok(tags.length>0);
- for(const tag of tags){const match=tag.match(/href="([^"]+)"/);assert.ok(match);assert.ok(allowed.has(match[1]),match[1]);assert.match(tag,/target="_blank"/);assert.match(tag,/rel="noopener noreferrer"/);assert.match(tag,/referrerpolicy="no-referrer"/);}
+ for(const tag of tags){const match=tag.match(/href="([^"]+)"/);assert.ok(match);if(match[1]==='/mastodon.html'){assert.doesNotMatch(tag,/target=|client_id|redirect_uri/);continue;}assert.ok(allowed.has(match[1]),match[1]);assert.match(tag,/target="_blank"/);assert.match(tag,/rel="noopener noreferrer"/);assert.match(tag,/referrerpolicy="no-referrer"/);}
  assert.doesNotMatch(html,/href="[^"]*(?:client_id|redirect_uri|response_type|oauth\/v2\/authorization|o\/oauth2\/v2\/auth)/);
 }

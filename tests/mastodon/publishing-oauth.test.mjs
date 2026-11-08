@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFile} from 'node:fs/promises';
+import {configuration,createMastodonPublishingFlow,INSTANCE,CALLBACK,pkce} from '../../modules/mastodon/publishing-oauth.mjs';
+import {MastodonPublishingGrantStore} from '../../modules/mastodon/publishing-grant-store.mjs';
+import {createMastodonCipher} from '../../modules/mastodon/cipher.mjs';
+const source={siteId:'fixture-site',siteOrigin:'https://planner.example',instance:INSTANCE};
+const keyring=JSON.stringify({activeKeyId:'test',keys:{test:Buffer.alloc(32,7).toString('base64')}});
+const binding='b'.repeat(43),now=1794052800000;
+async function setup(t,{deny=false,mutate=(path,b)=>b,transportFailure=false}={}){
+ const sql=new DatabaseSync(':memory:');sql.exec(await readFile(new URL('../../docs/mastodon/publishing-schema.sql',import.meta.url),'utf8'));t.after(()=>sql.close());
+ const db={prepare(q){return{bind(...args){return{first:async()=>sql.prepare(q).get(...args),run:async()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}})};}};}};
+ const config=configuration(source),cipher=await createMastodonCipher(keyring),context={provider:'mastodon',siteId:source.siteId,ownerId:'owner',instance:INSTANCE,callback:config.callback,scope:'profile write:statuses',purpose:'publishing'},store=new MastodonPublishingGrantStore(db,cipher,context),calls=[],actions=[];
+ let time=now;
+ const transport=async request=>{calls.push(request);assert.equal(request.redirect,'error');assert.equal(new URL(request.url).origin,INSTANCE);const path=new URL(request.url).pathname;let body;
+ if(path==='/.well-known/oauth-authorization-server')body={issuer:INSTANCE+'/',authorization_endpoint:INSTANCE+'/oauth/authorize',token_endpoint:INSTANCE+'/oauth/token',app_registration_endpoint:INSTANCE+'/api/v1/apps',scopes_supported:['profile','write:statuses'],code_challenge_methods_supported:['S256']};
+ else if(path==='/api/v1/apps'){if(transportFailure)throw Error('network');assert.equal(new URLSearchParams(await request.clone().text()).get('scopes'),'profile write:statuses');body={client_id:'fixture-id',client_secret:'fixture-secret',client_secret_expires_at:0,scopes:['profile','write:statuses'],redirect_uris:[config.callback]};}
+ else if(path==='/oauth/revoke')body={};
+ else if(path==='/oauth/token')body={access_token:'fixture-token',token_type:'Bearer',scope:'profile write:statuses',purpose:'publishing'};
+ else if(path==='/api/v1/accounts/verify_credentials')body={id:'123',acct:'fixture_user'};
+ else throw Error('unexpected endpoint');
+ const r=new Response(JSON.stringify(mutate(path,body)),{headers:{'Content-Type':'application/json'}});Object.defineProperty(r,'url',{value:request.url});return r;};
+ const authorizeAction=async v=>{actions.push(v);return !deny;};const options={offlineFixture:true,config,store,transport,authorizeAction,clock:()=>time};
+ return{...options,flow:createMastodonPublishingFlow(options),calls,actions,sql,db,cipher,context,setTime:v=>time=v,env:{DB:db,TAKT_MASTODON_ENABLED:'true',TAKT_MASTODON_CONFIGURATION:JSON.stringify(source),TAKT_MASTODON_KEYRING_JSON:keyring}};
+}
+const complete=(flow,start,extra={})=>flow.complete({state:new URL(start.authorizationUrl).searchParams.get('state'),binding,code:'fixture-code',...extra});
+test('fixed HTTPS instance rejects arbitrary SSRF destinations and callbacks',()=>{for(const instance of ['http://kanoa.de','https://127.0.0.1','https://kanoa.de.evil.test','https://kanoa.de/','https://mastodon.social'])assert.throws(()=>configuration({...source,instance}));assert.throws(()=>configuration({...source,siteOrigin:'http://localhost'}));});
+test('encrypted durable registration, PKCE, code exchange with separate narrow publishing grant',async t=>{const h=await setup(t),start=await h.flow.begin(binding),u=new URL(start.authorizationUrl),pending=await h.store.read();assert.equal(u.searchParams.get('scope'),'profile write:statuses');assert.equal(u.searchParams.get('code_challenge'),await pkce(pending.value.verifier));assert.equal(u.searchParams.get('redirect_uri'),source.siteOrigin+CALLBACK);assert.ok(!JSON.stringify(h.sql.prepare('SELECT * FROM mastodon_publishing_grants').get()).includes('fixture-secret'));assert.deepEqual(await complete(h.flow,start),{phase:'linked'});assert.equal(h.calls.length,4);assert.equal((await h.store.read()).value.subject,'123');assert.ok(!JSON.stringify(h.sql.prepare('SELECT * FROM mastodon_publishing_grants').get()).includes('fixture-token'));await assert.rejects(complete(h.flow,start));assert.equal(h.calls.length,4);assert.deepEqual(h.actions.slice(0,2).map(v=>v.action),['register_separate_publishing_application_and_start','exchange_code_and_store_publishing']);});
+test('denied approval makes zero network or storage changes',async t=>{const h=await setup(t,{deny:true});await assert.rejects(h.flow.begin(binding));assert.equal(h.calls.length,0);assert.equal(await h.store.read(),null);});
+test('no downgrade when profile or S256 is absent; no dynamic metadata endpoints',async t=>{for(const key of ['scopes_supported','code_challenge_methods_supported','token_endpoint']){const h=await setup(t,{mutate:(path,b)=>path.includes('well-known')?{...b,[key]:key==='token_endpoint'?'http://127.0.0.1/':[]}:b});await assert.rejects(h.flow.begin(binding));assert.equal(h.calls.length,1);assert.equal(await h.store.read(),null);}});
+test('uncertain registration reserves once and blocks retries',async t=>{const h=await setup(t,{transportFailure:true});await assert.rejects(h.flow.begin(binding));assert.equal((await h.store.read()).value.phase,'registration_outcome_unknown');await assert.rejects(h.flow.begin(binding));assert.equal(h.calls.length,2);});
+test('concurrent starts cannot register twice',async t=>{const h=await setup(t);const results=await Promise.allSettled([h.flow.begin(binding),h.flow.begin(binding)]);assert.equal(results.filter(v=>v.status==='fulfilled').length,1);assert.equal(h.calls.filter(r=>r.url.endsWith('/api/v1/apps')).length,1);});
+test('wrong browser, expired and denied callbacks cannot exchange tokens',async t=>{const h=await setup(t),start=await h.flow.begin(binding);await assert.rejects(complete(h.flow,start,{binding:'c'.repeat(43)}));assert.equal(h.calls.length,2);h.setTime(now+300001);await assert.rejects(complete(h.flow,start));assert.equal(h.calls.length,2);const other=await setup(t),s=await other.flow.begin(binding);assert.deepEqual(await complete(other.flow,s,{code:null,error:'access_denied'}),{phase:'declined'});assert.equal(other.calls.length,2);});
+test('wrong scope quarantines encrypted token for revocation without retry',async t=>{const h=await setup(t,{mutate:(path,b)=>path==='/oauth/token'?{...b,scope:'read write'}:b}),start=await h.flow.begin(binding);await assert.rejects(complete(h.flow,start));assert.equal((await h.store.read()).value.phase,'verification_pending');await assert.rejects(complete(h.flow,start));assert.equal(h.calls.length,3);});
+test('encrypted envelopes reject cross-owner, instance, version and tampering',async t=>{const h=await setup(t);await h.flow.begin(binding);const r=h.sql.prepare('SELECT * FROM mastodon_publishing_grants').get();await assert.rejects(h.cipher.open({...h.context,ownerId:'other'},r.version,r.envelope));await assert.rejects(h.cipher.open({...h.context,instance:'https://evil.test'},r.version,r.envelope));await assert.rejects(h.cipher.open(h.context,r.version+1,r.envelope));const e=JSON.parse(r.envelope);e.data='A'+e.data.slice(1);await assert.rejects(h.cipher.open(h.context,r.version,JSON.stringify(e)));});
+
+test('publishing OAuth preserves valid expiry and rejects malformed expiry',async t=>{
+ const h=await setup(t,{mutate:(path,b)=>path==='/oauth/token'?{...b,expires_in:300}:b}),s=await h.flow.begin(binding);await complete(h.flow,s);assert.equal((await h.store.read()).value.expiresAt,now+300000);
+ const bad=await setup(t,{mutate:(path,b)=>path==='/oauth/token'?{...b,expires_in:-1}:b}),b=await bad.flow.begin(binding);await assert.rejects(complete(bad.flow,b),/EXPIRY/);assert.equal((await bad.store.read()).value.phase,'verification_pending');
+});

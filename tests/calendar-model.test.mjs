@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { calendarPosts, calendarTime, planningStatus, periodSummary } from '../public/calendar-model.js';
+const post=(changes={})=>({id:'a',channels:['instagram'],status:'scheduled',scheduledAt:'2026-11-09T00:30',timeZone:'Asia/Tokyo',scheduledInstant:null,...changes});
+test('calendar projects across date boundary without altering original',()=>{const p=post(),before=structuredClone(p),t=calendarTime(p,'America/Los_Angeles');assert.equal(t.local,'2026-11-08T07:30');assert.deepEqual(p,before);});
+test('fixed repeated-hour instant stays authoritative',()=>{assert.equal(calendarTime(post({scheduledAt:'2026-10-25T02:30',timeZone:'Europe/Berlin',scheduledInstant:'2026-10-25T01:30:00.000Z'}),'UTC').local,'2026-10-25T01:30');});
+test('unbound ambiguous times and nonexistent times are rejected',()=>{for(const scheduledAt of ['2026-10-25T02:30','2026-03-29T02:30'])assert.throws(()=>calendarTime(post({timeZone:'Europe/Berlin',scheduledAt}),'UTC'));});
+test('summary uses visible zone, selected range and channel deduplication',()=>{const entries=calendarPosts([post(),post({id:'b',channels:['instagram','linkedin']})],'America/Los_Angeles');assert.deepEqual(periodSummary(entries,'2026-11-08','2026-11-08'),{count:2,days:1,channels:2});assert.equal(periodSummary(entries,'2026-11-09','2026-11-15').count,0);});
+test('entries sort by instant rather than source wall-clock',()=>{const entries=calendarPosts([post({id:'a',scheduledAt:'2026-11-09T10:00',timeZone:'America/Los_Angeles'}),post({id:'b',scheduledAt:'2026-11-09T11:00',timeZone:'Asia/Tokyo'})],'UTC');assert.deepEqual(entries.map(p=>p.id),['b','a']);});
+test('status never implies publishing; overdue and review are distinguished',()=>{const p=post(),now=new Date('2026-11-10T00:00Z');assert.equal(planningStatus(p,{now}).label,'Termin vergangen');assert.equal(planningStatus(p,{now,needsReview:true}).label,'Termin prüfen');assert.equal(planningStatus(p,{now:new Date('2026-01-01')}).label,'Eingeplant');assert.equal(planningStatus(post({status:'draft',scheduledAt:null}),{now}).label,'Entwurf');});
+test('drafts have no time and invalid target zone is rejected',()=>{assert.equal(calendarTime(post({status:'draft',scheduledAt:null}),'UTC'),null);assert.throws(()=>calendarTime(post(),'Not/AZone'));});

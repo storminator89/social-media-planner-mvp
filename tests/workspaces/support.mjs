@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {EditorWorkspaceRepository} from '../../modules/workspaces/workspace-repository.mjs';
 export class D1TestAdapter{
  constructor({migrate=true}={}){this.sql=new DatabaseSync(':memory:');this.sql.exec('PRAGMA foreign_keys=ON');for(const n of ['0001_planner.sql','0002_variant_inheritance.sql','0003_provider_jobs.sql','0004_oauth_state.sql','0005_provider_credentials.sql','0006_youtube_lifecycle.sql'])this.sql.exec(readFileSync(new URL(`../../server/${n}`,import.meta.url),'utf8'));if(migrate)this.migrate();}
- migrate(){this.sql.exec(readFileSync(new URL('../../server/0007_editor_workspaces.sql',import.meta.url),'utf8'));}
+ migrate(){for(const name of ['0007_editor_workspaces.sql','0014_workspace_attachments.sql'])this.sql.exec(readFileSync(new URL(`../../server/${name}`,import.meta.url),'utf8'));}
  prepare(query){if(this.failPrepare)throw Error('SYNTHETIC_PRIVATE_SQL_DETAIL');const adapter=this;let values=[];return{bind(...args){if(adapter.failBind)throw Error('SYNTHETIC_PRIVATE_BIND_DETAIL');values=args;return this;},_exec(){const st=adapter.sql.prepare(query);return /^\s*SELECT/i.test(query)?{results:st.all(...values),meta:{changes:0}}:{results:[],meta:{changes:Number(st.run(...values).changes)}};}};}
  async batch(stmts){if(this.beforeBatch){const h=this.beforeBatch;this.beforeBatch=null;await h();}this.sql.exec('BEGIN');let r;try{r=stmts.map((s,i)=>{if(this.failStatement===i)throw Error('SYNTHETIC_PRIVATE_SQL_DETAIL');return s._exec();});this.sql.exec('COMMIT');}catch(e){this.sql.exec('ROLLBACK');throw e;}if(this.afterBatch){const h=this.afterBatch;this.afterBatch=null;await h();}if(this.unknownBatch){this.unknownBatch=false;throw Error('SYNTHETIC_PRIVATE_COMMIT_DETAIL');}return r;}
 }

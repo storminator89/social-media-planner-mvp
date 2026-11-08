@@ -12,6 +12,6 @@ export function workspaceRestoreDecision(workspace,{posts,revision,allowedChanne
 export function restoredWorkspacePayload(workspace,{useCanonicalAlt=false}={}){
  const p=normalizeWorkspacePayload(workspace.payload);
  if(workspace.mediaMetadataConflict&&!useCanonicalAlt)throw Error('Wähle zuerst bewusst den aktuellen Alternativtext des gespeicherten Bildes.');
- if(workspace.mediaMetadataConflict)p.media.alt=workspace.resolvedMedia.alt;
+ if(workspace.mediaMetadataConflict){if(p.attachments){p.attachments.forEach((m,i)=>{m.alt=workspace.resolvedAttachments[i].alt;});p.media=p.attachments[0]?{...p.attachments[0]}:null;}else p.media.alt=workspace.resolvedMedia.alt;}
  return p;
 }

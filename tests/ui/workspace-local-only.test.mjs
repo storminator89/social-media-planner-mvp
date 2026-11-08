@@ -170,7 +170,7 @@ function appHarness(t, behavior) {
     composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
     state: { posts: [{ id: 'post-1', status: 'draft', text: 'old stored post', createdAt: '2026-01-01' }] },
     editingId: 'post-1', initialEditor: '{}', composerLabelState: { title: '', tags: [], baseline: '' },
-    composerBaseText: current.text, composerVariantTexts: {}, composerMedia: null, composerCover: null,
+    composerBaseText: current.text, composerVariantTexts: {}, composerAttachments: [], composerMedia: null, composerCover: null,
     composerIdeaFingerprint: null, view: 'drafts', workspaceUI,
     $: selector => fields[selector], $$: () => [{ value: 'linkedin' }],
     editedPostLabels: () => [], currentComposerRawTags: () => '', selectedVariantTexts: () => ({}),

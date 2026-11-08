@@ -116,3 +116,28 @@ for(const privacyStatus of ['public','unlisted'])test('UI '+privacyStatus+' need
  await h.controller.step('start');assert.equal(h.calls.length,1);assert.equal(h.calls[0].body.intent,'upload_'+privacyStatus);assert.equal(h.calls[0].body.privacyStatus,privacyStatus);await h.controller.step('start');assert.equal(h.calls.length,1);h.controller.destroy();
 });
 test('server changed visibility cannot become an approved UI plan',async()=>{const h=harness({prepare:async()=>{const v=upload();v.operation.metadata.status.privacyStatus='public';return v;}});await prepared(h);assert.equal(h.controller.snapshot.selected,null);assert.equal(h.controller.snapshot.uncertain,true);await h.controller.step('start');assert.equal(h.calls.length,0);h.controller.destroy();});
+
+
+test('history-only dialog heading never claims visibility approval, including load failure', async () => {
+ const pending=deferred();
+ const h=harness({list:()=>pending.promise});
+ h.controller.setReadiness(null);
+ h.controller.show();
+ const assertNeutral=()=>{
+  const state=h.controller.snapshot;
+  assert.equal(state.uploadConsent,null);
+  assert.equal(state.confirm,false);
+  assert.equal(state.draft.privacyStatus,'');
+  const html=renderYouTubeUpload(state);
+  assert.match(html,/<span class="eyebrow">UPLOAD UND VERLAUF\.<\/span>/);
+  assert.doesNotMatch(html,/SICHTBARKEIT BEWUSST BESTÄTIGT/);
+ };
+ assertNeutral();
+ pending.reject(new Error('History unavailable'));
+ await flush();
+ assert.equal(h.controller.snapshot.error,true);
+ assertNeutral();
+ assert.equal(h.calls.length,0);
+ h.controller.hide();
+ h.controller.destroy();
+});

@@ -154,11 +154,13 @@ async function readJSON(response, url, limit, deadline, allowEmpty = false) {
 
 
 /** Explicit server-owned native transport only. No global fetch fallback. */
-export function createHTTP(transport){
+export function createHTTP(transport,{requestCache=true,requestRedirect='error'}={}){
   if(typeof transport!=='function')fail('TRANSPORT_REQUIRED');
   return async function request(url,init,deadline,{allowEmpty=false}={}){
     deadline.check();
-    const request=new Request(url,{...init,redirect:'error',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:deadline.signal});
+    let request;
+    try{request=new Request(url,{...init,redirect:requestRedirect,credentials:'omit',...(requestCache?{cache:'no-store'}:{}),referrerPolicy:'no-referrer',signal:deadline.signal});}
+    catch{fail('REQUEST_CONSTRUCTION_FAILED');}
     let response;
     try{
       const pending=Promise.resolve().then(()=>{deadline.check();return transport(request);});

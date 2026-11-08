@@ -14,7 +14,7 @@ import { LocalDatabase, LocalBucket } from './storage.mjs';
 export const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const LOCAL_OWNER = 'local-preview-workspace';
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
-const SECURITY = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" };
+const SECURITY = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" };
 const errorResponse = (status, message) => new Response(JSON.stringify({ error: { code: 'LOCAL_PREVIEW_ONLY', message } }), { status, headers: { ...SECURITY, 'Content-Type': 'application/json' } });
 
 export function createLocalHandler({ directory = join(ROOT, '.local'), publicDirectory = join(ROOT, 'public'), siteOrigin = 'http://localhost:3000' } = {}) {

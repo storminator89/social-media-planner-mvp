@@ -59,3 +59,18 @@ test('generated ESM artifact is deterministic, self-contained and uses the same 
   const handler=(await import('../../dist/server/index.js')).default;assert.equal(typeof handler.fetch,'function');assert.equal((await handler.fetch(req('/api/planner/state',{owner:null}),{})).status,401);const env=environment();const html=await handler.fetch(req('/'),env);assert.equal(html.status,200);assert.match(await html.text(),/bootstrap.mjs/);const boot=await (await handler.fetch(req('/bootstrap.mjs'),env)).text();assert.match(boot,/Server-Speicher/);assert.doesNotMatch(boot,/local-preview-workspace|node:sqlite/);
   const saved=await handler.fetch(req('/api/planner/state',{...write,body:fixture()}),env);assert.equal(saved.status,200);assert.equal((await saved.json()).posts.length,1);
 });
+
+// Safari retains cross-site across the provider callback's 303 redirect.
+test('Mastodon return document admits authenticated top-level GET only; APIs retain CSRF gate',async()=>{
+ const page='<h1>Read server status</h1>',handler=createSitesHandler({assets:{...assets,'/mastodon.html':{body:page,type:'text/html'}}}),env=environment();
+ const navigation={'Sec-Fetch-Site':'cross-site','Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'};
+ for(const path of ['/mastodon.html?outcome=linked','/mastodon.html?outcome=unconfirmed','/mastodon.html']){
+  const response=await handler.fetch(req(path,{headers:navigation}),env);assert.equal(response.status,200);assert.equal(await response.text(),page);assert.equal(response.headers.get('access-control-allow-origin'),null);assert.match(response.headers.get('content-security-policy'),/frame-ancestors 'none'/);
+ }
+ assert.equal((await handler.fetch(req('/mastodon.html',{owner:null,headers:navigation}),env)).status,401);
+ for(const headers of [{...navigation,'Sec-Fetch-Mode':'cors'},{...navigation,'Sec-Fetch-Dest':'iframe'},{...navigation,Origin:'https://evil.example'},{...navigation,'Sec-Fetch-Mode':''},{'Sec-Fetch-Site':'cross-site'}])assert.equal((await handler.fetch(req('/mastodon.html',{headers}),env)).status,403);
+ for(const path of ['/','/bootstrap.mjs','/api/planner/state','/api/providers/mastodon/oauth/readiness','/api/providers/mastodon/oauth/start','/api/providers/mastodon/oauth/recover','/api/providers/mastodon/oauth/revoke'])assert.equal((await handler.fetch(req(path,{headers:navigation}),env)).status,403);
+ for(const method of ['POST','PUT','DELETE','HEAD'])assert.equal((await handler.fetch(req('/mastodon.html',{method,headers:navigation}),env)).status,403);
+ assert.equal((await (await handler.fetch(req('/api/planner/state'),env)).json()).revision,0);
+});
+test('hosted editor CSP permits local and private video previews only',async()=>{const response=await createSitesHandler({assets}).fetch(req('/'),environment());const policy=response.headers.get('content-security-policy');assert.match(policy,/(?:^|;) media-src 'self' data: blob:;/);assert.match(policy,/script-src 'self';/);assert.match(policy,/connect-src 'self';/);assert.doesNotMatch(policy,/media-src[^;]*(?:https?:|\*)/);});

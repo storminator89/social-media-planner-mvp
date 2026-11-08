@@ -1,3 +1,5 @@
+> Development checkpoint, 2026-11-08. Source backup only. Not a GitHub release or Site deployment. No social-media posts or provider grants. Based on reviewed local commit 2fa2b527a68144448f5b1e701734251016eb5a10.
+
 > X integration candidate: server-side OAuth routes, encrypted SQL storage and explicit refresh/local disconnect are now implemented but disabled. Browser controls, live setup and hosting acceptance remain pending. No external accounts or grants were created. See `docs/x-connection-integration.md`; earlier 0.10 statements below describe the baseline.
 
 # Takt 0.10.0: lokaler Social-Media-Planer

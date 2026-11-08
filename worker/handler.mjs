@@ -1,3 +1,5 @@
+import {handleHostedPublishing} from '../modules/mastodon/publishing-hosted.mjs';
+import {handleHostedMastodon} from '../modules/mastodon/hosted.mjs';
 import {handleXOAuth,X_CALLBACK_PATH} from '../modules/oauth/x/http-router.mjs';
 import {handleInstagramOAuth} from '../modules/instagram/http-router.mjs';
 import {handleHostedWorkspaces} from '../modules/workspaces/runtime.mjs';
@@ -13,7 +15,7 @@ const SECURITY = Object.freeze({
   'X-Content-Type-Options':'nosniff',
   'Referrer-Policy':'no-referrer',
   'Vary':'oai-authenticated-user-id',
-  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 });
 const reserved = new Set(['/signin-with-chatgpt','/signout-with-chatgpt','/callback']);
 function error(status,code,message){return new Response(JSON.stringify({error:{code,message}}),{status,headers:{...SECURITY,'Content-Type':'application/json; charset=utf-8'}});}
@@ -29,6 +31,8 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
       if(reserved.has(url.pathname))return error(404,'DISPATCH_ROUTE','Dieser Pfad wird vom Sites-Zugang verwaltet.');
       // Exact provider callback only; the router independently requires full server
       // configuration, matching Dispatch identity, per-attempt cookie and state.
+      if(url.pathname==='/api/providers/mastodon/publishing/oauth/callback'&&request.method==='GET'){return secure(await handleHostedPublishing(request,env,{clock}));}
+      if(url.pathname==='/api/providers/mastodon/oauth/callback'&&request.method==='GET'){return secure(await handleHostedMastodon(request,env,{clock}));}
       if(url.pathname===LINKEDIN_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleLinkedInOAuth(request,env,{transport:oauthTransport,clock}));}catch{return error(503,'OAUTH_UNAVAILABLE','Die Kontoverbindung ist nicht verfügbar.');}}
       if(url.pathname===X_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleXOAuth(request,env,{transport:oauthTransport,authorizeAction:xAuthorizeAction,clock}));}catch{return error(503,'X_OAUTH_UNAVAILABLE','Die X-Verbindung ist nicht verfügbar.');}}
       if(url.pathname===YOUTUBE_CALLBACK_PATH&&request.method==='GET'){try{return secure(await handleYouTube(request,env,{transport:oauthTransport,clock}));}catch{return error(503,'YOUTUBE_UNAVAILABLE','Die YouTube-Verbindung ist nicht verfügbar.');}}
@@ -36,7 +40,13 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
         if(url.pathname==='/'&&request.method==='GET')return new Response('<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Takt · Anmelden</title><main><h1>Dein geschützter Planer</h1><p>Melde dich mit ChatGPT an, um deine Planung zu öffnen.</p><a href="/signin-with-chatgpt?return_to=%2F" target="_top">Mit ChatGPT anmelden</a><p>Social-Media-Konten werden dadurch nicht verbunden.</p></main></html>',{status:401,headers:{...SECURITY,'Content-Type':'text/html; charset=utf-8'}});
         return error(401,'SIGN_IN_REQUIRED','Bitte mit ChatGPT anmelden.');
       }
-      if(request.headers.get('Sec-Fetch-Site')==='cross-site'||(request.headers.has('Origin')&&request.headers.get('Origin')!==url.origin))return error(403,'CROSS_ORIGIN_REQUEST','Diese Anfrage ist nicht erlaubt.');
+      // A provider redirect retains cross-site fetch metadata on its landing GET.
+      // Permit only the authenticated static result document, never an API,
+      // subresource, frame, mutation or foreign-Origin request. The document
+      // reads readiness; the outcome query is not evidence of a connection.
+      const mastodonReturnDocument=request.method==='GET'&&['/mastodon.html','/mastodon-publish.html'].includes(url.pathname)&&
+        request.headers.get('Sec-Fetch-Mode')==='navigate'&&request.headers.get('Sec-Fetch-Dest')==='document';
+      if((request.headers.get('Sec-Fetch-Site')==='cross-site'&&!mastodonReturnDocument)||(request.headers.has('Origin')&&request.headers.get('Origin')!==url.origin))return error(403,'CROSS_ORIGIN_REQUEST','Diese Anfrage ist nicht erlaubt.');
       // Fail closed. Hosted schema installation is a deployment step, not a request side effect.
       if(!env.DB?.prepare||!env.DB?.batch)return error(503,'STORAGE_UNAVAILABLE','Der serverseitige Speicher ist noch nicht verfügbar.');
       try{
@@ -45,6 +55,8 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
           if(!providerStatus)return error(503,'PROVIDER_STATUS_UNAVAILABLE','Der Verbindungsstatus ist noch nicht verfügbar.');
           return secure(await providerStatus(request,env));
         }
+        const publishing=await handleHostedPublishing(request,env,{clock});if(publishing)return secure(publishing);
+        const mastodon=await handleHostedMastodon(request,env,{clock});if(mastodon)return secure(mastodon);
         const instagram=await handleInstagramOAuth(request);if(instagram)return secure(instagram);
         const x=await handleXOAuth(request,env,{transport:oauthTransport,authorizeAction:xAuthorizeAction,clock});if(x)return secure(x);
         const youtube=await handleYouTube(request,env,{transport:oauthTransport,clock});if(youtube)return secure(youtube);

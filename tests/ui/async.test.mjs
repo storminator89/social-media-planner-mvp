@@ -1,3 +1,4 @@
+import { ATTACHMENT_LIMIT, updateAttachment } from '../../public/attachment-editor.js';
 import {createEditorTiming} from '../../public/editor-timing.js';
 import { editedPostLabels } from '../../public/post-labels.js';
 import { formatIdeaTags } from '../../public/workflows/ideas.mjs';
@@ -14,7 +15,7 @@ const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8')
 function functionSource(name){const start=source.search(new RegExp(`(?:async )?function ${name}\\(`));assert.ok(start>=0);const next=source.slice(start+1).search(/\n(?:async )?function /);return source.slice(start,next<0?undefined:start+1+next);}
 function context(extra={}){
   const fields={'#post-tags':{value:'',focus(){}},'#form-errors':{hidden:true,scrollIntoView(){}},'#search':{value:'Suchfilter'},'#post-text':{value:'Gesendete Fassung'},'#post-date':{value:'2027-01-15'},'#post-time':{value:'10:30'},'#post-zone':{value:'Europe/Berlin'},'#composer':{open:true},'#workspace-missing-media':{hidden:true},'#media-alt':{focus(){}},'#media-file':{value:'file'},'#save-draft':{},'#schedule-post':{}};
-  const c={composerTiming:createEditorTiming(),fields,$:selector=>fields[selector],$$:()=>[{value:'instagram'}],state:{posts:[]},editingId:null,composerIdeaFingerprint:null,composerMissingMedia:false,composerLabelState:null,workspaceUI:null,currentComposerRawTags:()=>fields['#post-tags'].value,composerMedia:null,composerCover:null,composerBaseText:'Gesendete Fassung',composerVariantTexts:{},editedPostLabels,selectedVariantTexts,commitIdeaDraft,CHANNELS,saving:false,mediaLoading:false,composerGeneration:1,mediaGeneration:0,initialEditor:'',view:'drafts',crypto:{randomUUID:()=> 'new-post'},Date,Map,Promise,structuredClone,validatePost:()=>[],notify:()=>{},render:()=>{},renderMediaEditor:()=>{},renderPreview:()=>{},setComposerBusy:()=>{},updateSaveAvailability:()=>{},closeCount:0,closeComposer:()=>c.closeCount++,editorSnapshot:()=>JSON.stringify({tags:fields['#post-tags'].value,text:c.composerBaseText,variantTexts:c.composerVariantTexts}),...extra};
+  const c={ATTACHMENT_LIMIT,updateAttachment,composerAttachments:[],setAttachments:items=>{c.composerAttachments=items;c.composerMedia=items[0]??null;},setTimeout,clearTimeout,isVideo:media=>['video/mp4','video/webm'].includes(media?.type),composerTiming:createEditorTiming(),fields,$:selector=>fields[selector],$$:()=>[{value:'instagram'}],state:{posts:[]},editingId:null,composerIdeaFingerprint:null,composerMissingMedia:false,composerLabelState:null,workspaceUI:null,currentComposerRawTags:()=>fields['#post-tags'].value,composerMedia:null,composerCover:null,composerBaseText:'Gesendete Fassung',composerVariantTexts:{},editedPostLabels,selectedVariantTexts,commitIdeaDraft,CHANNELS,saving:false,mediaLoading:false,composerGeneration:1,mediaGeneration:0,initialEditor:'',view:'drafts',crypto:{randomUUID:()=> 'new-post'},Date,Map,Promise,structuredClone,validatePost:()=>[],notify:()=>{},render:()=>{},renderMediaEditor:()=>{},renderPreview:()=>{},setComposerBusy:()=>{},updateSaveAvailability:()=>{},closeCount:0,closeComposer:()=>c.closeCount++,editorSnapshot:()=>JSON.stringify({tags:fields['#post-tags'].value,text:c.composerBaseText,variantTexts:c.composerVariantTexts}),...extra};
   fields['#post-tags'].value=formatIdeaTags(c.state.posts.find(p=>p.id===c.editingId)?.tags||[]);
   if(!c.initialEditor)c.initialEditor=c.editorSnapshot();
   return vm.createContext(c);
@@ -66,7 +67,7 @@ test('delayed save preserves a newer individual channel text',async()=>{
 
 test('mobile week agenda receives only the selected week, not all posts',()=>{
   const dateKey=d=>new Date(d).toISOString().slice(0,10),addDays=(d,n)=>new Date(new Date(d).getTime()+n*86400000);
-  const c=vm.createContext({anchor:new Date('2026-11-02T00:00:00Z'),startOfWeek:d=>d,addDays,dateKey,Date,days:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],dateLabel:d=>dateKey(d),icon:()=>'',postCard:()=>'',renderAgenda:posts=>{c.received=posts;return '';},periodPosts:posts=>posts.filter(p=>p.scheduledAt>='2026-11-02'&&p.scheduledAt<'2026-11-09')});
+  const c=vm.createContext({isVideo:media=>['video/mp4','video/webm'].includes(media?.type),anchor:new Date('2026-11-02T00:00:00Z'),startOfWeek:d=>d,addDays,dateKey,Date,days:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],dateLabel:d=>dateKey(d),icon:()=>'',postCard:()=>'',currentZone:()=> 'UTC',zonedNow:()=>new Date('2026-11-02T00:00Z'),renderMobileWeek:posts=>{c.received=posts;return '';},periodPosts:posts=>posts.filter(p=>p.scheduledAt>='2026-11-02'&&p.scheduledAt<'2026-11-09')});
   vm.runInContext(functionSource('renderWeek'),c);
   c.renderWeek([{id:'before',scheduledAt:'2026-11-01T10:00'},{id:'inside',scheduledAt:'2026-11-08T10:00'},{id:'after',scheduledAt:'2026-11-09T10:00'}]);
   assert.deepEqual(c.received.map(p=>p.id),['inside']);
@@ -87,4 +88,21 @@ test('actual composer retains idea and conversion guard after failed save',async
 test('actual composer rejects changed idea before any write',async()=>{
   const idea=createIdea({id:'idea-actual',text:'Gesendete Fassung',timezone:'Europe/Berlin'}),prepared=prepareIdeaDraft(idea);let writes=0;
   const c=context({state:{posts:[{...idea,text:'Andere Fassung'}]},editingId:idea.id,composerIdeaFingerprint:prepared.sourceFingerprint,persist:async()=>{writes++;return true;}});c.fields['#form-errors']={hidden:true};vm.runInContext(functionSource('savePost'),c);await c.savePost('draft');assert.equal(writes,0);assert.equal(c.closeCount,0);assert.match(c.fields['#form-errors'].textContent,/inzwischen geändert/);assert.equal(c.saving,false);
+});
+
+test('stalled video metadata releases the composer lock and detaches media handlers',async()=>{let timeout;const readers=[];const video={removeAttribute(){this.removed=true;},load(){this.cleaned=true;}};const c=context({setTimeout:fn=>{timeout=fn;return 1;},clearTimeout(){},document:{createElement:()=>video},FileReader:class{readAsDataURL(){readers.push(this);}}});vm.runInContext(functionSource('readMedia'),c);const pending=c.readMedia({name:'stall.mp4',type:'video/mp4',size:10});readers[0].result='data:video/mp4;base64,AAAA';readers[0].onload();await new Promise(setImmediate);assert.equal(c.mediaLoading,true);timeout();await pending;assert.equal(c.mediaLoading,false);assert.equal(video.onloadedmetadata,null);assert.equal(video.onerror,null);assert.equal(video.cleaned,true);assert.equal(video.removed,true);assert.equal(c.composerMedia,null);});
+
+
+test('actual media reader appends, edits one target, and retains missing local warning',async()=>{
+ const readers=[],images=[];const c=context({composerMissingMedia:true,FileReader:class{readAsDataURL(){readers.push(this);}},Image:class{set src(value){images.push(this);}}});vm.runInContext(functionSource('readMedia'),c);
+ async function load(name,target=null){const pending=c.readMedia({name,type:'image/png',size:10},name,target);const reader=readers.at(-1);reader.result='data:image/png;base64,'+name;reader.onload();await new Promise(setImmediate);images.at(-1).onload();await pending;}
+ await load('first');const first=c.composerAttachments[0];await load('second');assert.deepEqual(c.composerAttachments.map(m=>m.name),['first','second']);assert.equal(c.composerMedia,first);await load('edited',first);assert.deepEqual(c.composerAttachments.map(m=>m.name),['edited','second']);assert.equal(c.composerAttachments[0].alt,'edited');assert.equal(c.composerMissingMedia,true);assert.equal(c.mediaLoading,false);
+});
+test('actual draft save carries every attachment and consistent first-media alias',async()=>{const items=[{id:'a',alt:'A'},{id:'b',alt:'B'}];let submitted;const c=context({composerAttachments:items,composerMedia:items[0],persist:async next=>{submitted=next;return true;}});vm.runInContext(functionSource('savePost'),c);await c.savePost('draft');assert.deepEqual(submitted.posts[0].attachments,items);assert.equal(submitted.posts[0].media,items[0]);});
+test('actual duplicate media adoption retains editor and reports actionable error to studio',async()=>{
+ const existing={name:'same.png',dataUrl:'data:image/png;base64,AAAA',type:'image/png',alt:'Same'},readers=[],images=[];
+ const c=context({composerAttachments:[existing],composerMedia:existing,FileReader:class{readAsDataURL(){readers.push(this);}},Image:class{set src(value){images.push(this);}}});vm.runInContext(functionSource('readMedia'),c);
+ const pending=c.readMedia({name:'same.png',type:'image/png',size:10},'Same');const rejected=assert.rejects(pending,e=>e.code==='DUPLICATE_ATTACHMENT'&&e.message.includes('bereits angehängt'));
+ readers[0].result=existing.dataUrl;readers[0].onload();await new Promise(setImmediate);images[0].onload();await rejected;
+ assert.deepEqual(c.composerAttachments,[existing]);assert.equal(c.mediaLoading,false);assert.equal(c.fields['#composer'].open,true);
 });

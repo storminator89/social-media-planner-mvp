@@ -555,7 +555,7 @@ test('actual post-save bridge locks cleanup and rechecks unexpected late local c
     composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
     state: { posts: [{ id: 'post-1', status: 'draft', createdAt: '2026-01-01' }] },
     editingId: 'post-1', initialEditor: '{}', composerLabelState: { title: '', tags: [], baseline: '' },
-    composerBaseText: 'submitted text', composerVariantTexts: {}, composerMedia: null, composerCover: null,
+    composerBaseText: 'submitted text', composerVariantTexts: {}, composerAttachments: [], composerMedia: null, composerCover: null,
     composerIdeaFingerprint: null, view: 'drafts',
     $: selector => fields[selector], $$: () => [{ value: 'linkedin' }],
     editedPostLabels: () => [], currentComposerRawTags: () => '', selectedVariantTexts: () => ({}),

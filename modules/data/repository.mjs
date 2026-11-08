@@ -64,10 +64,13 @@ export class PlannerRepository {
     return this.decodeSnapshot(result.slice(readOffset));
   }
   async addMedia(owner,file){
-    const {id,key,filename,mimeType,size,altText}=file;
-    const result=await this.stmt('INSERT INTO planner_media (owner_id,id,object_key,filename,mime_type,byte_size,alt_text,created_at) SELECT ?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM planner_media WHERE owner_id=?) < ? AND (SELECT COALESCE(SUM(byte_size),0) FROM planner_media WHERE owner_id=?) + ? <= ?',owner,id,key,filename,mimeType,size,altText,now(),owner,LIMITS.mediaCount,owner,size,LIMITS.mediaTotalBytes).run();
-    if(Number(result.meta?.changes)!==1)throw new PlannerError(413,'MEDIA_LIMIT','Das Medienlimit dieses Planers ist erreicht.');
-    return mediaDTO(await this.getMedia(owner,id));
+    const {id,key,filename,mimeType,size,altText}=file;const createdAt=now();
+    const result=await this.stmt('INSERT INTO planner_media (owner_id,id,object_key,filename,mime_type,byte_size,alt_text,created_at) SELECT ?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM planner_media WHERE owner_id=?) < ? AND (SELECT COALESCE(SUM(byte_size),0) FROM planner_media WHERE owner_id=?) + ? <= ?',owner,id,key,filename,mimeType,size,altText,createdAt,owner,LIMITS.mediaCount,owner,size,LIMITS.mediaTotalBytes).run();
+    // Only an explicit successful zero-change receipt proves non-insertion.
+    if(result?.success!==false&&result?.meta?.changes===0)throw new PlannerError(413,'MEDIA_LIMIT','Das Medienlimit dieses Planers ist erreicht.');
+    if(result?.success===false||result?.meta?.changes!==1)throw new PlannerError(503,'MEDIA_STORAGE_UNCERTAIN','Der Uploadstatus ist unklar. Bitte neu laden und prüfen, bevor du erneut hochlädst.');
+    // No fallible read after the confirmed insert: it cannot undo the commit.
+    return mediaDTO({id,filename,mime_type:mimeType,byte_size:size,alt_text:altText,created_at:createdAt});
   }
   async getMedia(owner,id){return this.stmt('SELECT * FROM planner_media WHERE owner_id=? AND id=?',owner,id).first();}
 }

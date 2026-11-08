@@ -1,0 +1,6 @@
+// Encrypted, durable owner-scoped preview. CAS fences cancel/new preview races.
+export class PublishingPreviewStore {
+ constructor(db,cipher,context){this.db=db;this.cipher=cipher;this.context={...context,purpose:'publishing-preview'};}
+ async read(){const r=await this.db.prepare('SELECT version,envelope FROM mastodon_publishing_previews WHERE site_id=? AND owner_id=?').bind(this.context.siteId,this.context.ownerId).first();return r?{version:r.version,value:await this.cipher.open(this.context,r.version,r.envelope)}:null;}
+ async write(previous,value){const version=(previous?.version||0)+1,envelope=await this.cipher.seal(this.context,version,value);const r=previous?await this.db.prepare('UPDATE mastodon_publishing_previews SET version=?,envelope=? WHERE site_id=? AND owner_id=? AND version=?').bind(version,envelope,this.context.siteId,this.context.ownerId,previous.version).run():await this.db.prepare('INSERT INTO mastodon_publishing_previews (site_id,owner_id,version,envelope) VALUES (?,?,?,?) ON CONFLICT(site_id,owner_id) DO NOTHING').bind(this.context.siteId,this.context.ownerId,version,envelope).run();if(r?.meta?.changes!==1)throw Error('PREVIEW_SUPERSEDED');return{version,value};}
+}

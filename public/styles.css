@@ -28,3 +28,30 @@
 .deleted-recovery{width:100%;min-height:180px;margin:8px 0;padding:12px;border:1px solid #d7dad4;border-radius:8px;font:12px/1.5 monospace;resize:vertical;white-space:pre;overflow:auto}
 
 .idea-editor #idea-title,.idea-editor #idea-tags{min-height:76px}
+
+/* Takt workbench refinement: existing palette, accessible type and shared controls.
+   Hallmark-informed manual review; no Hallmark/REA engine execution claimed. */
+:root{--muted:#606170;--faint:#717280;--purple:#5c49ba;--purple-dark:#49379b;--green:#23664f;--takt-font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--takt-focus:#5c49ba;--takt-space-1:4px;--takt-space-2:8px;--takt-space-3:12px;--takt-space-4:16px;--takt-space-6:24px;--takt-space-8:32px;--takt-control-radius:10px;--takt-control-height:44px;font-family:var(--takt-font);line-height:1.5}
+html,body{overflow-x:clip}
+h1,h2,h3{min-width:0;overflow-wrap:break-word}
+button:disabled{cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--takt-focus);outline-offset:3px}
+.button,.icon-button,.nav-item,.view-tab{min-height:var(--takt-control-height)}
+.icon-button{min-width:var(--takt-control-height)}
+.button,input,select,textarea{border-radius:var(--takt-control-radius)}
+.nav-item,.channel-row,.view-tab,.button{font-size:13px}
+.nav-section-label,.channel-heading .nav-section-label,.demo-tiny{font-size:12px;letter-spacing:normal;text-transform:none;color:var(--muted)}
+.eyebrow{display:none}
+.page-heading{margin-bottom:var(--takt-space-6);gap:var(--takt-space-4)}
+.page-heading h1{font-size:28px;line-height:1.2;letter-spacing:-.5px}
+.page-heading p{font-size:14px;line-height:1.5;margin-top:var(--takt-space-2)}
+.workspace-switch small,.workspace-switch strong,.channel-row small,.channel-row strong,.profile small,.field-hint,.timezone-label,.overview-item span,.overview-note,.bottom-note,.topbar,.connection-feedback{font-size:12px}
+.overview{padding:var(--takt-space-4) var(--takt-space-6);margin-bottom:var(--takt-space-6)}
+.main-shell{min-width:0}
+main{width:100%;max-width:1560px;margin-inline:auto}
+.view-toolbar,.filter-actions{gap:var(--takt-space-2)}
+.connections-intro h2{font-size:22px;line-height:1.35}
+.connection-description,.connection-purpose,.connection-details-body>p{line-height:1.6}
+.connection-grid,.ideas-grid{align-items:start}
+@media(max-width:760px){.page-heading h1{font-size:24px}.page-heading p{font-size:14px}.view-tab{font-size:12px}.nav-item,.button{font-size:14px}input,select,textarea{font-size:16px}.filter-actions{flex-wrap:wrap}.filter-actions>*{min-width:0;max-width:100%}.composer-dialog,.idea-dialog{max-width:100%;width:100%}.mobile-nav button{font-size:12px;min-height:52px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

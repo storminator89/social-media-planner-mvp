@@ -52,7 +52,7 @@ export function normalizeQueueRules(rules) {
 }
 
 function fingerprint(post) {
-  return JSON.stringify({ id: post.id, text: post.text, channels: [...post.channels].sort(), status: post.status, scheduledAt: post.scheduledAt ?? null, timeZone: post.timeZone ?? null, media: post.media ?? null, variantTexts: Object.entries(post.variantTexts ?? {}).sort(([a], [b]) => a.localeCompare(b)), updatedAt: post.updatedAt ?? null });
+  return JSON.stringify({ id: post.id, text: post.text, channels: [...post.channels].sort(), status: post.status, scheduledAt: post.scheduledAt ?? null, timeZone: post.timeZone ?? null, media: post.media ?? null, attachments: post.attachments ?? (post.media?[post.media]:[]), variantTexts: Object.entries(post.variantTexts ?? {}).sort(([a], [b]) => a.localeCompare(b)), updatedAt: post.updatedAt ?? null });
 }
 function busyTimes(posts, post, channelIds) {
   if (!Array.isArray(posts)) fail('INVALID_POSTS', 'Die Beitragsliste ist ungültig.');
@@ -145,7 +145,7 @@ export function applyQueueSuggestion({ post, posts = [], rules, suggestion, now 
 export function duplicateTaktDraft(post, { id, now = new Date().toISOString() }) {
   if (typeof id !== 'string' || !id || id === post.id) fail('NEW_ID_REQUIRED', 'Die Kopie benötigt eine neue ID.');
   const current = new Date(absoluteTime(now)).toISOString();
-  const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post)], status: 'draft', scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, media: clone(post.media ?? null), createdAt: current, updatedAt: current };
+  const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post)], status: 'draft', scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, media: clone(post.media ?? null), ...(Object.hasOwn(post,'attachments')?{attachments:clone(post.attachments)}:{}), createdAt: current, updatedAt: current };
   if (post.variantTexts !== undefined) draft.variantTexts = clone(post.variantTexts);
   if (post.title !== undefined) draft.title = post.title;
   if (post.tags !== undefined) draft.tags = clone(post.tags);

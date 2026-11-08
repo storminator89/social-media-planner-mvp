@@ -11,6 +11,7 @@
     "test": "node --test tests/*.test.mjs tests/**/*.test.mjs",
     "check": "node scripts/check.mjs",
     "build:worker": "node scripts/build-worker.mjs",
-    "pretest": "node scripts/build-worker.mjs"
+    "pretest": "node scripts/build-worker.mjs",
+    "build": "node scripts/build-worker.mjs"
   }
 }

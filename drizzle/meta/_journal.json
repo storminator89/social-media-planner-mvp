@@ -1,0 +1,83 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794058989223,
+      "tag": "0001_planner",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794058989224,
+      "tag": "0002_variant_inheritance",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794058989225,
+      "tag": "0003_provider_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794058989226,
+      "tag": "0004_oauth_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794058989227,
+      "tag": "0005_provider_credentials",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794058989228,
+      "tag": "0006_youtube_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794058989229,
+      "tag": "0007_editor_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794065910256,
+      "tag": "0008_posting_schedules",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794070000000,
+      "tag": "0009_mastodon_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794070000001,
+      "tag": "0010_mastodon_publishing",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794070000002,
+      "tag": "0011_workspace_attachments",
+      "breakpoints": true
+    }
+  ]
+}

@@ -46,13 +46,14 @@ function planningSnapshot(source){
  if(p.scheduleBinding!==null&&p.scheduledInstant!==p.scheduleBinding.instant)fail('WORKSPACE_INPUT_INVALID');return p;
 }
 export function payloadSnapshot(source){
- const p=ownSnapshot(source,['title','tags','rawTags','baselineRenderedTags','text','variantTexts','channels','date','time','timeZone','media','cover','activeTextTarget','localMediaOmitted'],'WORKSPACE_INPUT_INVALID',['planning']);
+ const p=ownSnapshot(source,['title','tags','rawTags','baselineRenderedTags','text','variantTexts','channels','date','time','timeZone','media','cover','activeTextTarget','localMediaOmitted'],'WORKSPACE_INPUT_INVALID',['planning','attachments']);
  p.title=text(p.title,200);p.tags=arraySnapshot(p.tags,20,x=>text(x,60));p.rawTags=text(p.rawTags,4096);p.baselineRenderedTags=text(p.baselineRenderedTags,4096);p.text=text(p.text,WORKSPACE_LIMITS.text);p.variantTexts=variantSnapshot(p.variantTexts);p.channels=arraySnapshot(p.channels,WORKSPACE_LIMITS.channels,id);if(new Set(p.channels).size!==p.channels.length)fail('WORKSPACE_INPUT_INVALID');
  // Raw work-in-progress values: do not parse dates/CSV, trim text, infer UTC or schedule.
  p.date=text(p.date,32);p.time=text(p.time,32);p.timeZone=text(p.timeZone,100);p.activeTextTarget=text(p.activeTextTarget,100);if(p.activeTextTarget!=='base'&&!p.channels.includes(p.activeTextTarget))fail('WORKSPACE_INPUT_INVALID');
  if(![null,'sunrise','forms','studio','nature'].includes(p.cover))fail('WORKSPACE_INPUT_INVALID');
- if(typeof p.localMediaOmitted!=='boolean'||(p.localMediaOmitted&&p.media!==null))fail('WORKSPACE_INPUT_INVALID');
- if(p.media!==null){p.media=ownSnapshot(p.media,['kind','id','alt']);if(p.media.kind!=='planner_image')fail('WORKSPACE_INPUT_INVALID');p.media.id=id(p.media.id);p.media.alt=text(p.media.alt,2000);}
+ if(typeof p.localMediaOmitted!=='boolean'||(p.localMediaOmitted&&p.media!==null&&!Object.hasOwn(p,'attachments')))fail('WORKSPACE_INPUT_INVALID');
+ if(p.media!==null){p.media=ownSnapshot(p.media,['kind','id','alt']);if(!['planner_image','planner_video'].includes(p.media.kind))fail('WORKSPACE_INPUT_INVALID');p.media.id=id(p.media.id);p.media.alt=text(p.media.alt,2000);}
+ if(Object.hasOwn(p,'attachments')){p.attachments=arraySnapshot(p.attachments,10,m=>{const a=ownSnapshot(m,['kind','id','alt']);if(!['planner_image','planner_video'].includes(a.kind))fail('WORKSPACE_INPUT_INVALID');a.id=id(a.id);a.alt=text(a.alt,2000);return a;});if(new Set(p.attachments.map(m=>m.id)).size!==p.attachments.length||JSON.stringify(p.media)!==JSON.stringify(p.attachments[0]??null))fail('WORKSPACE_INPUT_INVALID');}
  if(Object.hasOwn(p,'planning'))p.planning=planningSnapshot(p.planning);
  const json=JSON.stringify(p);if(new TextEncoder().encode(json).byteLength>WORKSPACE_LIMITS.jsonBytes)fail('WORKSPACE_TOO_LARGE',413);return p;
 }
