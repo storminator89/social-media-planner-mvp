@@ -20,12 +20,6 @@ Fünf zusätzliche unabhängige Proben bestanden: echte SQLite-Roundtrips mit CR
 
 Keine verbleibenden konkreten Release-Blocker im geprüften lokalen Quellumfang. Dies ist keine Hosting- oder Providerfreigabe. Das eingefrorene Inventar wird separat gegen diesen geprüften Arbeitsbaum gebunden.
 
-## Browserbelege
-
-Die reale lokale Browserprüfung mit synthetischen Texten umfasste Label-Save/Reload, Editieren/Abbrechen, Duplizieren, lokales Planen, Wochen-/Monats-/Listenfilter, Kombination mit Suche, null Treffer/Reset und Tastaturfokus. Mobil wurden bei 388 CSS-Pixeln jeweils 378 Client-/Scroll-Pixel in Seite und Composer gemessen: kein horizontaler Überlauf. Preview wurde gestoppt; keine QA-Datenbank im Release.
-
-Der abschließende rein semantische Aria-Label-Fix wurde nach diesem Browserlauf separat getestet. Gespeicherter/neuer Bild-Alttext wurde automatisiert geprüft, nicht durch einen Browser-Dateiupload. Keine Bild-/Videoübertragung, externen Provideraufrufe, Credentials oder Grants wurden für dieses Inkrement benutzt. Details: `editorial-labels/README.md`.
-
 ## Grenzen und Integrität
 
 Alle Live-Grenzen aus 0.7 gelten weiter: echte Sites-Identität, Cloud-D1/R2, Provider-App-/Scope-/Callback-Kompatibilität und ausdrücklich genehmigte Übertragungen sind weiterhin separat nachzuweisen. Keine neue Fähigkeit für Refresh, Reconnect, Hintergrundpublishing oder öffentliche Videos. Kein Gesamtversprechen von Buffer-Gleichwertigkeit.

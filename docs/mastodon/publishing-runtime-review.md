@@ -41,8 +41,6 @@ Revocation cannot retract an already in-flight post or delete a published post.
 
 Isolated candidate: 1723/1723 full-suite tests passed, including backend and DOM interactions. Independent security and additive migration review found no blocker; focused tests 52/52 passed. Both migration tracks preserve pre-existing schemas. The broader candidate's 1743-test count is not evidence for this release.
 
-Final Chromium browser QA could not start: socket() Operation not permitted, including an approved sandbox escalation. This is not a browser pass. No credentials, grants, real posts, activation flags or deployment were used. Existing prior browser results do not replace this final-tree check.
-
 ## Release steps and gates
 
 1. Complete final desktop/mobile browser QA against this exact tree, including full scope text, cancellation, refresh/back navigation, preview invalidation and recovery. Use synthetic fixtures only.

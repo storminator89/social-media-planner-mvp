@@ -1,7 +1,5 @@
 # Verifizierte Tests
 
-Finaler eigener QA-Lauf: 7. November 2026. Browserbedienung separat in `BROWSER-QA.md`.
-
 ## Vollständige integrierte QA
 
 | Lauf | Ergebnis |

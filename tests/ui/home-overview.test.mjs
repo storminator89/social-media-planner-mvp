@@ -20,7 +20,7 @@ test('missing confirmed load is explicitly unavailable, never asserted empty ana
  const html=renderHomeOverview(state([]),now,{available:false});assert.match(html,/Planung nicht verfügbar/);assert.doesNotMatch(html,/home-count|Keine vergangenen|Noch keine Entwürfe/);
 });
 test('confirmed empty state has useful next steps and no fabricated analytics or account status',()=>{
- const html=renderHomeOverview(state([]),now);assert.match(html,/Noch keine kommenden Beiträge/);assert.match(html,/Keine vergangenen Planungstermine/);assert.match(html,/Planung ist kein Versandnachweis/);assert.match(html,/data-action="new-idea"/);assert.doesNotMatch(html,/Reichweite|Follower|verbunden|erfolgreich veröffentlicht/);
+ const html=renderHomeOverview(state([]),now);assert.match(html,/Noch keine Termine/);assert.match(html,/Keine vergangenen Planungstermine/);assert.match(html,/Planung ist kein Versandnachweis/);assert.match(html,/data-action="new-idea"/);assert.doesNotMatch(html,/Reichweite|Follower|verbunden|erfolgreich veröffentlicht/);
 });
 test('all user-controlled values are escaped and displayed dates use the current planning zone',()=>{
  const p=scheduled('id" onclick="bad','2026-11-08T13:00:00Z');p.text='<img src=x onerror=bad>';const data=state([p]);data.channels[0].name='<script>bad</script>';const html=renderHomeOverview(data,now);assert.match(html,/&lt;img/);assert.match(html,/&lt;script&gt;/);assert.doesNotMatch(html,/<img|<script|data-post-id="id"/);assert.match(html,/14:00/);assert.match(html,/Europe\/Berlin/);

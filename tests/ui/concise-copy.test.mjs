@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+test('concise copy preserves public/mastodon-publish.html',()=>assert.equal(createHash('sha256').update(read('public/mastodon-publish.html')).digest('hex'),'4c3d875e0ac80a2eb7bae54d3fcb7e950666170ee20a94f2451cd6002c3b3eae'));
+test('concise copy preserves public/mastodon-publish.js',()=>assert.equal(createHash('sha256').update(read('public/mastodon-publish.js')).digest('hex'),'dfd106e1e358fe73cfcf439d84b7a4a2a33f90857af7f0db4b0a8b0ab2293256'));
+test('concise copy preserves public/mastodon.js',()=>assert.equal(createHash('sha256').update(read('public/mastodon.js')).digest('hex'),'c4c070e8802f96b0455c39ff9666952f7e46ce06e829d277bb7fb490ba0b10db'));
+test('concise copy preserves public/planner-import.js',()=>assert.equal(createHash('sha256').update(read('public/planner-import.js')).digest('hex'),'5ee88e5a38f59503c87024899e0186ff8260013f1535b4a497e1b002faed5f29'));
+test('concise copy preserves public/planner-import-ui.js',()=>assert.equal(createHash('sha256').update(read('public/planner-import-ui.js')).digest('hex'),'93aaeb4164617ff59ea2c24c3aefd6961beebd3bd62d0bb16ee048c016e65198'));
+test('concise copy preserves public/mastodon-handoff.js',()=>assert.equal(createHash('sha256').update(read('public/mastodon-handoff.js')).digest('hex'),'c23ee9cf34676dfe4b5798ee717dc8977253cfb540e2aef28c04180298f57dcb'));
+test('concise copy preserves public/workspace-controller.js',()=>assert.equal(createHash('sha256').update(read('public/workspace-controller.js')).digest('hex'),'2c9b00df2baeb06380aae6cf620fcc9a3987e4ff8a2fca76f10b7fc1de060c3f'));
+test('concise copy preserves public/workspace-restore.js',()=>assert.equal(createHash('sha256').update(read('public/workspace-restore.js')).digest('hex'),'1a0b65faf96da618c3cfc4b750da369fb8b555deac0cd219c556ca5d1f88304a'));
+test('concise copy preserves public/provider-setup.js',()=>assert.equal(createHash('sha256').update(read('public/provider-setup.js')).digest('hex'),'d146eef7863499e7838c43255b9e5afdf2f90f2f43a1e79c38e4a2bbcd294368'));
+test('concise copy preserves public/youtube-upload.js',()=>assert.equal(createHash('sha256').update(read('public/youtube-upload.js')).digest('hex'),'31a333ce56ce5add98545af4c931b89b52e5d7a5badcb1c86c3460f6b10ca321'));
+test('profile consent remains complete and unchanged',()=>{const h=read('public/mastodon.html'),start=h.indexOf('<section id="confirmation"'),section=h.slice(start,h.indexOf('</section>',start)+10);assert.equal(createHash('sha256').update(section).digest('hex'),'57a4b20d9cd7c0cd0a0d2351bfa4bae4219ad204902b0a795580d3f3f1c9006b')});
+test('concise descriptions keep media, scope and planning boundaries visible',()=>{const h=read('public/index.html');for(const label of ['kein Versand','20 MB','2 MB','Max. 20 × 60 Zeichen','Bilder, Termin und Versand ungeprüft','Dateien mit Bildern oder gebundenen Posting-Zeiten werden abgelehnt','aria-describedby=','role="alert"'])assert.ok(h.includes(label),label);assert.match(read('public/workspace-ui.js'),/Lokales Bild nicht mitgesichert/);assert.match(read('public/app.js'),/Kontostatus unter Verbindungen prüfen/)});

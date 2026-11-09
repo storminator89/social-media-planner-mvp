@@ -21,12 +21,6 @@ Die unabhängige Nachprüfung hat zusätzlich 240 rein speicherbasierte Tests je
 
 D1/R2 werden in diesen Tests durch kompatible SQLite-/Memory-/Dateiadapter repräsentiert. Keine Testanfrage kontaktiert einen Social-Provider oder eine echte Cloud-Datenbank. Das Worker-Artefakt enthält keine Provider-Publisher oder externen Provider-Transporte.
 
-## Browserprüfung
-
-Die Verbindungenansicht wurde im getrennten UI-Checkout auf derselben geprüften 0.3-Basis bedient. Fehlender Endpunkt zeigt sichtbar „Status unbekannt“ statt Erfolg. Ein schmales natives Browserfenster bei 400 CSS-Pixeln und 388 Pixeln Clientbreite hat keinen horizontalen Überlauf; die fünf Navigationsziele sind je 78×52 Pixel groß. Einrichtungshinweise sind per Tastatur bedienbar.
-
-Anschließend wurde die echte lokale SQLite-Statusroute mit Migration 0003 temporär in denselben UI-Checkout übernommen: Alle drei Provider wurden als „Nicht verbunden“ angezeigt; es gab keine OAuth- oder Versandaktion. Refresh behielt Fokus und geöffnete Details, „Mehr → Verbindungen“ und „Zur Planung“ funktionierten. Die geprüften UI-Dateien sind identisch zum integrierten Stand. Die Integration ergänzt eigene Ledger-/Migrationsregressionen und übernimmt keine älteren QA-Serverdateien. Historische Ideen-/Varianten-/Queue-/Undo-Browsernachweise stehen in `verification-0.3.md`; sie sind keine neuen Provider-Tests.
-
 ## Offene Live-Nachweise
 
 Keine Site-ID oder Hostingkonfiguration angelegt, keine private oder öffentliche Runtime bereitgestellt. Tatsächliche Dispatch-Identität mit mehreren Besuchern, gehostete D1-Migrationen, R2-Quoten, Sicherungen und Cloud-Neustartverhalten bleiben offen. In der vorhandenen Umgebung war keine Wrangler-/workerd-Runtime verfügbar; es wurde kein alternativer Server- oder Sicherheitsweg eingerichtet.

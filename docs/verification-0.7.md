@@ -32,12 +32,6 @@ Der echte Buildcode wurde unabhängig zweimal ausschließlich im Speicher ausgef
 
 Keine verbleibenden konkreten Produktquellblocker im geprüften, weiterhin deaktivierten Umfang. Dies ist ausdrücklich keine gehostete Sites-, Google- oder aktive Providerfreigabe. Das Quellinventar wird separat mit `MANIFEST.sha256` gebunden.
 
-## Browserbelege
-
-Eine getrennte lokale Kopie mit tatsächlichen standardmäßig gesperrten Routen wurde auf Desktop und in einem nativen schmalen Browserfenster bei 400 CSS-Pixeln geprüft. Seitenbreite 388 Client-/Scroll-Pixel, Dialog 368: kein horizontaler Überlauf. YouTube zeigt Einrichtung erforderlich, Verknüpfung/Upload deaktiviert, keine vorausgewählten Offenlegungsangaben. Fehlende Historie/Medien wird ehrlich als unbekannt/fehlerhaft gezeigt, nicht als erfolgreicher Nullbestand. Tastatur-Reload behält Fokus; Escape gibt ihn an den Öffner zurück.
-
-Es gab keinen Browser-Dateiupload, aktiven Googlelogin, echten Grant oder privaten Providerupload. Die späteren Unsicherheits-/Outcome-Fixes wurden durch Controller-/DTO-Tests und unabhängige Nachprüfung belegt, nicht als zusätzlich positiver Browserflow behauptet. Keine echte BFCache-/Screenreader-/Cloudprüfung. Preview wurde gestoppt. Details: `youtube-ui-browser-qa.md`, `youtube-ui.md`.
-
 ## Unverändert und offen
 
 Planer-Datenmodule, Workflowmodule, öffentliche Clientkopien, LinkedIn-Produktmodule und SQL 0001–0005 sind bytegleich zu reviewed 0.6. Der ursprüngliche Planer bleibt lokal persistent, inklusive Ideen, Kanalvarianten, IANA/DST, Konflikt- und Undo-Schutz. Der Worker besitzt keine Node-/SQLite-Laufzeitabhängigkeiten. Testfixtures gehören nicht zum Runtimegraph.

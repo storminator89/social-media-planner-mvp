@@ -15,7 +15,7 @@ const SECURITY = Object.freeze({
   'X-Content-Type-Options':'nosniff',
   'Referrer-Policy':'no-referrer',
   'Vary':'oai-authenticated-user-id',
-  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 });
 const reserved = new Set(['/signin-with-chatgpt','/signout-with-chatgpt','/callback']);
 function error(status,code,message){return new Response(JSON.stringify({error:{code,message}}),{status,headers:{...SECURITY,'Content-Type':'application/json; charset=utf-8'}});}

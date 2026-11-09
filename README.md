@@ -1,3 +1,5 @@
+> Current source snapshot: see [CHECKPOINT.md](CHECKPOINT.md). The 0.10 baseline and candidate-status sections below are historical documentation; they are not the deployment status of this checkpoint. Private hosting configuration and runtime data are not included.
+
 > X integration candidate: server-side OAuth routes, encrypted SQL storage and explicit refresh/local disconnect are now implemented but disabled. Browser controls, live setup and hosting acceptance remain pending. No external accounts or grants were created. See `docs/x-connection-integration.md`; earlier 0.10 statements below describe the baseline.
 
 # Takt 0.10.0: lokaler Social-Media-Planer

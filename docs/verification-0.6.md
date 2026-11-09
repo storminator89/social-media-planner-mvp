@@ -27,14 +27,6 @@ Zusätzlich wurde der gebaute Worker in einer WebAPI-only-VM ohne Node-Globals a
 
 Konkret reproduzierte Randfälle wurden vor Übergabe behoben: Tokenformat-/Ciphertext-Limitkonsistenz, Redigierung synchroner Prepare-/Bind-Fehler, Eigentum an Stream-Bytes, monotone Body-Deadline, exaktes UI-Callback-Pinning und Ablauf-Invalidierung einer offen bleibenden Karte. Diese Korrekturen wurden unabhängig nachgeprüft. Der A/B-Ticket-/Grant-Vertrag wird durch echte Repository- und Ende-zu-Ende-Negativtests geprüft, nicht nur durch frei austauschbare Claim-Stummel.
 
-## Browserprüfung
-
-Eine getrennte Kopie des integrierten lokalen Servers wurde ohne OAuth-Konfiguration geprüft. LinkedIn zeigt „Einrichtung erforderlich“ mit tatsächlich deaktiviertem Start, keinen Disconnect-Knopf und keinen OAuth-Link. Die übrigen drei Karten behalten ihren eigenen Status; X verlangt weiter ausdrückliche Kostenfreigabe.
-
-Desktop zweispaltig und mobile Ansicht mit 386 CSS-Pixeln: kein horizontaler Überlauf, einspaltige Karten, Startknopf 44 Pixel hoch und mobile Navigation etwa 52 Pixel hoch. Voraussetzungen sind per Tastatur lesbar. Refresh behält Fokus und geöffnete Details; Navigation und Browser-Zurück/Vorwärts bleiben gesperrt. Auch `?linkedin=linked#connections` erzeugt keine Verbindung. Browserzoom wurde zurückgestellt und die Preview gestoppt.
-
-Dies belegt ausschließlich den echten gesperrten Browserpfad. Es gab keine aktivierte OAuth-Weiterleitung oder erfolgreiche Live-Verknüpfung. Der nachfolgende URL-/Ablauf-Fix wurde getrennt durch Unit-/Async-Tests und einen unabhängigen Timer-Smoke geprüft, nicht als positiver Browser-OAuth-Test ausgegeben. Tatsächliche BFCache-Wiederherstellung wurde nicht im Browser nachgewiesen; Lebenszyklusfälle sind automatisiert geprüft. Details: `linkedin-browser-qa.md`.
-
 ## Grenzen
 
 Keine echten Sites-Dispatch-Sitzungen, gehosteten D1-/R2-Migrationen oder zwei realen Besucher getestet. Keine Site, App, Secrets, OAuth-Grants, Provider-/Zahlungsaktivierung oder Posts erstellt. Der Worker enthält keinen Publisher, Refresh-Transport oder Hintergrundscheduler. Lokale Testschlüssel und Providerantworten sind ausschließlich flüchtige Fixtures, keine echten Zugangsdaten.

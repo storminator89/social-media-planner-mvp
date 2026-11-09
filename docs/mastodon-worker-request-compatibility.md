@@ -1,7 +1,5 @@
 # Hosted Mastodon request compatibility
 
-The owner diagnostic reported `MASTODON_PREFLIGHT_FAILED`, stage `metadata`, reason `UNCONFIRMED`. Production logs confirm a diagnostic GET returning 503, but do not include the swallowed exception. This report does not establish an invalid kanoa.de metadata document.
-
 The shared HTTP gate constructed its Request before its transport error handler, using `redirect: error` and `cache: no-store`. Cloudflare documents error redirect mode as unsupported. Cache initialization additionally depends on the compatibility date/flag. Either construction failure could become the generic diagnostic. The exact production exception was not observed.
 
 Hosted Kanoa now uses manual redirects and omits the cache initializer. Its native adapter requests no caching through negative `cf.cacheTtlByStatus` and fixed Cache-Control/Pragma headers. Workers-for-Platforms can ignore cf options, so this is not a verified bypass of platform caches. No compatibility flags, host settings, permissions, credentials or storage changed. Other providers retain their prior HTTP defaults.

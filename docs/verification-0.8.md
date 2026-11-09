@@ -18,12 +18,6 @@ Der finale unabhängige Integrationsnachlauf bestand 1091/1091 ausgewählte Read
 
 Der echte Buildcode wurde unabhängig zweimal mit abgefangenen Dateischreibvorgängen ausgeführt: byteidentisch zum oben genannten Worker und zu allen 30 Asset-Bodies. Der tatsächliche Worker bestand in einer WebAPI-only-VM ohne Node/globales Fetch den unvollständigen Save, stale 409, fremden Owner 404/leere Liste, verlorene Discardantwort mit minimalem 410-Beleg, Lebenszeitquote und unveränderte Posts. Acht eigene Lifecycle-/Cleanup-Proben auf den integrierten Pfaden bestanden. Keine verbleibenden konkreten Quell-/Integrationsblocker in diesem Prüfumfang; keine native Sites-/D1-/Livefreigabe.
 
-## Browserbelege und Grenzen
-
-Die separate reale Workspace-QA mit finalem Repository und 0007 bestand Save/Reload/Restore, explizites Postsave und Workspaceclosure, zwei echte Browser-Tabs mit 409 sowie geänderte Quellrevision und bewusste Kopie. Desktop und 391 CSSpx hatten keinen horizontalen Überlauf. Die Datenbank war lokal, Identität ein gemeinsamer Loopback-Testbesitzer, kein Sites-Authnachweis. Details: `workspaces/QA.md`.
-
-Der abschließende Browser-Smoke auf separater Kopie des integrierten finalen Baums bestand ebenfalls: echte feste Originroute, Save → Reload → Restore mit mehrzeiligem Text und unfertiger CSV, bestätigter Postsave mit Workspaceclosure, Quellpostprüfung über den echten Getter und zwei Tabs mit tatsächlichem 409. Die lokale Konfliktfassung blieb unverändert, der Serververgleich getrennt. Bei 391 CSSpx maß die Seite 386/386, der Dialog 347/347 und der Composer 386/386 Client-/Scroll-Pixel: kein horizontaler Überlauf; Tastaturfokus sichtbar. Preview wurde gestoppt, eigene Tabs geschlossen und Zoom zurückgesetzt. Kein Quellcode geändert, keine Uploads/Providerkontakte. Bericht: `workspaces/integration-qa.md`. Medien-Omission und Alttextkonflikte sind automatisierte Tests, kein Browser-Dateiupload. Zeitüberschreitungen und verlorene Antworten wurden deterministisch simuliert, nicht gegen gehostetes D1 erzwungen. Bereits gestartete DB-Operationen können spät/unklar abschließen; es gibt keinen automatischen Retry.
-
 ## Unveränderte Grenzen
 
 OAuth-/Provider-/Uploadlogik und SQL 0001–0006 bleiben bytegleich 0.7.1. Außer dem readonly Snapshot-Getter sind Planermodule und öffentliche Datenclients unverändert. Eine geforderte Herkunftsrevision stammt niemals aus späteren Workspace-Reads. Normale Posts werden nur durch bewusste normale Saves verändert.

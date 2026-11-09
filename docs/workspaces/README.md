@@ -38,6 +38,6 @@ Native form controls are locked during canonical post mutation and subsequent wo
 - Native date/time controls expose only their accepted value, not every intermediate keystroke. Unsupported stored raw values are preserved on the server and offered for copying rather than silently coerced.
 - Existing old post data containing invalid Unicode cannot be autosaved into this stricter workspace format; the local input remains and an unsaved warning is shown.
 - An uncertain request can remain blocked indefinitely if no exact receipt can be established. No forced overwrite or automatic replacement copy is offered.
-- The integrated local handler and Worker include the real workspace route. Missing hosted Site configuration or migration remains unavailable, never fabricated success. Actual local backend/browser acceptance is reported in QA.md and integration-qa.md; native Sites/D1 acceptance is still open.
+- The integrated local handler and Worker include the real workspace route. Missing hosted Site configuration or migration remains unavailable, never fabricated success. Actual local backend/browser acceptance is reported in QA.md and a separate browser record (excluded from this source checkpoint); native Sites/D1 acceptance is still open.
 
 REA v60 was read and applied: this is complete-source work, so normal source inspection, implementation and tests were used. No binary engine, Buffer capture, or live-provider evidence is claimed.

@@ -18,6 +18,4 @@ Die integrierte Oberfläche nutzt echte lokale Serverantworten, keine vorgetäus
 
 49 fokussierte YouTube-Tests und insgesamt 195 UI-Tests bestanden unter UTC, America/Los_Angeles und Asia/Tokyo, einschließlich 14 Regressionen zu zweckgebundener Unsicherheit und Beobachtungsinvalidierung. Unabhängig wurden ursprüngliche Retry-Umwege sowie sechs zusätzliche positive-Beobachtungsfälle nachgeprüft. Die zwölf gelieferten UI-/Testdateien sind in `YOUTUBE-UI-v0.7.sha256` (historischer Komponentenstand; aktuelles Inventar siehe Root-Manifest) gebunden. Die vollständige integrierte Suite wird in `verification.md` ausgewiesen.
 
-Die tatsächliche Browserprüfung deckt ausschließlich den gesperrten Serverzustand, Desktop/Mobil-Layout und Tastaturbedienung ab. Aktivierte OAuth-, Medien- und Uploadpfade sind automatisiert mit synthetischen Antworten geprüft, nicht im Browser mit einem echten Konto. Nachträgliche Unsicherheitskorrekturen wurden durch Controller-/DTO-Regressionen und unabhängige Nachprüfung belegt, nicht als zusätzliche Live-Browserprüfung ausgegeben. Details: `youtube-ui-browser-qa.md`.
-
 LinkedIn-Implementierung, Planermodell, Editor, Ideen, Queue und Datenadapter blieben unverändert. Es gibt keine Browser-Credentials, Session-URLs, öffentliche Sichtbarkeit oder Zeitplanung im YouTube-Dialog.

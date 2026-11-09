@@ -26,21 +26,6 @@ issue only one request. All profile values use textContent.
   reads, clearing on refresh/unlinked transition, and blocking during revocation.
 - Existing consent/retry UI tests remain green after adapting the module harness.
 
-## Interactive browser QA
-
-Own CUA tab 78, isolated synthetic fixture at http://127.0.0.1:4178.
-Server started inside test desktop, not production. Source is copied from this
-checkout into [local review checkout] (test-only fixture,
-not part of build). Desktop approx. 1165px, narrow browser approx. 484px and a
-390px iframe viewport were visually inspected with working profile reads.
-
-Verified: linked profile action; literal malicious-looking bio text, no HTML
-execution; profile results cleared by status refresh; generic profile failure
-without raw error; unlinked no profile action; consent open/cancel; back/forward
-with no reopened consent; desktop and narrow layout remain usable.
-The 390px test uses a real narrow iframe layout, not mobile device emulation.
-No live Mastodon grant was used or modified.
-
 ## Release gate
 
 Independent review is still required. No release has been performed here.

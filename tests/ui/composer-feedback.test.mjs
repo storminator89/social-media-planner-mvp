@@ -15,7 +15,7 @@ test('501-character Mastodon scheduling remains rejected and summary stays label
  const errors=validatePost({id:'test',text:'a'.repeat(501),variantTexts:{},channels:['mastodon'],status:'scheduled',scheduledAt:'2030-01-15T12:00',timeZone:'Europe/Berlin',tags:[],media:null});
  assert.ok(errors.some(message=>/Mastodon/.test(message)),errors.join(' '));
  const html=readFileSync(new URL('../../public/index.html',import.meta.url),'utf8');
- assert.match(html,/id="form-errors"[^>]*role="alert"[^>]*aria-label="Beitrag konnte nicht gespeichert werden"[^>]*tabindex="-1"/);
+ assert.match(html,/id="form-errors"[^>]*role="alert"[^>]*aria-label="Hinweis zum Beitrag"[^>]*tabindex="-1"/);
  const app=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
  assert.match(app,/if\(errors.length\).*focusComposerErrors\(\$\('#form-errors'\)\);return/);
  assert.match(app,/if\(!success\)focusComposerErrors/);

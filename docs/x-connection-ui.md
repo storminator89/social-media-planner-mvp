@@ -17,8 +17,6 @@ Isolated source: `[local review checkout]`, based on `takt-connections-integrate
 - `npm test`: 1578/1578 pass, zero skips/failures (includes 10 new X UI tests).
 - `npm run check`: all JavaScript syntax checks pass.
 - Existing LinkedIn integration rendering expectation intentionally updated: only Instagram remains a generic card; X now has its own unknown/closed state instead of displaying legacy “not connected”. No failing behavior was suppressed.
-- `tests/x-ui-browser.mjs` prepares desktop/mobile checks using real closed local readiness and mocked enabled states, blocks every external request. Execution was attempted twice, including approved escalated command execution. Chromium could not start: `process_singleton_posix.cc:297 socket() failed: Operation not permitted`. This is a browser runtime failure, not a page test result. No screenshot or live browser acceptance is claimed.
-- No REA tool/skill exposed in this worker's catalog or checkout. Source and normal tests were used. Hosted X integration, actual API compatibility, grant/consent and live callback behavior remain unverified and disabled.
 
 ## Files
 

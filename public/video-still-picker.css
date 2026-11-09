@@ -1,0 +1,29 @@
+/* One bounded surface: content scrolls; the next action never scrolls away. */
+.video-still-picker{box-sizing:border-box;width:min(850px,calc(100vw - 28px));height:min(720px,calc(100dvh - 28px));max-height:calc(100dvh - 28px);padding:0;border:1px solid var(--line,#ded9e5);border-radius:20px;background:var(--panel,#fff);color:var(--ink,#211a2c);overflow:hidden}
+.video-still-picker[open],section.video-still-picker:not([hidden]){display:flex;flex-direction:column}
+.video-still-picker::backdrop{background:rgba(20,14,30,.6);backdrop-filter:blur(4px)}
+.video-still-head,.video-still-toolbar,.video-still-footer>div{display:flex;align-items:center;gap:12px}
+.video-still-head{padding:20px 24px 14px;justify-content:space-between;align-items:flex-start;flex-shrink:0;border-bottom:1px solid var(--line,#ded9e5)}
+.video-still-head h2{margin:0 0 6px;font-size:22px}.video-still-head p{margin:0;font-size:13px;line-height:1.5}
+.video-still-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 24px}
+.video-still-toolbar{margin:0 0 12px;flex-wrap:wrap}.video-still-toolbar span{min-width:0;overflow-wrap:anywhere;font-size:13px}
+.video-still-preview{min-height:120px;display:grid;place-items:center;padding:8px;background:#17131d;border-radius:12px;color:#f5f0fb}
+.video-still-preview p{max-width:540px;text-align:center;font-size:14px;line-height:1.6}.video-still-preview video{display:block;width:100%;max-height:clamp(120px,38dvh,340px);object-fit:contain}
+.video-still-details{margin-top:12px;font-size:12px;color:var(--muted,#62596d);line-height:1.6}.video-still-details summary{cursor:pointer;min-height:32px;display:list-item;align-content:center}.video-still-details p{margin:8px 0}
+.video-still-footer{flex-shrink:0;padding:12px 24px 16px;border-top:1px solid var(--line,#ded9e5);background:#fff}
+.video-still-footer>div{justify-content:flex-end;flex-wrap:wrap}
+#video-still-status{font-size:13px;line-height:1.5;margin:0 0 10px;max-height:4.5em;overflow:auto;overflow-wrap:anywhere}#video-still-status:empty{display:none}
+.video-still-picker button{min-height:44px}.video-still-picker :focus-visible{outline:3px solid #9d7ee4;outline-offset:3px}
+.video-still-picker [hidden]{display:none!important}
+/* The picker replaces the image editor's view, not its data or modal. */
+.media-studio.studio-picking>.studio-head,.media-studio.studio-picking>.studio-layout,.media-studio.studio-picking>.studio-footer{display:none}
+.media-studio.studio-picking{display:flex;flex-direction:column;height:min(720px,calc(100dvh - 40px));overflow:hidden}
+.media-studio>.video-still-picker{width:100%;height:100%;max-height:none;min-height:0;flex:1;border:0;border-radius:inherit}
+@media(max-width:600px){.video-still-head{padding:16px}.video-still-head h2{font-size:20px}.video-still-body{padding:12px 16px}.video-still-footer{padding:10px 16px 14px}.video-still-footer>div{gap:8px}.video-still-footer button{flex:1;padding-inline:10px;font-size:13px}.media-studio.studio-picking{height:calc(100dvh - 16px)}}
+
+/* High zoom and very short windows need one scrollable surface. Fixed siblings
+   cannot both fit here; keep every control reachable rather than clipping them. */
+@media(max-height:480px){
+ .video-still-picker[open],section.video-still-picker:not([hidden]){display:block;overflow:auto}
+ .video-still-body{overflow:visible}
+}

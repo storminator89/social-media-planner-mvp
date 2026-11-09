@@ -23,6 +23,4 @@ Kopieren startet erst durch eine ausdrückliche Nutzeraktion. Nach erfolgreicher
 
 ## Abnahme und Grenzen
 
-Die gemeinsame Ansicht wurde tatsächlich im bestehenden Cloud-Chromium auf Desktop und schmalem Fenster bedient; siehe [Browserprüfung](BROWSER-QA.md). Das ist kein echtes Mobilgerät und kein Beweis für einen beim Nutzer sichtbaren Stream.
-
 Die neuen Hinweise lösen nicht die noch fehlende Provider-App-/Runtime-/Grant-Einrichtung. Reale Sites-Owner-Rückkehr, Callback-/Cookie-Verhalten, Providerantworten, Secretprovisionierung und Kosten bleiben gesonderte Betriebsnachweise. Die separate private Testbereitstellung eines älteren Standes wird durch dieses Quellpaket nicht aktualisiert. Manuelle Browser-Draft-Übergabe ist nicht Teil dieses Inkrements.

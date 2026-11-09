@@ -11,8 +11,8 @@ import {D1TestAdapter,R2TestAdapter,png} from '../data/support.mjs';
 const profile={provider:'mastodon',instance:'https://kanoa.de',scope:'profile',canPublish:false,phase:'linked',account:'fixture'};
 const publishing={phase:'linked',account:'fixture',canPublish:true,canStart:false};
 test('planning availability does not imply publishing and permissions stay distinct',()=>{
- assert.ok(CHANNELS.find(c=>c.id==='mastodon'));assert.match(describe(profile,publishing),/write:statuses/);
- for(const [p,v] of [[null,publishing],[{...profile,scope:'write:statuses'},publishing],[profile,{...publishing,account:'other'}],[profile,{...publishing,phase:'pending'}]])assert.doesNotMatch(describe(p,v),/Veröffentlichungszugriff bestätigt/);
+ assert.ok(CHANNELS.find(c=>c.id==='mastodon'));assert.match(describe(profile,publishing),/Versandzugriff bestätigt/);
+ for(const [p,v] of [[null,publishing],[{...profile,scope:'write:statuses'},publishing],[profile,{...publishing,account:'other'}],[profile,{...publishing,phase:'pending'}]])assert.doesNotMatch(describe(p,v),/Versandzugriff bestätigt/);
  assert.match(describe(profile,{...publishing,expired:true}),/abgelaufen/);assert.match(describe(profile,{...publishing,accountMismatch:true}),/nicht zum selben Konto/);assert.match(describe(null,null),/nicht verfügbar/);
 });
 test('status reads GET only and ignores late responses after close or newer open',async()=>{
@@ -20,7 +20,7 @@ test('status reads GET only and ignores late responses after close or newer open
  const first=refresh(root,{fetchImpl:(url,options)=>{calls.push({url,options});return new Promise(resolve=>pending.push(resolve));}});
  clear();output.textContent='closed';pending.forEach(resolve=>resolve({ok:true,json:async()=>profile}));await first;assert.equal(output.textContent,'closed');
  await refresh(root,{fetchImpl:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>url.includes('/oauth/')?profile:publishing};}});
- assert.match(output.textContent,/write:statuses/);assert.ok(calls.every(c=>c.options.method==='GET'&&c.url.endsWith('/readiness')&&!c.options.body));
+ assert.match(output.textContent,/Versandzugriff bestätigt/);assert.ok(calls.every(c=>c.options.method==='GET'&&c.url.endsWith('/readiness')&&!c.options.body));
  await refresh(root,{fetchImpl:async()=>{throw Error('offline');}});assert.match(output.textContent,/nicht verfügbar/);
 });
 test('existing three-channel planner preserves data and adds Mastodon only on ordinary save',async()=>{
@@ -50,7 +50,7 @@ test('filter and overview derive every planning target from CHANNELS and preserv
  for(const c of CHANNELS)assert.match(fields['#channel-filter'].innerHTML,new RegExp('value="'+c.id+'"'));
  assert.equal(fields['#channel-filter'].value,'mastodon');assert.equal(fields['#planning-channel-count'].textContent,'4');context.channel='all';context.renderPlanningChannelControls();assert.equal(fields['#channel-filter'].value,'all');
  assert.match(html,/id="planning-channel-count"/);assert.match(html,/Planungsziele/);assert.doesNotMatch(html,/Demo-Kanäle|<strong>3<\/strong>/);assert.match(app,/renderPostLabelFilter\(\);renderPlanningChannelControls\(\)/);
- const summary=app.slice(app.indexOf('function showChannels(){'),app.indexOf('\n',app.indexOf('function showChannels(){')));assert.doesNotMatch(summary,/Nicht verbunden|enthält beides nicht/);assert.match(summary,/keine Kontoverbindung/);
+ const summary=app.slice(app.indexOf('function showChannels(){'),app.indexOf('\n',app.indexOf('function showChannels(){')));assert.doesNotMatch(summary,/Nicht verbunden|enthält beides nicht/);assert.match(summary,/keine bestätigten Kontoverbindungen/);
 });
 
 test('hung readiness request or JSON body times out without blocking planning or stale overwrite',async()=>{

@@ -1,3 +1,4 @@
+import {duplicateTaktDraft} from '../../public/workflows/queue.mjs';
 import {createEditorTiming} from '../../public/editor-timing.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -182,7 +183,7 @@ function appHarness(t, behavior) {
       if (success) context.state = next;
       return success;
     },
-    notify: message => notices.push(message), render() {},
+    notify: message => notices.push(message), focusComposerErrors(){}, render() {},
     closeComposer() { closes++; h.controller.close(); },
     showInfo: (...args) => warnings.push(args), restoreDeletedPost() {},
   });
@@ -270,4 +271,30 @@ test('actual beforeunload warns for local-only input equal to the old editor bas
   const context=vm.createContext({imageStudio:{hasPendingWork:false},postingTimesUI:null,window:{addEventListener:(name,fn)=>{assert.equal(name,'beforeunload');listener=fn;}},$:id=>({open:id==='#composer'?open:ideaOpen}),workspaceUI:{hasUnsavedLocalInput:localOnly},initialEditor:'same',editorSnapshot:()=>current,initialIdeaEditor:'idea',ideaEditorSnapshot:()=>ideaCurrent});
   vm.runInContext(code,context);const event={preventDefault:()=>prevented++};listener(event);assert.equal(prevented,warn?1:0);assert.equal(event.returnValue,warn?'':undefined);
  }
+});
+
+
+test('actual duplicate retains late input through the real workspace controller without save or discard', async t => {
+  const gate = deferred(), h = appHarness(t, { persist: () => gate.promise });
+  h.context.state.posts[0].channels = ['linkedin'];
+  h.context.composerRestoredWorkspace = false;
+  h.context.initialEditor = h.context.editorSnapshot();
+  h.context.crypto = { randomUUID: () => 'new-copy' };
+  h.context.duplicateTaktDraft = duplicateTaktDraft;
+  h.context.openComposer = () => assert.fail('must not open the copy over newer input');
+  vm.runInContext(actualAppFunction('duplicatePost'), h.context);
+  const original = clone(h.context.state.posts[0]), pending = h.context.duplicatePost();
+  const newer = payload({ text: 'late input while duplicating the canonical post' });
+  h.changeInput(newer); gate.resolve(true); await pending;
+  assert.equal(h.closes, 0); assert.equal(h.retainCalls, 1);
+  assert.equal(h.context.editingId, 'post-1');
+  assert.equal(h.context.state.posts.length, 2);
+  assert.deepEqual(h.context.state.posts[0], original);
+  assert.equal(h.context.state.posts[1].text, original.text);
+  assertLocalOnly(h.controller, newer);
+  h.context.askDiscard();
+  assert.equal(h.closes, 0); assert.equal(h.warnings.length, 1);
+  h.controller.resume(); await h.controller.save(); await h.clock.fire();
+  assert.equal(h.calls.save.length, 0); assert.equal(h.calls.discard.length, 0);
+  assert.equal(h.persisted.length, 1);
 });

@@ -25,14 +25,6 @@ Zwei konkrete Fehler wurden vor Abschluss behoben und unabhängig mit den urspr�
 
 Alle 26 Dateien des finalen UI-Komponentenmanifests sind identisch übernommen, öffentliche und serverseitige Adapter-/Workflowkopien bytegleich. Keine offenen konkreten Produktquellbefunde im geprüften Umfang. Das ist keine native Sites-, D1-, Auth- oder Provider-Livefreigabe.
 
-## Tatsächliche Browserbedienung
-
-Zwei getrennte interaktive Durchgänge verwendeten sichtbares Cloud-Chromium und die echte lokale Sites-Preview mit SQLite, keinen simulierten UI-Store. Der UI-Durchgang bestand Save/Reload, Slotwahl und Planen, Regeländerung ohne Verschiebung, fehlende Kanalzeiten, echten Zwei-Tab-Konflikt mit 409, Rich-Workspace-Wiederaufnahme/Postsave sowie pausierten Kanal ohne Vorschläge. Die schmale Ansicht wurde durch native Zoom-Bedienung auf 391 CSSpx gebracht. Details: `../posting-schedules/BROWSER-QA.md`.
-
-Danach wurde der endgültig integrierte Stand nochmals selbst bedient: Wochenzeit speichern/Reload, Slot auswählen und Beitrag planen, Änderung 09 → 10 mit ausdrücklicher Warnung bei unverändertem 09-Uhr-Beitrag, fehlenden LinkedIn-Kanal gezielt öffnen/einrichten und danach gemeinsame 10-Uhr-Slots erhalten. Die beiden letzten UX-Korrekturen wurden damit tatsächlich nachgeprüft. Eine zusätzliche native schmale Fensteransicht bei 125 % hatte 400 × 596 CSSpx; Seite 388/388 und Dialog 340/340 Client-/Scrollbreite, ohne horizontale Überbreite. Pause/Save und Fokus-Rückkehr wurden bedient. Kein echtes Mobilgerät oder Touchtest. Eigene UX-Einschätzung und ein kleiner verbleibender mobiler Überlagerungspunkt stehen in `../posting-schedules/INTEGRATION-BROWSER-QA.md`.
-
-Screenshots wurden im CUA-Verlauf visuell geprüft. Die Sichtbarkeit desselben Streams beim Nutzer wurde nicht unterstellt. Eigene Prüftabs wurden geschlossen, Zoom/Fenster zurückgestellt und Preview gestoppt. Lokale synthetische Laufzeitdaten sind kein Bestandteil des Quellpakets. Nicht alle DST-/Timeout-/Legacyfälle wurden zusätzlich manuell durchgeklickt; deren Nachweise sind automatisiert und unabhängig, nicht als Browserabnahme ausgegeben.
-
 ## Grenzen und unveränderte Bereiche
 
 Die 22 OAuth-/Provider-/YouTube-Module und SQL 0001–0007 bleiben bytegleich 0.8.0. Keine neuen Grants, Secrets, externen Konten, Uploads, Providerposts oder Hostingänderungen. LinkedIn-Versand, Refresh/Reconnect und Hintergrund-Scheduler bleiben gesperrt bzw. nicht implementiert. Eine Posting-Zeit ist redaktionelle Planung, keine Versanderlaubnis.
@@ -40,5 +32,3 @@ Die 22 OAuth-/Provider-/YouTube-Module und SQL 0001–0007 bleiben bytegleich 0.
 Der lokale Server hat einen gemeinsamen Testbesitzer, keine reale Mandantenanmeldung. Echte Sites-Dispatch-Rückkehr, physisch private D1/R2-Bindings, Cloudmigration, Kosten/Quoten, Backup und Zwei-Besitzer-Browserprüfung sind gesonderte Betriebsnachweise. Eine parallel separat autorisierte private Testbereitstellung eines älteren geprüften Standes ersetzt diese 0.9-Abnahme nicht.
 
 Queue-Undo ist auf 60 Sekunden und 100 Nachweise begrenzt und benötigt ein bereits gehaltenes Original; der Serverhash ist kein Papierkorb. Die Workspace-Frist von 30 Tagen ist eine Wiederaufnahmefrist, keine Löschzusage. Bereits gestartete DB-/R2-/Provideroperationen können unklar oder spät abschließen; kein automatischer Retry wird daraus abgeleitet.
-
-Das Root-Manifest bindet den vollständigen Kandidaten. Ältere Versions- und Komponentenmanifeste sind ausdrücklich historische Belege. REA v60 wurde erneut angewandt: vollständige eigene Quellen erfordern normale Source-/Test-/Browserprüfung, keine REA-Engine, Decompilation oder fremden Live-Capture.

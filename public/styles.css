@@ -31,3 +31,13 @@
 
 /* A verified federated account must not widen the composer. */
 #mastodon-planning-status{overflow-wrap:anywhere;}
+
+#planner-import-dialog{max-height:calc(100dvh - 24px);overflow:auto}#planner-import-dialog p,#planner-import-dialog li{overflow-wrap:anywhere}#planner-import-dialog input{max-width:100%}#planner-import-dialog ul{max-height:35dvh;overflow:auto;padding-left:24px}#planner-import-dialog [data-import-confirm]{margin-top:16px;white-space:normal}
+
+
+/* Persistent time hint: does not replace content or take focus on a timer. */
+.planning-clock-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px;padding:14px 16px;border:1px solid #dacff2;border-radius:10px;background:#f7f3ff;color:#403456}
+.planning-clock-notice p{margin:0 0 5px;font-weight:600;font-size:13px;line-height:1.45}
+.planning-clock-notice small{display:block;font-size:12px;line-height:1.5;color:#675b79}
+.planning-clock-notice button{flex-shrink:0;min-height:44px;white-space:normal}
+@media(max-width:600px){.planning-clock-notice{align-items:stretch;flex-direction:column;margin:12px;gap:12px}.planning-clock-notice button{width:100%;min-height:44px}}

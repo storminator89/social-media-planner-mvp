@@ -23,14 +23,6 @@ Neue Abdeckung gegenüber 0.4:
 
 Zwei konkret reproduzierte Vertragsprobleme wurden vor Übergabe behoben: mutierbare Config während await und getrennt injizierbare Parser-/Repositorykontexte. Beide Originalreproduktionen wurden unabhängig erneut geprüft; der legitime State bleibt nach fremdem Kontextversuch nutzbar. Keine verbleibenden konkreten Blocker für diesen lokalen, nicht aktivierten Vorbereitungsstand.
 
-## Browserprüfung
-
-Die echte integrierte lokale SQLite-Statusroute zeigte Instagram, LinkedIn, YouTube und X als „Nicht verbunden“. Keine Statussimulation. X zeigte `COST_APPROVAL_REQUIRED` als verständlichen Hinweis auf zu prüfenden Zugang und ausdrücklich freizugebende mögliche Kosten; keine Preise oder Aktivierungsaktion.
-
-Desktop mit 1174 CSS-Pixeln: zwei Spalten/zwei Reihen, kein horizontaler Überlauf. Natives schmales Browserfenster mit 400 CSS-Pixeln: eine Spalte, Client-/Scrollbreite jeweils 388 Pixel, Navigation etwa 78×52 Pixel je Ziel. Enter öffnete Details; Refresh behielt Fokus und offene X-Hinweise. Es gab ausschließlich „Status aktualisieren“ und „Zur Planung“, keine Connect-, Zahlungs-, OAuth- oder Versandaktion.
-
-Direkter read-only Browseraufruf des LinkedIn-Readiness-Endpunkts bestätigte `offline_preparation`, fünf false-Fähigkeiten, unbestätigtes Ziel und `authorizationUrl:null`. Start-/Callback-Ablehnung ist automatisiert/sourcegeprüft, nicht als Live-OAuth-Browserdurchlauf behauptet. Preview danach gestoppt. Details: `x-browser-qa.md`. Historische 0.4- und 0.3-Browsernachweise stehen getrennt in den jeweiligen Berichten.
-
 ## Grenzen
 
 Keine echte Sites-Dispatch-Rückkehr, Cloud-D1/R2-Migration oder Authentifizierung zweier Personen getestet. Keine neue Runtime, Sicherheitslockerung oder fremde Software dafür eingerichtet. Keine Hosting-ID, App, Credentials, OAuth-Grants, Tokens, Provider-/Zahlungsaktivierung oder Posts erstellt. Das Worker-Artefakt enthält keine Provider-Publisher und keinen State-/Flow-Mutator.

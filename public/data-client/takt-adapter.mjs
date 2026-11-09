@@ -72,12 +72,13 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
       deletedPosts.clear();
       for(const candidate of restoreCandidates){const proof=loaded.restoreProofs?.find(item=>item.postId===candidate.post.id&&item.payloadDigest===candidate.digest&&item.expiresAt*1000>Date.now());if(proof&&!loaded.posts.some(post=>post.id===candidate.post.id))deletedPosts.set(candidate.post.id,{post:structuredClone(candidate.post),expiresAt:Math.min(candidate.expiresAt,proof.expiresAt*1000)});}
       pendingDelete=null;snapshot=loaded;onTimezone(currentZone);return state;},
-    async save(ui){
+    async save(ui,{expectedInstants=null}={}){
       if(busy)error('Speicherung läuft noch.','BUSY');if(!snapshot)error('Planer zuerst laden.','NOT_LOADED');busy=true;
       try{
         pruneDeleted();
         if(ui?.schemaVersion!==2||!Array.isArray(ui.posts)||!Array.isArray(ui.channels))error('Dieses Formular verwendet ein altes Planungsformat. Bitte neu laden.','UI_SCHEMA_UNSUPPORTED');
         if(ui.revision!==snapshot.revision)error('Die geladene Planungsrevision wurde verändert. Bitte neu laden.','REVISION_CONFLICT',409);
+        if(expectedInstants!==null&&(!expectedInstants||typeof expectedInstants!=='object'||Array.isArray(expectedInstants)||Object.entries(expectedInstants).some(([id,instant])=>!ui.posts.some(p=>p.id===id&&p.status==='scheduled')||typeof instant!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(instant))))error('Ungültige Import-Terminprüfung.','INVALID_IMPORT_EXPECTATION');
         const channelIds=new Set(definitions.map(c=>c.id));
         const selectedChannels=ui.channels.map(c=>{if(!c||!channelIds.has(c.id)||!Object.hasOwn(c,'postingSchedule'))error('Ein Kanal oder seine Posting-Zeiten fehlen.','INVALID_SCHEDULE');return{...structuredClone(c),postingSchedule:scheduling(()=>normalizePostingSchedule(c.postingSchedule))};});
         const ids=new Set();for(const p of ui.posts){if(!p||typeof p.id!=='string'||ids.has(p.id)||!['idea','draft','scheduled'].includes(p.status)||typeof p.text!=='string'||!Array.isArray(p.channels))error('Ungültiger Beitrag.');if(p.media&&!p.channels.length)error('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.','MEDIA_TARGET_REQUIRED');
@@ -109,6 +110,7 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
             scheduledAt=(await client.resolveTime(p.scheduledAt,postZone)).scheduledAt;
           }
           if(p.status==='scheduled'&&!scheduledAt)error('Geplante Beiträge brauchen einen Zeitpunkt.');
+          if(expectedInstants!==null&&Object.hasOwn(expectedInstants,p.id)&&scheduledAt!==expectedInstants[p.id])error('Server und Importvorschau lösen den Termin unterschiedlich auf. Nichts importiert.','IMPORT_TIME_CHANGED');
           let mediaId=null;
           if(p.media){
             if(p.media.id){const m=snapshot.media.find(m=>m.id===p.media.id);if(!m||!MEDIA_PATH.test(p.media.url)||m.url!==p.media.url)error('Unbekanntes Cloud-Medium.','INVALID_MEDIA');if(p.media.alt!==m.altText)error('Alternativtext eines gespeicherten Bilds kann in dieser Ansicht noch nicht geändert werden. Bitte das Bild neu wählen.','MEDIA_METADATA_UNSUPPORTED');mediaId=m.id;}
