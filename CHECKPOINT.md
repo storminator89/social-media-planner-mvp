@@ -1,7 +1,7 @@
-# Deployed v21 source checkpoint
+# v22 source checkpoint with deterministic test correction
 
-This branch records the application source deployed as private Site version 21. It is a source backup, not a deployment or database backup. No user content, credentials, runtime databases, uploads, private hosting configuration, or private Git history is included.
+This branch records the application source deployed as private Site version 22, plus a test-only correction to the two OAuth tampering tests. Those tests now always alter decoded ciphertext instead of sometimes leaving it unchanged. The correction does not change application runtime code or the production build and has not triggered a Site deployment.
 
-Relative to the v20 checkpoint, this adds the single-image in-app editor and safer handling of uncertain media metadata writes. It introduces no schema changes or new migrations. Existing schema and migration files are retained. Editing does not publish social-media posts. Unreleased import and multi-attachment candidates are excluded.
+Relative to the v21 checkpoint, this includes the channel planning queue. No schema changes or new migrations are introduced. Editing does not publish social-media posts. Unreleased import and multi-attachment candidates are excluded.
 
-Generated Worker output is excluded and can be rebuilt with npm run build:worker. MANIFEST.sha256 describes this sanitized source snapshot.
+This is a source backup, not a deployment or database backup. User content, credentials, runtime databases, uploads, private hosting configuration, private review records and private Git history are excluded. Generated Worker output can be rebuilt with npm run build:worker. MANIFEST.sha256 describes this sanitized source snapshot.

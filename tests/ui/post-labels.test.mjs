@@ -35,7 +35,7 @@ test('stored image alternative text is readonly with explanation, replacement im
 test('label badges escape markup and retain full accessible descriptions',()=>{const c=vm.createContext({esc:escape});vm.runInContext(fn('postLabels'),c);const html=c.postLabels(post({tags:['<script>','A & B','Drittes']}));assert.doesNotMatch(html,/<script>/);assert.match(html,/&lt;script&gt;/);assert.match(html,/Redaktionelle Labels:/);assert.match(html,/\+1/);});
 
 test('card and agenda button names include their visible editorial labels for screen readers',()=>{
- const p=post({status:'scheduled',scheduledAt:'2027-01-15T10:00',tags:['Kampagne','<A & B>']});const c=vm.createContext({calendarTime,scheduleNeedsReview:()=>false,CHANNELS:[{id:'linkedin',name:'LinkedIn'}],esc:escape,displayTitle:()=> 'Beitrag',currentZone:()=> 'Europe/Berlin',icon:()=>'',stack:()=>'',cover:()=>'',badge:()=>'',channel:'all',effectiveText:()=>p.text,variantCount:()=>0,dateLabel:()=> '15. Januar',Date});
+ const p=post({status:'scheduled',scheduledAt:'2027-01-15T10:00',tags:['Kampagne','<A & B>']});const c=vm.createContext({view:'list',calendarTime,scheduleNeedsReview:()=>false,CHANNELS:[{id:'linkedin',name:'LinkedIn'}],esc:escape,displayTitle:()=> 'Beitrag',currentZone:()=> 'Europe/Berlin',icon:()=>'',stack:()=>'',cover:()=>'',badge:()=>'',channel:'all',effectiveText:()=>p.text,variantCount:()=>0,dateLabel:()=> '15. Januar',Date});
  for(const name of ['shownTime','calendarContext','postLabelDescription','postLabels','postCard','renderAgenda'])vm.runInContext(fn(name),c);
  for(const html of [c.postCard(p),c.renderAgenda([{...p,calendarTime:calendarTime(p,'Europe/Berlin')}])])assert.match(html,/aria-label="Beitrag, [^"]*Labels: Kampagne, &lt;A &amp; B&gt;"/);
 });
