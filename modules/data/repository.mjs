@@ -66,7 +66,10 @@ export class PlannerRepository {
   async addMedia(owner,file){
     const {id,key,filename,mimeType,size,altText}=file;
     const result=await this.stmt('INSERT INTO planner_media (owner_id,id,object_key,filename,mime_type,byte_size,alt_text,created_at) SELECT ?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM planner_media WHERE owner_id=?) < ? AND (SELECT COALESCE(SUM(byte_size),0) FROM planner_media WHERE owner_id=?) + ? <= ?',owner,id,key,filename,mimeType,size,altText,now(),owner,LIMITS.mediaCount,owner,size,LIMITS.mediaTotalBytes).run();
-    if(Number(result.meta?.changes)!==1)throw new PlannerError(413,'MEDIA_LIMIT','Das Medienlimit dieses Planers ist erreicht.');
+    // Only an explicit successful zero-row result proves quota rejection.
+    // Missing/failed/malformed receipts may have committed and must stay uncertain.
+    if(result?.success===false||!Number.isSafeInteger(result?.meta?.changes)||![0,1].includes(result.meta.changes))throw new PlannerError(503,'MEDIA_STORAGE_UNCERTAIN','Der Ausgang der Bildspeicherung ist unklar. Bitte neu laden und prüfen.');
+    if(result.meta.changes===0)throw new PlannerError(413,'MEDIA_LIMIT','Das Medienlimit dieses Planers ist erreicht.');
     return mediaDTO(await this.getMedia(owner,id));
   }
   async getMedia(owner,id){return this.stmt('SELECT * FROM planner_media WHERE owner_id=? AND id=?',owner,id).first();}

@@ -48,7 +48,13 @@ export async function handlePlannerRequest(request,env){
       const id=crypto.randomUUID();const key=`planner-media/${crypto.randomUUID()}/${id}`;
       await env.BUCKET.put(key,content,{httpMetadata:{contentType:mimeType}});
       try{return json(await repo.addMedia(owner,{id,key,filename,mimeType,size:content.byteLength,altText}),201);}
-      catch(error){try{await env.BUCKET.delete(key);}catch{/* Private orphan may need later operator cleanup; never expose its key. */}throw error;}
+      catch(error){
+        // Never delete bytes after an uncertain write or failed readback: the SQL
+        // row may already be committed. Only a confirmed zero-row quota rejection
+        // proves this request's new random object was never registered.
+        if(error instanceof PlannerError&&error.code==='MEDIA_LIMIT'&&error.status===413){try{await env.BUCKET.delete(key);}catch{/* Private unregistered object retained; never expose its key. */}throw error;}
+        throw new PlannerError(503,'MEDIA_STORAGE_UNCERTAIN','Der Ausgang der Bildspeicherung ist unklar. Bitte neu laden und prüfen; nicht automatisch erneut speichern.');
+      }
     }
     const mediaMatch=path.match(/^\/media\/([A-Za-z0-9_-]{1,100})$/);
     if(mediaMatch&&['GET','HEAD'].includes(request.method)){

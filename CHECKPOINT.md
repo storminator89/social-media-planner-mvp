@@ -1,7 +1,7 @@
-# Deployed v20 source checkpoint
+# Deployed v21 source checkpoint
 
-This branch records the application source deployed as private Site version 20. It is a source backup, not a deployment, database backup, or export of user content. It does not enable provider connections or publish social-media posts.
+This branch records the application source deployed as private Site version 21. It is a source backup, not a deployment or database backup. No user content, credentials, runtime databases, uploads, private hosting configuration, or private Git history is included.
 
-Relative to the deployed v14 checkpoint, this includes the Mastodon profile presentation, deliberate saved-text handoff, phase-bound recovery protection, request deadlines, home overview and limited visual plain-text editor. The editor is not a full WYSIWYG editor. Unreleased planner-import and broader media candidates are not included.
+Relative to the v20 checkpoint, this adds the single-image in-app editor and safer handling of uncertain media metadata writes. It introduces no schema changes or new migrations. Existing schema and migration files are retained. Editing does not publish social-media posts. Unreleased import and multi-attachment candidates are excluded.
 
-Private hosting identity/configuration, credentials, runtime databases, uploads, logs, user content, local review paths and private deployment reports are excluded. Generated Worker output can be rebuilt with npm run build:worker. No Git history from the private Site is included. MANIFEST.sha256 describes this sanitized source snapshot.
+Generated Worker output is excluded and can be rebuilt with npm run build:worker. MANIFEST.sha256 describes this sanitized source snapshot.

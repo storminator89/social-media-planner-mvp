@@ -8,7 +8,7 @@ const app=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
 test('composer retains v13 planning controls and single-image contract',()=>{
  for(const id of ['composer-channels','mastodon-planning-status','variant-tabs','post-text','character-hint','channel-checks','media-file','media-editor','post-tags','post-date','post-time','schedule-binding-status','queue-panel','workspace-status','workspace-missing-media','preview-name','preview-avatar','preview-handle','save-draft','schedule-post'])assert.equal((html.match(new RegExp(`id="${id}"`,'g'))||[]).length,1,id);
  assert.ok(html.indexOf('id="add-media"')<html.indexOf('id="post-tags"'));
- assert.match(html,/JPG, PNG oder WebP · bis 2 MB/);
+ assert.match(html,/JPG, PNG oder WebP · Bearbeiten bis 20 MB, Ausgabe als JPG bis 2 MB · ein Bild/);
  assert.doesNotMatch(html,/10 Anhänge|20 MiB/);
  assert.match(html,/mastodon-publish\.html/);
 });
