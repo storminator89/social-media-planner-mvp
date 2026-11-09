@@ -18,3 +18,7 @@ test('Mastodon keeps informed consent and secondary tools in accessible disclosu
  assert.match(html,/<details id="access-help">[\s\S]+id="recover"[\s\S]+<\/details>/);
  assert.doesNotMatch(html,/https?:\/\/[^<\s]+\.(?:js|css)/);
 });
+test('profile and publishing access remain explicitly separate without inventing publishing state',()=>{
+ assert.match(html,/<h1>Mastodon<\/h1>/);assert.match(html,/Profilzugriff/);assert.match(html,/Veröffentlichungszugriff/);assert.match(html,/Status hier nicht geprüft/);assert.match(html,/Eine Profilverbindung schaltet ihn nicht frei/);assert.match(html,/Mit diesem Profilzugriff: Versand gesperrt/);assert.match(html,/href="\/mastodon-publish.html"/);assert.match(html,/<span>Status prüfen<\/span>/);
+});
+test('profile-only visual rules do not restyle publishing consent',()=>{const css=readFileSync(new URL('../../public/mastodon.css',import.meta.url),'utf8');assert.match(html,/<body class="profile-page">/);const publish=readFileSync(new URL('../../public/mastodon-publish.html',import.meta.url),'utf8');assert.doesNotMatch(publish,/<body class="profile-page">/);assert.match(css,/\.profile-page \.status-panel/);});

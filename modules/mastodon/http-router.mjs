@@ -20,7 +20,7 @@ export async function handleMastodonOAuth(request,env={}, {transport,authorizeAc
  let stateHash;
  const redirect=outcome=>new Response(null,{status:303,headers:{...OAUTH_HTTP_HEADERS,Location:config.siteOrigin+'/mastodon.html?outcome='+outcome,...(stateHash?{'Set-Cookie':cookie(stateHash,'')}:{})}});
  try{
-  if(readiness){if(u.search)return fail(400);const row=await store.read();return json({provider:'mastodon',phase:row?.value.phase||'not_connected',canStart:!row||['revoked','recovered'].includes(row.value.phase),canPublish:false,instance:INSTANCE,scope:SCOPE,...(row?.value.phase==='linked'?{account:row.value.acct,verifiedAtMs:row.value.verifiedAtMs}:{})});}
+  if(readiness){if(u.search)return fail(400);const row=await store.read();return json({provider:'mastodon',phase:row?.value.phase||'not_connected',recoveryVersion:row?.version??null,canStart:!row||['revoked','recovered'].includes(row.value.phase),canPublish:false,instance:INSTANCE,scope:SCOPE,...(row?.value.phase==='linked'?{account:row.value.acct,verifiedAtMs:row.value.verifiedAtMs}:{})});}
   const flow=createMastodonFlow({config,store,transport,authorizeAction,clock,httpOptions});
   if(callback){
    if(request.url.length>8192||u.hash)return redirect('unconfirmed');

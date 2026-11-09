@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-const source=(await readFile(new URL('../../public/mastodon-profile.js',import.meta.url),'utf8')).replaceAll('export function','function');
+const helper=(await readFile(new URL('../../public/mastodon-request.js',import.meta.url),'utf8')).replace('export async function','async function');
+const source=helper+'\n'+(await readFile(new URL('../../public/mastodon-profile.js',import.meta.url),'utf8')).replaceAll('export function','function').replace(/^import[^\n]+\n/gm,'');
 function harness(linked=true){
  const elements=new Map(),events=new Map(),pending=[];
  const node=()=>({children:[],hidden:false,disabled:false,textContent:'',listeners:{},addEventListener(k,fn){this.listeners[k]=fn;},replaceChildren(){this.children=[];},append(...n){this.children.push(...n);}});
  const document={getElementById(id){if(!elements.has(id))elements.set(id,node());return elements.get(id);},createElement:node};
- vm.runInNewContext(source+'\nsetProfileLinked('+linked+');',{document,window:{addEventListener(k,fn){events.set(k,fn);}},fetch:(url,options)=>new Promise(resolve=>pending.push({url,options,resolve})),Date});
+ vm.runInNewContext(source+'\nsetProfileLinked('+linked+');',{AbortController,setTimeout,clearTimeout,document,window:{addEventListener(k,fn){events.set(k,fn);}},fetch:(url,options)=>new Promise(resolve=>pending.push({url,options,resolve})),Date});
  return{elements,events,pending};
 }
 const payload={provider:'mastodon',scope:'profile',canPublish:false,fetchedAtMs:1000,profile:{id:'123',acct:'fixture',note:'<img src=x onerror=alert(1)>',followers_count:2}};

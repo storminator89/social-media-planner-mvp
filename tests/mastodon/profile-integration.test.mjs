@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {describeMastodonFailure} from '../../public/mastodon-diagnostics.js';
-const script=name=>readFileSync(new URL('../../public/'+name,import.meta.url),'utf8').replace(/^import[^\n]+\n/gm,'').replaceAll('export function','function');
+const script=name=>readFileSync(new URL('../../public/'+name,import.meta.url),'utf8').replace(/^import[^\n]+\n/gm,'').replaceAll('export function','function').replace('export async function','async function');
 const flush=()=>new Promise(setImmediate);
 function harness(){
  const elements=new Map(),events=new Map(),calls=[];
  const node=()=>({hidden:false,disabled:false,textContent:'',children:[],listeners:{},focus(){},addEventListener(k,v){this.listeners[k]=v;},replaceChildren(){this.children=[];},append(...n){this.children.push(...n);}});
  let phase='linked';const pending=[];
- const context=vm.createContext({URL,Date,describeMastodonFailure,document:{getElementById(id){if(!elements.has(id))elements.set(id,node());return elements.get(id);},createElement:node,addEventListener(){}},window:{addEventListener(k,f){events.set(k,[...(events.get(k)||[]),f]);},confirm:()=>true},location:{href:'https://planner.example/mastodon.html',origin:'https://planner.example'},history:{replaceState(){}},fetch:async path=>{calls.push(path);if(path.endsWith('/readiness'))return{ok:true,json:async()=>({provider:'mastodon',scope:'profile',canPublish:false,instance:'https://kanoa.de',phase,canStart:phase==='not_connected'})};return new Promise(resolve=>pending.push(resolve));}});
+ const context=vm.createContext({AbortController,setTimeout,clearTimeout,URL,Date,describeMastodonFailure,document:{getElementById(id){if(!elements.has(id))elements.set(id,node());return elements.get(id);},createElement:node,addEventListener(){}},window:{addEventListener(k,f){events.set(k,[...(events.get(k)||[]),f]);},confirm:()=>true},location:{href:'https://planner.example/mastodon.html',origin:'https://planner.example'},history:{replaceState(){}},fetch:async path=>{calls.push(path);if(path.endsWith('/readiness'))return{ok:true,json:async()=>({provider:'mastodon',scope:'profile',canPublish:false,instance:'https://kanoa.de',phase,canStart:phase==='not_connected'})};return new Promise(resolve=>pending.push(resolve));}});
+ vm.runInContext(script('mastodon-request.js'),context);
  // Separate scopes mirror ES module lexical isolation while sharing the state setter.
  vm.runInContext('{'+script('mastodon-profile.js')+';globalThis.setProfileLinked=setProfileLinked;}',context);
  vm.runInContext('{'+script('mastodon.js')+'}',context);

@@ -82,8 +82,9 @@ test('hosted exact owner and explicit browser consent protect registration',asyn
  assert.equal((await handleHostedMastodon(hostedRequest('start',{consent:'kanoa-profile-v1'}),env,options)).status,200);
  assert.equal(h.calls.length,2);
 });
+const recoveryBody=row=>({consent:row.value.phase==='recovery_pending'?'confirmed-manual-kanoa-profile-revocation-v2':'fence-kanoa-profile-v2',expectedPhase:row.value.phase,expectedVersion:row.version});
 test('confirmed manual recovery fences a late callback',async t=>{const h=await setup(t),start=await h.flow.begin(binding),env={...h.env,TAKT_MASTODON_OWNER_ID:'owner'};
- const r=await handleHostedMastodon(hostedRequest('recover',{consent:'confirmed-manual-kanoa-revocation-v1'}),env,{clock:()=>now});assert.equal(r.status,200);await assert.rejects(complete(h.flow,start));assert.equal(h.calls.length,2);assert.equal((await h.store.read()).value.phase,'recovery_pending');const done=await handleHostedMastodon(hostedRequest('recover',{consent:'confirmed-manual-kanoa-revocation-v1'}),env,{clock:()=>now+60001});assert.equal(done.status,200);assert.deepEqual((await h.store.read()).value,{phase:'recovered',recoveredAtMs:now+60001,manualProviderRevocationConfirmed:true});
+ const r=await handleHostedMastodon(hostedRequest('recover',recoveryBody(await h.store.read())),env,{clock:()=>now});assert.equal(r.status,200);await assert.rejects(complete(h.flow,start));assert.equal(h.calls.length,2);assert.equal((await h.store.read()).value.phase,'recovery_pending');const done=await handleHostedMastodon(hostedRequest('recover',recoveryBody(await h.store.read())),env,{clock:()=>now+60001});assert.equal(done.status,200);assert.deepEqual((await h.store.read()).value,{phase:'recovered',recoveredAtMs:now+60001,manualProviderRevocationConfirmed:true});
 });
 test('revoke removes stored grant only after provider confirms',async t=>{const h=await setup(t),start=await h.flow.begin(binding);await complete(h.flow,start);assert.deepEqual(await h.flow.revoke(),{phase:'revoked'});assert.deepEqual((await h.store.read()).value,{phase:'revoked',revokedAtMs:now});await h.flow.begin(binding);});
 test('uncertain revocation retains encrypted token for safe retry',async t=>{const h=await setup(t),start=await h.flow.begin(binding);await complete(h.flow,start);const broken=createMastodonFlow({...h,transport:async()=>{throw Error('network');}});await assert.rejects(broken.revoke());assert.equal((await h.store.read()).value.phase,'revocation_pending');assert.equal((await h.store.read()).value.accessToken,'fixture-token');assert.deepEqual(await h.flow.revoke(),{phase:'revoked'});});
@@ -152,4 +153,25 @@ test('cross-site callback still rejects foreign owner, missing cookie and altere
   const r=await handleMastodonOAuth(new Request(source.siteOrigin+CALLBACK+'?state='+(change.state||state)+'&code=fixture-code',{headers:{...headers,...(change.owner?{'oai-authenticated-user-id':change.owner}:{}),...(change.cookie!==undefined?{Cookie:change.cookie}:{})}}),h.env,options);
   assert.equal(r.status,303);assert.equal(r.headers.get('Location'),source.siteOrigin+'/mastodon.html?outcome=unconfirmed');assert.equal(h.calls.length,2);assert.equal(h.actions.length,1);assert.equal((await h.store.read()).value.phase,'pending');
  }
+});
+
+test('profile recovery rejects stale first-stage intent after other tab fences and wait elapses',async t=>{
+ const h=await setup(t);await h.flow.begin(binding);const env={...h.env,TAKT_MASTODON_OWNER_ID:'owner'},body=recoveryBody(await h.store.read());
+ assert.equal((await handleHostedMastodon(hostedRequest('recover',body),env,{clock:()=>now})).status,200);
+ const before=await h.store.read();const stale=await handleHostedMastodon(hostedRequest('recover',body),env,{clock:()=>now+60001});assert.equal(stale.status,409);assert.equal((await stale.json()).error,'RECOVERY_STATE_CHANGED');assert.deepEqual(await h.store.read(),before);assert.equal(h.calls.length,2);
+ const fresh=recoveryBody(before);assert.equal((await handleHostedMastodon(hostedRequest('recover',fresh),env,{clock:()=>now+59999})).status,409);
+ assert.equal((await handleHostedMastodon(hostedRequest('recover',fresh),env,{clock:()=>now+60001})).status,200);
+});
+test('same phase new version, legacy payloads, wrong phase/consent and malformed versions never mutate recovery',async t=>{
+ const h=await setup(t);await h.flow.begin(binding);const env={...h.env,TAKT_MASTODON_OWNER_ID:'owner'},row=await h.store.read(),body=recoveryBody(row);await h.store.write(row,{...row.value});const before=await h.store.read();
+ for(const b of [body,{consent:'confirmed-manual-kanoa-revocation-v1'},{...recoveryBody(before),expectedVersion:String(before.version)},{...recoveryBody(before),expectedVersion:0},{...recoveryBody(before),expectedPhase:'recovery_pending'},{...recoveryBody(before),consent:'confirmed-manual-kanoa-profile-revocation-v2'},{...recoveryBody(before),extra:true}]){assert.equal((await handleHostedMastodon(hostedRequest('recover',b),env,{clock:()=>now+60001})).status,409);assert.deepEqual(await h.store.read(),before);}
+});
+test('two concurrent tabs get one recovery transition and a stale 409 at each stage',async t=>{
+ const h=await setup(t);await h.flow.begin(binding);const env={...h.env,TAKT_MASTODON_OWNER_ID:'owner'};
+ for(const time of [now,now+60001]){const body=recoveryBody(await h.store.read());const results=await Promise.all([1,2].map(()=>handleHostedMastodon(hostedRequest('recover',body),env,{clock:()=>time})));assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);}
+ assert.equal((await h.store.read()).value.phase,'recovered');assert.equal(h.calls.length,2);
+});
+test('readiness exposes version for explicit recovery and malformed fence timestamps fail closed',async t=>{
+ const h=await setup(t);await h.flow.begin(binding);const env={...h.env,TAKT_MASTODON_OWNER_ID:'owner'},row=await h.store.read();const readiness=await (await handleHostedMastodon(hostedRequest('readiness'),env)).json();assert.equal(readiness.recoveryVersion,row.version);assert.equal(readiness.phase,row.value.phase);
+ await h.store.write(row,{...row.value,phase:'recovery_pending'});const before=await h.store.read();assert.equal((await handleHostedMastodon(hostedRequest('recover',recoveryBody(before)),env,{clock:()=>now+60001})).status,409);assert.deepEqual(await h.store.read(),before);
 });
