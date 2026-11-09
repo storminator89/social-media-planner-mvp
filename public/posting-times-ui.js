@@ -11,7 +11,7 @@ export function postingTimesStatus(s){
   if(!s.draft.slots.length)return s.draft.paused?'Vorschläge pausiert. Keine Wochenzeiten eingerichtet.':'Gespeicherter Stand · keine Wochenzeiten.';
   return s.draft.paused?'Gespeicherter Stand · Vorschläge pausiert.':'Gespeicherter Stand.';
 }
-export function createPostingTimesUI({dialog,openButton,getState,saveState,isBusy=()=>false,onSaved=()=>{}}) {
+export function createPostingTimesUI({dialog,openButton,getState,saveState,isBusy=()=>false,onSaved=()=>{},fallbackFocus=()=>null}) {
   let disposed=false,returnFocus=null,guardReturnFocus=null,pendingClose=false,pendingChannel=null,lastChannel=null;
   const controller=createPostingTimesController({getState,saveState,onChange:updateStatus});
   const find=selector=>dialog.querySelector(selector);
@@ -48,7 +48,8 @@ export function createPostingTimesUI({dialog,openButton,getState,saveState,isBus
     dialog.setAttribute('aria-busy',String(s.busy));
   }
   function guard(channel=null){guardReturnFocus=document.activeElement;pendingClose=channel===null;pendingChannel=channel;const el=find('[data-times-guard]');el.hidden=false;el.innerHTML='<p>Deine Änderungen sind noch nicht gespeichert.</p><div class="times-guard-actions"><button type="button" class="button subtle" data-times="keep">Weiter bearbeiten</button><button type="button" class="button subtle" data-times="discard">Änderungen verwerfen</button></div>';find('[data-times="keep"]').focus();}
-  function close(){if(disposed||controller.snapshot.busy)return;if(!controller.close()){guard();return;}dialog.close();if(returnFocus?.isConnected)returnFocus.focus();}
+  function restoreFocus(){(returnFocus?.isConnected?returnFocus:fallbackFocus())?.focus();}
+  function close(){if(disposed||controller.snapshot.busy)return;if(!controller.close()){guard();return;}dialog.close();restoreFocus();}
   function open(channelId=null){
     if(disposed||isBusy())return false;
     const state=getState(),id=channelId||(state.channels.some(c=>c.id===lastChannel)?lastChannel:null)||state.channels.find(c=>c.postingSchedule)?.id||state.channels[0]?.id;if(!id)return false;
@@ -61,7 +62,7 @@ export function createPostingTimesUI({dialog,openButton,getState,saveState,isBus
     const action=button.dataset.times;
     if(action==='close'){close();return;}
     if(action==='keep'){find('[data-times-guard]').hidden=true;pendingClose=false;pendingChannel=null;(guardReturnFocus?.isConnected?guardReturnFocus:find('[data-times-field="channel"]'))?.focus();guardReturnFocus=null;return;}
-    if(action==='discard'){controller.close({discard:true});if(pendingClose){dialog.close();returnFocus?.isConnected&&returnFocus.focus();}else if(pendingChannel){controller.open(pendingChannel);lastChannel=pendingChannel;render();}pendingClose=false;pendingChannel=null;return;}
+    if(action==='discard'){controller.close({discard:true});if(pendingClose){dialog.close();restoreFocus();}else if(pendingChannel){controller.open(pendingChannel);lastChannel=pendingChannel;render();}pendingClose=false;pendingChannel=null;return;}
     if(controller.snapshot.blocked||isBusy())return;
     if(action==='add'){controller.addSlot();render();find('.times-slot:last-child input')?.focus();}
     if(action==='remove'){const id=button.closest('[data-slot]').dataset.slot;controller.removeSlot(id);render();find('[data-times="add"]').focus();}

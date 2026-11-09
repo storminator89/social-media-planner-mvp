@@ -31,7 +31,7 @@ export function createSavedQueueController({getState,getPost,onApply,isBusy=()=>
   reset();return {get snapshot(){return snapshot();},reset,invalidate,search,choose,destroy(){disposed=true;proposal=null;}};
 }
 
-export function createSavedQueuePanel({container,getState,getPost,onApply,onSettings,isBusy,now}){
+export function createSavedQueuePanel({container,getState,getPost,onApply,onSettings,isBusy=()=>false,now}){
   let disposed=false;
   container.classList.add('saved-queue-panel');
   container.innerHTML='<summary>Freien Posting-Termin finden</summary><p class="field-hint">Nur gemeinsame freie Zeiten deiner gewählten Kanäle. Bestehende Termine bleiben, bis du sie bewusst ersetzt.</p><div class="queue-actions"><button type="button" class="button subtle" data-saved-queue="search">Freie Zeiten suchen</button><button type="button" class="button subtle" data-saved-queue="settings">Posting-Zeiten</button></div><p class="queue-status field-hint" role="status" aria-live="polite"></p><p class="queue-warning" hidden></p><div class="queue-results"></div><div class="queue-confirm" hidden></div>';
@@ -52,5 +52,5 @@ export function createSavedQueuePanel({container,getState,getPost,onApply,onSett
   const controller=createSavedQueueController({getState,getPost,onApply,isBusy,now,onChange:render});
   const click=event=>{const button=event.target.closest('[data-saved-queue]');if(disposed||!button||isBusy())return;switch(button.dataset.savedQueue){case'search':controller.search();break;case'settings':onSettings();break;case'choose':controller.choose(Number(button.dataset.index));break;case'confirm':controller.choose(Number(button.dataset.index),{confirmed:true});break;}};
   container.addEventListener('click',click);
-  return {invalidate:controller.invalidate,reset(){controller.reset();container.open=false;},destroy(){if(disposed)return;disposed=true;controller.destroy();container.removeEventListener('click',click);}};
+  return {openSearch(){if(disposed||isBusy())return false;container.open=true;controller.search();find('[data-saved-queue="search"]').focus();return true;},invalidate:controller.invalidate,reset(){controller.reset();container.open=false;},destroy(){if(disposed)return;disposed=true;controller.destroy();container.removeEventListener('click',click);}};
 }
