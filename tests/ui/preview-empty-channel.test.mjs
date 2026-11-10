@@ -14,7 +14,7 @@ function harness(post){
 }
 test('channel-less draft shows base text without inventing Instagram selection',()=>{
  const p={channels:[],text:'<script>literal</script>\nDraft',variantTexts:{mastodon:'Retained'}},before=JSON.stringify(p),h=harness(p);h.context.render();
- assert.equal(h.$('#preview-channel').disabled,true);assert.equal(h.$('#preview-channel').value,'');assert.doesNotMatch(h.$('#preview-channel').innerHTML,/instagram|mastodon/);assert.equal(h.$('#preview-text').textContent,p.text);assert.equal(h.$('.social-preview').dataset.platform,'base');assert.equal(h.$('#preview-name').textContent,'Klartext · Planungsvorschau');assert.match(h.$('.preview-disclaimer').textContent,/Neutrale Vorschau/);assert.equal(JSON.stringify(p),before);
+ assert.equal(h.$('#preview-channel').disabled,true);assert.equal(h.$('#preview-channel').value,'');assert.doesNotMatch(h.$('#preview-channel').innerHTML,/instagram|mastodon/);assert.equal(h.$('#preview-text').textContent,p.text);assert.equal(h.$('.social-preview').dataset.platform,'base');assert.equal(h.$('#preview-name').textContent,'Klartext · Planungsvorschau');assert.equal(h.$('.preview-disclaimer').textContent,'');assert.equal(JSON.stringify(p),before);
 });
 test('Mastodon select, deselect, and reselect retain explicit empty variant without fake target',()=>{
  const p={channels:['mastodon'],text:'Base',variantTexts:{mastodon:''}},h=harness(p);h.context.render();assert.equal(h.$('#preview-channel').disabled,false);assert.equal(h.$('.social-preview').dataset.platform,'mastodon');assert.equal(h.$('#preview-text').textContent,'Für diesen Kanal ist noch kein Text vorhanden.');
@@ -34,12 +34,12 @@ test('normal composer omits redundant limit prose but preserves counter and acti
  p.channels=[];h.context.render();assert.equal(h.$('#character-hint').textContent,'Kanal wählen.');
 });
 test('preview never repeats channel formatting descriptions',()=>{
- for(const channel of CHANNELS){const h=harness({channels:[channel.id],text:'Text',variantTexts:{}});h.context.render();const note=h.$('.preview-disclaimer').textContent;assert.match(note,/Keine Liveansicht/);assert.match(note,/Darstellung kann abweichen/);assert.match(note,/kein Versand/);assert.ok(note.length<80);}
+ for(const channel of CHANNELS){const h=harness({channels:[channel.id],text:'Text',variantTexts:{}});h.context.render();const note=h.$('.preview-disclaimer').textContent;assert.equal(note,'');}
 });
 test('composer removes repeated explanatory blocks without removing warnings or controls',()=>{
  const html=readFileSync(new URL('../../public/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/class="visual-text-tools"|class="demo-explainer"|id="visual-text-heading"/);
- for(const id of ['visual-text-note','character-hint','variant-mode-hint','workspace-missing-media','mastodon-planning-status','form-errors','post-tags-hint','schedule-timezone'])assert.ok(html.includes('id="'+id+'"'),id);
- assert.match(html,/aria-describedby="variant-mode-hint character-hint visual-text-note"/);
+ for(const id of ['character-hint','variant-mode-hint','workspace-missing-media','mastodon-planning-status','form-errors','schedule-timezone'])assert.ok(html.includes('id="'+id+'"'),id);
+ assert.match(html,/aria-describedby="variant-mode-hint character-hint"/);
 });
 
 test('Mastodon status is visible only while Mastodon is a selected planning target',()=>{

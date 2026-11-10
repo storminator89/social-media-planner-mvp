@@ -45,8 +45,7 @@ The official business-login and `/me` references were requested again through we
 retrieval on this date; both returned HTTP 429. The current synthetic `data`-array
 fixtures therefore remain an unverified provider-shape assumption, not a new
 compatibility finding. No guessed alternate shape, PKCE, signed nonce, or expiry
-was introduced. No REA skill is available in this worker's catalog or checkout;
-normal full-source inspection and tests were used.
+was introduced. Normal full-source inspection and tests were used.
 
 Still blocked before production activation: independently verified authorization
 response/code-injection protection, registered application and hosted callback

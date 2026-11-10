@@ -52,4 +52,4 @@ Eine erfolgreiche LinkedIn-Anmeldung ermöglicht in diesem Stand Kontoverifikati
 - https://learn.microsoft.com/en-us/linkedin/shared/authentication/programmatic-refresh-tokens
 - https://datatracker.ietf.org/doc/html/rfc9700
 
-REA v60: vollständige eigene Quellbasis, deshalb normale Quell-/Test-/Browserprüfung. Kein fremder Live-Capture und keine REA-Engine behauptet.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.

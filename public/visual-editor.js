@@ -16,5 +16,5 @@ export function updateVisualPresentation({channelId,header,note,preview,previewN
  if(header)header.textContent=info?info.name:'Basistext';
  if(note)note.textContent=info?.note||'Klartext · keine Formatierung.';
  if(preview){preview.dataset.platform=channelId||'base';preview.dataset.mediaFirst=String(!!info?.mediaFirst);}
- if(previewNote)previewNote.textContent='Keine Liveansicht · Darstellung kann abweichen · kein Versand.';
+ if(previewNote)previewNote.textContent='';
 }

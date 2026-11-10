@@ -26,4 +26,4 @@ Alle Live-Grenzen aus 0.7 gelten weiter: echte Sites-Identität, Cloud-D1/R2, Pr
 
 Das vollständige Quellinventar wird im Root-Manifest gebunden. `YOUTUBE-UI-v0.7.sha256` ist ein unverändertes historisches Komponentenmanifest; dessen damalige index.html ist nicht das aktuelle Labels-HTML. Es ist ausdrücklich keine aktuelle Releaseprüfung. Historische Nachweise einschließlich des WebAPI-only-Workerablaufs stehen in `verification-0.7.md`.
 
-REA v60 wurde erneut berücksichtigt: vollständige Quellen erfordern normale Source-/Testprüfung statt REA-Engine/Decompilation. Es wird weder eine Engine-Ausführung noch ein Live-Capture behauptet.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.

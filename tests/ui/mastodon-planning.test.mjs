@@ -50,7 +50,7 @@ test('filter and overview derive every planning target from CHANNELS and preserv
  for(const c of CHANNELS)assert.match(fields['#channel-filter'].innerHTML,new RegExp('value="'+c.id+'"'));
  assert.equal(fields['#channel-filter'].value,'mastodon');assert.equal(fields['#planning-channel-count'].textContent,'4');context.channel='all';context.renderPlanningChannelControls();assert.equal(fields['#channel-filter'].value,'all');
  assert.match(html,/id="planning-channel-count"/);assert.match(html,/Planungsziele/);assert.doesNotMatch(html,/Demo-Kanäle|<strong>3<\/strong>/);assert.match(app,/renderPostLabelFilter\(\);renderPlanningChannelControls\(\)/);
- const summary=app.slice(app.indexOf('function showChannels(){'),app.indexOf('\n',app.indexOf('function showChannels(){')));assert.doesNotMatch(summary,/Nicht verbunden|enthält beides nicht/);assert.match(summary,/keine bestätigten Kontoverbindungen/);
+ const summary=app.slice(app.indexOf('function showChannels(){'),app.indexOf('\n',app.indexOf('function showChannels(){')));assert.doesNotMatch(summary,/Nicht verbunden|enthält beides nicht/);assert.match(summary,/Beispielprofil/);assert.match(summary,/Planungsziel/);
 });
 
 test('hung readiness request or JSON body times out without blocking planning or stale overwrite',async()=>{

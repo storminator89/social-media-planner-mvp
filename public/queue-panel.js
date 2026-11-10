@@ -10,7 +10,7 @@ export function sharedQueueRules(post, { weekdays, time }) {
 
 export function createQueuePanel({ container, getPost, getPosts, onApply, isBusy }) {
   container.innerHTML = `<summary>Freie Queue-Termine</summary>
-    <p class="field-hint">Gleiche Wochen-Slots für alle gewählten Kanäle, in der Beitragszeitzone. Nur für diesen Editor, nicht gespeichert. Keine automatische Veröffentlichung.</p>
+
     <fieldset class="queue-days"><legend>Wochentage</legend>${[[1,'Mo'],[2,'Di'],[3,'Mi'],[4,'Do'],[5,'Fr'],[6,'Sa'],[0,'So']].map(([day,label])=>`<label><input type="checkbox" value="${day}" ${[1,3,5].includes(day)?'checked':''}><span>${label}</span></label>`).join('')}</fieldset>
     <div class="queue-options"><label>Slot-Uhrzeit<input type="time" class="queue-time" value="09:00" aria-label="Queue-Uhrzeit"></label><label>Abstand in Minuten<input type="number" class="queue-gap" min="0" max="1440" step="1" value="30" aria-label="Queue-Mindestabstand"></label></div>
     <button type="button" class="button subtle queue-search">Vorschläge suchen</button>

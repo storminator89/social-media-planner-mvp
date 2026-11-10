@@ -26,4 +26,4 @@ Echte Sites-Dispatch-Identität, physisch private D1-Bindings, Cloudmigration un
 
 Das Root-Manifest bindet das aktuelle Inventar. `editorial-labels/SOURCE-v0.7.1.sha256` und `YOUTUBE-UI-v0.7.sha256` sind historische Komponentenmanifeste, keine aktuelle Releaseprüfung. Die älteren Nachweise bleiben in `verification-0.7.1.md` und vorherigen Versionsberichten erhalten.
 
-REA v60 wurde erneut angewandt: vollständiges Quellrepository, daher normale Source-/Test-/Browserprüfung, keine REA-Engine oder Decompilation und kein fremder Live-Capture.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.

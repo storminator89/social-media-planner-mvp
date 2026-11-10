@@ -95,7 +95,7 @@ test('creation is lazy; busy/open guards and browser/policy limitations are expl
   assert.equal(h.nodes.length, 0); assert.equal(h.picker.open(), false); assert.equal(h.nodes.length, 0);
   busy = false; assert.equal(h.picker.open(), true); assert.equal(h.picker.open(), false);
   assert.equal(h.picker.hasPendingWork, false); assert.equal(h.captureDisabled, true);
-  assert.match(h.dialog.html, /Browser, Codec und Sicherheitsrichtlinie/);
+  assert.match(h.dialog.html, /MP4 \/ WebM · max. 8 MiB/);
   assert.doesNotMatch(h.dialog.html, /noch nicht freigegeben/); assert.equal(h.videos.length, 0);
   await h.action('choose'); assert.equal(h.controls.get('#video-still-file').clicked, true);
   h.picker.close(); assert.equal(document.activeElement.id, 'opener'); assert.equal(h.picker.hasPendingWork, false);

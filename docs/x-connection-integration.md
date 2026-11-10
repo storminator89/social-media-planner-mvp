@@ -32,6 +32,6 @@ Commands: npm test; npm run check. Full suite includes 75 original lifecycle tes
 
 The only prior expectation changed is the default X start endpoint: 503 closed instead of 404 absent. No original failure was hidden. Worker build is deterministic and all assets remain owner-protected through the existing regression suite. No new actual browser or hosted/provider-live acceptance run is claimed. Existing historical verification reports describe their earlier versions, not this new candidate.
 
-REA skill v60 was read. Since the available input is the complete source repository, its explicit instruction is to use normal source/test tools rather than invoke REA runtime/decompilation.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.
 
 Final run: 1524/1524 tests passed, zero failures/skips, JavaScript syntax passed. A separate reviewer inspected store.mjs, http-router.mjs and migration 0009, reran all 10 new integration tests, and reported no concrete blocking defect in that scope. This is not a full independent security audit or live-host acceptance.

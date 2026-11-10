@@ -23,7 +23,7 @@ screenshots/
 *.trace
 *.tar.gz
 *.zip
-.openai/execution-profile.json
+.openai/
 .DS_Store
 
 dist/

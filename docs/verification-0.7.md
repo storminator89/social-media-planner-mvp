@@ -40,4 +40,4 @@ Nicht nachgewiesen: echte Sites-Dispatch-Sitzungen und Callback-Cookies, gehoste
 
 Kein Refresh, Reconnect, Hintergrundscheduler, öffentlicher Publisher, automatischer Retry oder allgemeiner Recovery-/Retentionpfad. Online-Access endet beim Tokenablauf. Lokales Trennen ist kein Google-Widerruf und löscht keine Videos; Schlüsselverlust benötigt gesonderte autorisierte Wiederherstellung. Details und notwendige Freigaben: `youtube-operation.md`, `youtube-data.md`, `youtube-http-contract.md` und `sites-runtime.md`.
 
-REA v60 wurde angewandt: Vollständiger Quellbaum bedeutet normale Source-/Runtime-Prüfung statt REA-Engine/Decompilation. Keine entsprechende Engine-Ausführung wurde behauptet. Historische Versionen sind in `verification-0.3.md` bis `verification-0.6.md` getrennt dokumentiert.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.

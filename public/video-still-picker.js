@@ -272,11 +272,11 @@ export function createVideoStillPicker({onImage, isBusy = () => false, fallbackF
   if (host) dialog.hidden = true;
   dialog.id = 'video-still-picker'; dialog.className = 'video-still-picker';
   dialog.setAttribute('aria-labelledby', 'video-still-title');
-  dialog.innerHTML = `<header class="video-still-head"><div><h2 id="video-still-title">Standbild auswählen</h2><p>Video bleibt lokal. Nur das gewählte Bild geht in den Bildeditor.</p></div><button type="button" class="icon-button" data-video-still="close" aria-label="Zurück zum Bildeditor">✕</button></header>
+  dialog.innerHTML = `<header class="video-still-head"><div><h2 id="video-still-title">Standbild auswählen</h2></div><button type="button" class="icon-button" data-video-still="close" aria-label="Zurück zum Bildeditor">✕</button></header>
    <div class="video-still-body">
     <div class="video-still-toolbar"><button type="button" class="button subtle" data-video-still="choose">Video auswählen</button><span id="video-still-filename">Noch keine Datei ausgewählt</span><input id="video-still-file" type="file" accept="video/mp4,video/webm" hidden></div>
-    <div id="video-still-preview" class="video-still-preview"><p id="video-still-empty">Wähle eine MP4- oder WebM-Datei bis 8 MiB.</p></div>
-    <details class="video-still-details"><summary>Welche Videos funktionieren?</summary><p>MP4 mit H.264 und optional AAC-LC oder WebM mit VP8/VP9 und optional Opus. Maximal 8 MiB, 10 Minuten, 1280 Pixel je Kante und 921.600 Pixel insgesamt (z. B. 1280 × 720). Browser, Codec und Sicherheitsrichtlinie können die Vorschau begrenzen. Kein Videoschnitt oder Tonexport.</p></details>
+    <div id="video-still-preview" class="video-still-preview"><p id="video-still-empty">MP4 / WebM · max. 8 MiB</p></div>
+
    </div>
    <footer class="video-still-footer"><p id="video-still-status" role="status" aria-live="polite" tabindex="0"></p><div><button type="button" class="button subtle" data-video-still="close">Zurück</button><button type="button" class="button primary" data-video-still="capture" disabled>Standbild bearbeiten</button></div></footer>`;
   const query = selector => dialog.querySelector(selector);

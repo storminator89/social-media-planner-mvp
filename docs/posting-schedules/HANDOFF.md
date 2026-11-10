@@ -40,4 +40,4 @@ Nur die 26 Dateien aus `DELTA-FILES.txt` übernehmen. Der übrige isolierte Baum
 
 Siehe `TEST-RESULTS.md` und a separate browser record (excluded from this source checkpoint). Die vollständige Suite läuft in der getrennten integrierten QA-Kopie, nicht mit dem absichtlich alten Backend des isolierten UI-Baums. `SOURCE.sha256` bindet die 26 Delta-Dateien. Kein unabhängiger Review wird durch Eigenprüfung ersetzt; Integrator koordiniert die Nachprüfung.
 
-REA v60 wurde gelesen und angewandt: vollständiger Quellbaum bedeutet normale Quellprüfung, nicht REA-Setup/Providerdiagnose oder Decompilation. Die interaktive Laufzeitprüfung betrifft ausschließlich die eigene App; daraus werden keine unbelegten Buffer-Laufzeiteigenschaften abgeleitet.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.

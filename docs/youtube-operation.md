@@ -57,4 +57,4 @@ Geprüfte Grundlagen, keine Behauptung einer erfolgten Live-Integration:
 - Videos/Verarbeitung: https://developers.google.com/youtube/v3/docs/videos
 - Entwickler-/Datenschutzregeln: https://developers.google.com/youtube/terms/developer-policies
 
-REA-Anleitung wurde berücksichtigt: Da der vollständige Quellbaum vorliegt, verlangt sie normale Source-/Runtime-Prüfung statt REA-Engine/Decompilation. Es wurde keine REA-Engine-Ausführung behauptet. Tests, Browserbelege und offene Livegrenzen stehen getrennt in `verification.md`.
+Verification uses the complete application source and automated tests. It does not establish live-provider or hosted-runtime acceptance.

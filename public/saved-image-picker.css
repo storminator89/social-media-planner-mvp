@@ -1,0 +1,34 @@
+/* A native top-layer dialog keeps the composer underneath and unchanged. */
+.saved-image-picker{box-sizing:border-box;width:min(660px,calc(100vw - 28px));max-width:calc(100vw - 28px);max-height:calc(100dvh - 28px);padding:0;border:1px solid var(--line,#e9eaf0);border-radius:16px;background:var(--surface,#fff);color:var(--ink,#232332);box-shadow:0 24px 80px #20153d40;overflow:hidden}
+.saved-image-picker[open]{display:flex;flex-direction:column}
+.saved-image-picker::backdrop{background:#25213c80;backdrop-filter:blur(3px)}
+.saved-image-head{padding:22px 24px 18px;border-bottom:1px solid var(--line,#e9eaf0);flex-shrink:0}
+.saved-image-head h2{margin:0 0 10px;font-size:21px;line-height:1.3;letter-spacing:-.35px}
+.saved-image-head p{margin:0;color:var(--muted,#777887);font-size:13px;line-height:1.6}
+.saved-image-body{padding:18px 24px;overflow:auto;overscroll-behavior:contain;min-height:0}
+.saved-image-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.saved-image-card{display:flex;flex-direction:column;min-width:0;padding:0;border:2px solid var(--line,#e9eaf0);border-radius:10px;overflow:hidden;background:var(--surface,#fff);text-align:left;cursor:pointer;color:inherit;font:inherit}
+.saved-image-card:hover:not(:disabled){border-color:#c4b8e8;background:#fcfbff}
+.saved-image-card[aria-pressed="true"]{border-color:var(--purple,#7360d5);background:var(--purple-light,#f0edfb)}
+.saved-image-thumbnail{display:flex;align-items:center;justify-content:center;width:100%;height:132px;background:#eeedf3;overflow:hidden}
+.saved-image-thumbnail img{display:block;min-width:0;min-height:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.saved-image-preview-failed{padding:14px;text-align:center;font-size:12px;line-height:1.5;color:#665e75}
+.saved-image-details{display:flex;flex-direction:column;gap:7px;min-width:0;padding:12px;width:100%;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.saved-image-name{font-size:13px;font-weight:650}
+.saved-image-source,.saved-image-usage,.saved-image-alt{color:#6b6478}
+.saved-image-mark{align-self:flex-start;margin-top:3px;border-radius:5px;padding:4px 8px;background:#f0edf7;color:#665184;font-size:11px;font-weight:650}
+.saved-image-card[aria-pressed="true"] .saved-image-mark{background:var(--purple,#7360d5);color:#fff}
+.saved-image-notice,.saved-image-empty{margin:0 0 14px;padding:12px 14px;border-radius:8px;background:#f6f3fb;color:#65546e;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.saved-image-empty{margin-bottom:0}
+.saved-image-footer{flex-shrink:0;padding:14px 24px 18px;border-top:1px solid var(--line,#e9eaf0);background:var(--surface,#fff)}
+.saved-image-status{font-size:12px;line-height:1.5;overflow-wrap:anywhere;margin:0 0 12px;max-height:4.5em;overflow:auto}
+.saved-image-status:empty{display:none}
+.saved-image-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.saved-image-picker .button{min-height:44px;white-space:normal}
+.saved-image-picker :focus-visible{outline:3px solid #9276d1;outline-offset:3px}
+.saved-image-card:focus-visible{outline-offset:-5px}
+.saved-image-picker [hidden]{display:none!important}
+@media(max-width:500px){.saved-image-head{padding:18px 16px 14px}.saved-image-head h2{font-size:20px}.saved-image-body{padding:14px 16px}.saved-image-list{grid-template-columns:1fr}.saved-image-thumbnail{height:160px}.saved-image-footer{padding:12px 16px 16px}.saved-image-actions .button{flex:1;font-size:13px}.saved-image-details{font-size:13px}}
+/* At high zoom or in a short viewport, let the whole dialog scroll so that
+   neither the explanation nor the confirmation buttons become unreachable. */
+@media(max-height:480px){.saved-image-picker[open]{display:block;overflow:auto}.saved-image-body{overflow:visible}}

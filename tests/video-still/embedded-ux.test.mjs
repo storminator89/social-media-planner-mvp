@@ -20,11 +20,12 @@ function harness() {
   async fire(name,event={}){for(const fn of [...(this.listeners[name]||[])])await fn({preventDefault(){},target:this,...event});}
   setAttribute(name,value){this[name]=value;}removeAttribute(name){if(name==='src')this.src='';else delete this[name];}
   append(child){this.children.push(child);child.parent=this;}remove(){this.isConnected=false;if(this.parent)this.parent.children=this.parent.children.filter(x=>x!==this);}
+  contains(target){for(let node=target;node;node=node.parent)if(node===this)return true;return false;}
   focus(){document.activeElement=this;}click(){}showModal(){this.open=true;}close(){this.open=false;}
   getContext(){return context;}toBlob(fn,type){queueMicrotask(()=>fn(new Blob(['pixels'],{type})));}
   querySelector(selector){return this.controlsMap.get(selector);}
   querySelectorAll(selector){if(selector.includes('data-')&&selector.includes('close'))return [this.controlsMap.get(selector)].filter(Boolean);return [...new Set(this.controlsMap.values())];}
-  set innerHTML(html){this.html=html;for(const m of html.matchAll(/id="([^"]+)"/g))this.controlsMap.set('#'+m[1],new Element('control',m[1]));for(const m of html.matchAll(/data-(studio|video-still)="([^"]+)"/g)){const element=new Element('button');element.dataset[m[1]==='studio'?'studio':'videoStill']=m[2];this.controlsMap.set(`[data-${m[1]}="${m[2]}"]`,element);}for(const [key,val]of Object.entries({ratio:0,zoom:1,x:50,y:50,brightness:100,contrast:100,saturation:100,text:'','text-size':6,'text-y':75,'text-align':'center','text-tone':'light'})){const e=this.controlsMap.get('#studio-'+key);if(e)e.value=String(val);}}
+  set innerHTML(html){this.html=html;for(const m of html.matchAll(/id="([^"]+)"/g))this.controlsMap.set('#'+m[1],new Element('control',m[1]));for(const m of html.matchAll(/data-(studio|video-still)="([^"]+)"/g)){const element=new Element('button');element.dataset[m[1]==='studio'?'studio':'videoStill']=m[2];this.controlsMap.set(`[data-${m[1]}="${m[2]}"]`,element);}for(const [key,val]of Object.entries({ratio:0,zoom:1,x:50,y:50,brightness:100,contrast:100,saturation:100,text:'','text-size':6,'text-y':75,'text-align':'center','text-tone':'light'})){const e=this.controlsMap.get('#studio-'+key);if(e)e.value=String(val);}for(const control of this.controlsMap.values())control.parent=this;}
  }
  class Video extends Element {
   constructor(){super('video');this.src='';this.paused=true;this.seeking=false;this.readyState=0;this.currentTime=0;this.duration=2;this.videoWidth=640;this.videoHeight=360;this.error=null;}
@@ -127,9 +128,9 @@ test('footer stays outside scrollable content and native disclosure retains all 
  const css=await readFile(new URL('../../public/video-still-picker.css',import.meta.url),'utf8');
  const h=harness();try{
   await h.studio.open();await h.editorAction('video-still');const html=h.dialog.html;
-  assert.match(html,/<div class="video-still-body">[\s\S]*<details[\s\S]*<\/details>\s*<\/div>\s*<footer class="video-still-footer">/);
-  assert.match(html,/<summary>Welche Videos funktionieren\?<\/summary>/);assert.match(html,/8 MiB, 10 Minuten, 1280 Pixel.*921\.600/);
-  assert.match(html,/Browser, Codec und Sicherheitsrichtlinie/);assert.match(html,/role="status" aria-live="polite"/);
+  assert.match(html,/<div class="video-still-body">[\s\S]*<div id="video-still-preview"[\s\S]*<\/div>\s*<\/div>\s*<footer class="video-still-footer">/);
+  assert.doesNotMatch(html,/<details/);assert.match(html,/MP4 \/ WebM · max. 8 MiB/);
+  assert.doesNotMatch(html,/Browser, Codec und Sicherheitsrichtlinie/);assert.match(html,/role="status" aria-live="polite"/);
   assert.match(css,/\.video-still-body\{[^}]*min-height:0;overflow:auto/);assert.match(css,/\.video-still-footer\{flex-shrink:0/);
   assert.match(css,/:focus-visible/);assert.doesNotMatch(html,/video-still-policy|video-still-help|Lokaler Prototyp/);
  }finally{h.restore();}
@@ -145,7 +146,7 @@ test('short-height fallback preserves a whole-surface scroll escape instead of c
   await h.studio.open();await h.editorAction('video-still');
   assert.equal(h.dialog.tag,'section');assert.equal(h.dialog.hidden,false);assert.equal(h.dialog.parent,h.editor);
   assert.match(h.dialog.html,/role="status" aria-live="polite" tabindex="0"/);
-  assert.match(h.dialog.html,/<summary>Welche Videos funktionieren\?<\/summary>/);
+  assert.match(h.dialog.html,/MP4 \/ WebM · max. 8 MiB/);
   assert.equal(h.dialog.querySelector('[data-video-still="close"]').disabled,false);
   await h.editor.fire('cancel');assert.equal(h.editor.open,true);assert.equal(h.picker.isOpen,false);
  }finally{h.restore();}

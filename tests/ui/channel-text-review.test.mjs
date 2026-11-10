@@ -71,7 +71,7 @@ test('paragraphs, tabs, CRLF and full long text are preserved in projection',()=
 });
 test('only text limit success is claimed, never publishing readiness',()=>{
  const result=renderChannelTextReview(post(),CHANNELS);assert.match(result.items,/Textlänge passt/);assert.doesNotMatch(result.summary+result.items,/bereit|veröffentlicht|gepostet|gespeichert/i);
- assert.match(html,/Nur Textprüfung\. Bilder, Termin und Versand ungeprüft/);
+ assert.match(html,/Kanaltexte prüfen/);assert.doesNotMatch(html,/class="channel-review-note"/);
 });
 test('static native details and summary remain a single stable keyboard target',()=>{
  assert.equal((html.match(/id="channel-checks"/g)||[]).length,1);assert.match(html,/<details id="channel-checks" class="channel-text-review"><summary id="channel-review-summary">/);

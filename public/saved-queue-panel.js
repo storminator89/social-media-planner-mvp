@@ -34,7 +34,7 @@ export function createSavedQueueController({getState,getPost,onApply,isBusy=()=>
 export function createSavedQueuePanel({container,getState,getPost,onApply,onSettings,isBusy=()=>false,now}){
   let disposed=false;
   container.classList.add('saved-queue-panel');
-  container.innerHTML='<summary>Freien Posting-Termin finden</summary><p class="field-hint">Nur gemeinsame freie Zeiten deiner gewählten Kanäle. Bestehende Termine bleiben, bis du sie bewusst ersetzt.</p><div class="queue-actions"><button type="button" class="button subtle" data-saved-queue="search">Freie Zeiten suchen</button><button type="button" class="button subtle" data-saved-queue="settings">Posting-Zeiten</button></div><p class="queue-status field-hint" role="status" aria-live="polite"></p><p class="queue-warning" hidden></p><div class="queue-results"></div><div class="queue-confirm" hidden></div>';
+  container.innerHTML='<summary>Freien Posting-Termin finden</summary><div class="queue-actions"><button type="button" class="button subtle" data-saved-queue="search">Freie Zeiten suchen</button><button type="button" class="button subtle" data-saved-queue="settings">Posting-Zeiten</button></div><p class="queue-status field-hint" role="status" aria-live="polite"></p><p class="queue-warning" hidden></p><div class="queue-results"></div><div class="queue-confirm" hidden></div>';
   const find=selector=>container.querySelector(selector);
   function render(s){
     if(disposed)return;find('.queue-status').textContent=s.message;const results=find('.queue-results');results.replaceChildren();
