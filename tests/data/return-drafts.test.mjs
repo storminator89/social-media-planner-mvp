@@ -14,16 +14,17 @@ const variant=(id,channelId='bluesky')=>({id:`v-${id}`,channelId,body:`Kanal ${i
 const draft=(id,channelId='bluesky')=>({id,title:`Titel ${id}`,body:`Basis ${id}`,tags:[' Label ','A\r\nB','A','A'],stage:'draft',scheduledAt:null,scheduleBinding:null,timezone:'Asia/Kathmandu',cover:'studio',createdAt:'2025-01-02T03:04:05.678Z',updatedAt:'2025-01-02T03:04:05.678Z',variants:[variant(id,channelId)]});
 const fixture=()=>({schemaVersion:3,revision:0,settings:{timezone:'Asia/Tokyo',locale:'en-GB'},channels:CHANNELS.map(c=>({id:c.id,platform:c.id,name:c.name,handle:'',color:c.color,enabled:true,connectionStatus:'manual',postingSchedule:rules()})),posts:[draft('one'),draft('two'),draft('three','linkedin')],media:[]});
 const stable=p=>{const n=structuredClone(p);delete n.updatedAt;return n;};
-async function setup(t,factory=serverStore,{media=false}={}){
+async function setup(t,factory=serverStore,{media=false,multi=false}={}){
  const env={DB:new D1TestAdapter(),BUCKET:new R2TestAdapter(),TAKT_SITE_ID:'fixture-site',TAKT_SITE_ORIGIN:'https://planner.example'},calls=[];t.after(()=>env.DB.sql.close());
  let intercept;const handler=createSitesHandler();
  const realFetch=(path,options={})=>handler.fetch(new Request('https://planner.example'+path,{...options,headers:{...options.headers,'oai-authenticated-user-id':'alice'}}),env);
  const client=createPlannerClient({fetcher:(path,options={})=>{calls.push([options.method||'GET',path]);return intercept?intercept(path,options,realFetch):realFetch(path,options);}});
  let state=fixture();
  if(media){const jpeg=new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,0,0,255,217]);const m=await client.uploadMedia(new File([jpeg],'exact.jpg',{type:'image/jpeg'}),'Exact Alt 👩‍💻');const second=await client.uploadMedia(new File([new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,0,0,255,217])],'second.jpg',{type:'image/jpeg'}),'Second ordered alt');state.posts[0].variants[0].mediaIds=[m.id,second.id];}
+ if(multi){const v=variant('one-linkedin','linkedin');v.mediaIds=[...state.posts[0].variants[0].mediaIds].reverse();state.posts[0].variants.push(v);}
  // Unrelated fixed precision/fold and a bound post must survive byte-for-byte.
  const fixed=draft('fixed','instagram');fixed.stage='planned';fixed.scheduledAt='2026-10-25T01:30:17.123Z';fixed.variants[0].status='planned';fixed.variants[0].scheduledAt=fixed.scheduledAt;
- state.posts.push(fixed);for(const p of state.posts.filter(p=>p.stage==='draft')){p.stage='planned';p.scheduledAt='2099-10-15T10:01:02.123Z';p.variants[0].status='planned';p.variants[0].scheduledAt=p.scheduledAt;}state=await client.save(state);
+ state.posts.push(fixed);for(const p of state.posts.filter(p=>p.stage==='draft')){p.stage='planned';p.scheduledAt='2099-10-15T10:01:02.123Z';for(const v of p.variants){v.status='planned';v.scheduledAt=p.scheduledAt;}}state=await client.save(state);
  const proposal=findNextPostingSlots(state,{postId:'bound',channelIds:['mastodon'],after:'2099-10-01T00:00:00.000Z',limit:1}),chosen=selectPostingSlot(state,proposal,proposal.suggestions[0],{now:'2099-10-01T00:00:00.000Z'});
  const bound=draft('bound','mastodon');bound.stage='planned';bound.scheduledAt=chosen.scheduledAt;bound.timezone=chosen.timezone;bound.scheduleBinding=chosen.scheduleBinding;Object.assign(bound.variants[0],{status:'planned',scheduledAt:chosen.scheduledAt,timezone:chosen.timezone});state.posts.push(bound);await client.save(state);
  const store=factory({client,timezone:'UTC',channels:CHANNELS}),ui=normalizeState(await store.load()),canonical=await client.load();calls.length=0;
@@ -94,4 +95,23 @@ test('stale paused disabled bindings may return and every workflow stays locked 
  for(const call of [()=>s.store.previewQueueReflow(ui,{channelId:'mastodon'}),()=>s.store.previewQueuePriority(ui,{postId:'bound',channelId:'mastodon'}),()=>s.store.previewDraftBatch(ui,{postIds:['one']})])assert.throws(call,e=>e.code==='RELOAD_REQUIRED');
  for(const call of [()=>s.store.reflowQueue(ui,{}),()=>s.store.prioritizeQueue(ui,{}),()=>s.store.scheduleDraftBatch(ui,{}),()=>s.store.save(ui),()=>s.store.splitDraft(ui,{postId:'one'})])await assert.rejects(call,e=>e.code==='RELOAD_REQUIRED');
  s.intercept(null);assert.equal((await s.store.load()).posts.find(p=>p.id==='bound').status,'draft');
+});
+
+for(const [name,factory] of [['server',serverStore],['browser',browserStore]])test(name+' returns multichannel appointments atomically preserving all content and independent media',async t=>{
+ const s=await setup(t,factory,{media:true,multi:true}),before=structuredClone(s.canonical),bucket=structuredClone([...s.env.BUCKET.data]);
+ const preview=s.store.previewReturnDrafts(s.ui,{postIds:['one','two']});assert.equal(s.calls.length,0);assert.equal(preview.entries[0].channels.length,2);
+ await s.store.returnDrafts(s.ui,preview);assert.deepEqual(s.calls,[['PUT','/api/planner/state']]);const after=await s.client.load();
+ for(const id of ['one','two']){const old=before.posts.find(p=>p.id===id),post=after.posts.find(p=>p.id===id);assert.deepEqual(stable(post),{...stable(old),stage:'draft',scheduledAt:null,scheduleBinding:null,variants:old.variants.map(v=>({...v,status:'draft',scheduledAt:null}))});}
+ for(const id of ['fixed','bound','three'])assert.deepEqual(stable(after.posts.find(p=>p.id===id)),stable(before.posts.find(p=>p.id===id)));
+ assert.deepEqual(after.media,before.media);assert.deepEqual([...s.env.BUCKET.data],bucket);assert.equal(after.capabilities.automaticPublishing,false);
+});
+test('secondary variant disagreement rejects the entire return without mutation',async t=>{
+ const s=await setup(t,serverStore,{multi:true});
+ for(const mutate of [v=>v.status='published',v=>v.publishedAt=now,v=>v.scheduledAt=now,v=>v.timezone='UTC',v=>v.mediaIds=['missing']]){
+  const bad=structuredClone(s.canonical);mutate(bad.posts.find(p=>p.id==='one').variants[1]);const held=structuredClone(bad);assert.throws(()=>prepareReturnDrafts(bad,{postIds:['two','one']}));assert.deepEqual(bad,held);
+ }
+});
+test('secondary content change or forged preview cannot confirm multichannel return',async t=>{
+ const s=await setup(t,serverStore,{multi:true});let p=s.store.previewReturnDrafts(s.ui,{postIds:['one']});p.entries[0].channels[1].text='forged';await assert.rejects(s.store.returnDrafts(s.ui,p),e=>e.code==='RETURN_PREVIEW_CHANGED');
+ p=s.store.previewReturnDrafts(s.ui,{postIds:['one']});const changed=structuredClone(s.ui);changed.posts.find(p=>p.id==='one').variantTexts.linkedin='changed';await assert.rejects(s.store.returnDrafts(changed,p),e=>e.code==='RETURN_STATE_CHANGED');assert.deepEqual(s.calls,[]);
 });

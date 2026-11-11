@@ -32,7 +32,7 @@ function harness(t,{prepare,save,onSaved,canOpen}={}){
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
 test('opens only the visible drafts unchecked with concise per-row blockers; no reads or writes',t=>{
  const h=harness(t);assert.equal(h.open(['two','none','multi']),true);assert.equal(h.dialog.open,true);assert.equal(h.preparations.length,0);assert.equal(h.writes,0);assert.equal(h.nodes.preview.disabled,true);assert.equal(document.activeElement,h.nodes.close);
- const inputs=h.nodes.list.querySelectorAll('input');assert.equal(inputs.length,3);assert.ok(inputs.every(i=>!i.checked));assert.equal(inputs[0].disabled,false);assert.equal(inputs[1].disabled,true);assert.equal(inputs[2].disabled,true);assert.match(h.nodes.list.textContent,/Einzelkanal/);assert.match(h.nodes.list.textContent,/Einzelkanal/);
+ const inputs=h.nodes.list.querySelectorAll('input');assert.equal(inputs.length,3);assert.ok(inputs.every(i=>!i.checked));assert.equal(inputs[0].disabled,false);assert.equal(inputs[1].disabled,true);assert.equal(inputs[2].disabled,false);assert.match(h.nodes.list.textContent,/Kanal fehlt/);
  assert.equal(h.open(),false);h.cancel();assert.equal(document.activeElement,h.opener);
 });
 test('selection uses visible row order, preview shows each actual time/zone and exact safe text; one confirm',async t=>{

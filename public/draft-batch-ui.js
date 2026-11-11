@@ -1,20 +1,23 @@
-import {CHANNELS,displayTitle,validatePost,normalizeMediaItems} from './model.js';
+import {CHANNELS,displayTitle,validatePost,normalizeMediaItems,effectiveMediaItems} from './model.js';
 import {channelTextChecks} from './variants.js';
 
 /** A disabled row explains its own blocker; no selected draft is ever skipped. */
 export function batchDraftProblem(post,channels){
   if(post?.status!=='draft'||post.scheduledAt!==null||post.scheduledInstant!==null||post.scheduleBinding!==null)return 'Kein ungeplanter Entwurf';
-  if(post.channels.length!==1)return post.channels.length?'Zuerst nach Kanälen aufteilen':'Zuerst Kanal wählen';
-  const channel=channels.find(c=>c.id===post.channels[0]);
-  if(!channel||!channel.enabled)return 'Kanal deaktiviert';
-  if(!channel.postingSchedule?.slots?.length)return 'Posting-Zeiten fehlen';
-  if(channel.postingSchedule.paused)return 'Posting-Zeiten pausiert';
-  const check=channelTextChecks(post,CHANNELS)[0];
-  if(!check?.valid)return check?.empty?'Kanaltext fehlt':'Kanaltext prüfen';
+  if(!post.channels.length)return 'Zuerst Kanal wählen';
+  for(const id of post.channels){
+    const channel=channels.find(c=>c.id===id);
+    if(!channel||!channel.enabled)return 'Kanal deaktiviert';
+    if(!channel.postingSchedule?.slots?.length)return 'Posting-Zeiten fehlen';
+    if(channel.postingSchedule.paused)return 'Posting-Zeiten pausiert';
+  }
+  for(const check of channelTextChecks(post,CHANNELS))if(!check?.valid)return check?.empty?'Kanaltext fehlt':'Kanaltext prüfen';
   if(!Array.isArray(post.mediaItems)||Object.hasOwn(post,'media'))return 'Bilder prüfen';
-  if(post.mediaItems.some(item=>!item?.alt?.trim()))return 'Alternativtext fehlt';
-  if(post.mediaItems.some(item=>!item?.id||item.dataUrl))return 'Bild zuerst speichern';
-  try{normalizeMediaItems(post.mediaItems);}catch{return 'Bilder prüfen';}
+  for(const id of post.channels){
+    let media;try{media=effectiveMediaItems(post,id);normalizeMediaItems(media);}catch{return 'Bilder prüfen';}
+    if(media.some(item=>!item?.alt?.trim()))return 'Alternativtext fehlt';
+    if(media.some(item=>!item?.id||item.dataUrl))return 'Bild zuerst speichern';
+  }
   return null;
 }
 
@@ -65,8 +68,14 @@ export function createDraftBatchUI({dialog,getState,getContext,canOpen,prepare,s
         const item=document.createElement('li'),title=document.createElement('strong'),text=document.createElement('p'),time=document.createElement('time'),channel=document.createElement('span');
         title.textContent=entry.title||entry.text.split('\n')[0];text.textContent=entry.text;time.dateTime=entry.instant;
         const date=new Intl.DateTimeFormat('de-DE',{timeZone:entry.timezone,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'shortOffset'}).format(new Date(entry.instant));
-        time.textContent=`${date} · ${entry.timezone}`;channel.textContent=getState().channels.find(c=>c.id===entry.channelId)?.name||entry.channelId;
-        item.append(title,channel,text,time);list.append(item);
+        time.textContent=`${date} · ${entry.timezone}`;
+        item.append(title,time);
+        for(const variant of entry.channels||[{channelId:entry.channelId,text:entry.text}]){
+          const channel=document.createElement('span'),text=document.createElement('p');
+          channel.textContent=getState().channels.find(c=>c.id===variant.channelId)?.name||variant.channelId;text.textContent=variant.text;
+          item.append(channel,text);
+        }
+        list.append(item);
       }
       status.textContent=`${preview.entries.length} ${preview.entries.length===1?'Entwurf':'Entwürfe'} · Nur Planung`;controls();back.focus();
     }catch(error){preview=null;status.textContent=error.message||'Keine Termine gefunden.';controls();status.focus();}

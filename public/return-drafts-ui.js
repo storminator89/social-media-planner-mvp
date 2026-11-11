@@ -2,7 +2,7 @@ import {displayTitle} from './model.js';
 
 export function returnDraftProblem(post){
   if(post?.status!=='scheduled'||!post.scheduledInstant)return 'Kein geplanter Beitrag';
-  if(post.channels.length!==1)return 'Nur Einzelkanal-Beiträge';
+  if(!post.channels.length)return 'Kanal fehlt';
   return null;
 }
 
@@ -49,8 +49,12 @@ export function createReturnDraftsUI({dialog,getState,getContext,canOpen,prepare
         const item=document.createElement('li'),title=document.createElement('strong'),text=document.createElement('p'),time=document.createElement('time'),channel=document.createElement('span');
         title.textContent=entry.title||entry.text.split('\n')[0];text.textContent=entry.text;time.dateTime=entry.instant;
         const date=new Intl.DateTimeFormat('de-DE',{timeZone:entry.timezone,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'shortOffset'}).format(new Date(entry.instant));
-        time.textContent=`${date} · ${entry.timezone}`;channel.textContent=getState().channels.find(c=>c.id===entry.channelId)?.name||entry.channelId;
-        item.append(title,channel,text,time);list.append(item);
+        time.textContent=`${date} · ${entry.timezone}`;item.append(title,time);
+        for(const variant of entry.channels||[{channelId:entry.channelId,text:entry.text}]){
+          const channel=document.createElement('span'),text=document.createElement('p');
+          channel.textContent=getState().channels.find(c=>c.id===variant.channelId)?.name||variant.channelId;text.textContent=variant.text;item.append(channel,text);
+        }
+        list.append(item);
       }
       status.textContent=`${preview.entries.length} ausgewählt · Als Entwürfe speichern`;controls();back.focus();
     }catch(error){if(candidate)cancel?.(candidate);preview=null;status.textContent=error.message||'Keine Termine gefunden.';controls();status.focus();}

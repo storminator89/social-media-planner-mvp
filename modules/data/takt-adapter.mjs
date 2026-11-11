@@ -333,10 +333,12 @@ export function createTaktStore({client=createPlannerClient(),timezone,channels,
       if(!sameData(ui,toUI(snapshot)))error('Speichere deine Änderungen vor der Stapelplanung.','BATCH_STATE_CHANGED');
       const {next,entries}=scheduling(()=>prepareDraftBatch(snapshot,{postIds}));
       for(const entry of entries){
-        const limit=channels.find(channel=>channel.id===entry.channelId)?.limit;
-        if(limit&&Array.from(entry.text).length>limit)error('Ein ausgewählter Kanaltext ist zu lang.','BATCH_CONTENT_REQUIRED');
         const source=next.posts.find(post=>post.id===entry.postId);
-        if(source.variants[0].mediaIds.some(id=>!snapshot.media.find(media=>media.id===id)?.altText?.trim()))error('Ergänze den Alternativtext des gespeicherten Bilds.','BATCH_CONTENT_REQUIRED');
+        for(const variant of source.variants){
+          const limit=channels.find(channel=>channel.id===variant.channelId)?.limit;
+          if(limit&&Array.from(variant.body).length>limit)error('Ein ausgewählter Kanaltext ist zu lang.','BATCH_CONTENT_REQUIRED');
+          if(variant.mediaIds.some(id=>!snapshot.media.find(media=>media.id===id)?.altText?.trim()))error('Ergänze den Alternativtext des gespeicherten Bilds.','BATCH_CONTENT_REQUIRED');
+        }
       }
       const intended={schemaVersion:DATA_SCHEMA_VERSION,revision:next.revision,settings:next.settings,channels:next.channels,posts:next.posts};
       if(new TextEncoder().encode(JSON.stringify(intended)).byteLength>1024*1024)error('Die Stapelplanung überschreitet die Speichergrenze.','BATCH_LIMIT',413);

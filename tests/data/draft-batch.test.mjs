@@ -14,13 +14,14 @@ const variant=(id,channelId='bluesky')=>({id:`v-${id}`,channelId,body:`Kanal ${i
 const draft=(id,channelId='bluesky')=>({id,title:`Titel ${id}`,body:`Basis ${id}`,tags:[' Label ','A\r\nB','A','A'],stage:'draft',scheduledAt:null,scheduleBinding:null,timezone:'Asia/Kathmandu',cover:'studio',createdAt:'2025-01-02T03:04:05.678Z',updatedAt:'2025-01-02T03:04:05.678Z',variants:[variant(id,channelId)]});
 const fixture=()=>({schemaVersion:3,revision:0,settings:{timezone:'Asia/Tokyo',locale:'en-GB'},channels:CHANNELS.map(c=>({id:c.id,platform:c.id,name:c.name,handle:'',color:c.color,enabled:true,connectionStatus:'manual',postingSchedule:rules()})),posts:[draft('one'),draft('two'),draft('three','linkedin')],media:[]});
 const stable=p=>{const n=structuredClone(p);delete n.updatedAt;return n;};
-async function setup(t,factory=serverStore,{media=false}={}){
+async function setup(t,factory=serverStore,{media=false,multi=false}={}){
  const env={DB:new D1TestAdapter(),BUCKET:new R2TestAdapter(),TAKT_SITE_ID:'fixture-site',TAKT_SITE_ORIGIN:'https://planner.example'},calls=[];t.after(()=>env.DB.sql.close());
  let intercept;const handler=createSitesHandler();
  const realFetch=(path,options={})=>handler.fetch(new Request('https://planner.example'+path,{...options,headers:{...options.headers,'oai-authenticated-user-id':'alice'}}),env);
  const client=createPlannerClient({fetcher:(path,options={})=>{calls.push([options.method||'GET',path]);return intercept?intercept(path,options,realFetch):realFetch(path,options);}});
  let state=fixture();
  if(media){const jpeg=new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,0,0,255,217]);const m=await client.uploadMedia(new File([jpeg],'exact.jpg',{type:'image/jpeg'}),'Exact Alt 👩‍💻');const second=await client.uploadMedia(new File([new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,0,0,255,217])],'second.jpg',{type:'image/jpeg'}),'Second ordered alt');state.posts[0].variants[0].mediaIds=[m.id,second.id];}
+ if(multi){const v=variant('one-linkedin','linkedin');v.mediaIds=[...state.posts[0].variants[0].mediaIds].reverse();state.posts[0].variants.push(v);}
  // Unrelated fixed precision/fold and a bound post must survive byte-for-byte.
  const fixed=draft('fixed','instagram');fixed.stage='planned';fixed.scheduledAt='2026-10-25T01:30:17.123Z';fixed.variants[0].status='planned';fixed.variants[0].scheduledAt=fixed.scheduledAt;
  state.posts.push(fixed);state=await client.save(state);
@@ -43,7 +44,7 @@ test('occupied fixed slot is never moved and minimum-gap collisions are skipped 
 });
 test('invalid or unavailable selected drafts fail the whole preparation without dropping an item',()=>{
  for(const ids of [[],['one','one'],['one','missing'],['one',1],null])assert.throws(()=>prepareDraftBatch(fixture(),{postIds:ids,now}));
- for(const mutate of [p=>p.stage='planned',p=>p.scheduledAt=now,p=>p.scheduleBinding={},p=>p.variants=[],p=>p.variants.push(variant('extra','linkedin')),p=>p.variants[0].body='',p=>p.variants[0].publishedAt=now,p=>p.variants[0].publishedUrl='https://example.com/p',p=>p.variants[0].format='story']){
+ for(const mutate of [p=>p.stage='planned',p=>p.scheduledAt=now,p=>p.scheduleBinding={},p=>p.variants=[],p=>p.variants.push(variant('extra','bluesky')),p=>p.variants[0].body='',p=>p.variants[0].publishedAt=now,p=>p.variants[0].publishedUrl='https://example.com/p',p=>p.variants[0].format='story']){
   const source=fixture();mutate(source.posts[1]);const before=structuredClone(source);assert.throws(()=>prepareDraftBatch(source,{postIds:['one','two'],now}));assert.deepEqual(source,before);
  }
  for(const mutate of [c=>c.enabled=false,c=>c.postingSchedule=null,c=>c.postingSchedule.paused=true,c=>c.postingSchedule.slots=[]]){const source=fixture();mutate(source.channels.find(c=>c.id==='bluesky'));assert.throws(()=>prepareDraftBatch(source,{postIds:['one'],now}));}
@@ -131,4 +132,45 @@ test('canonical UTF-8 byte growth is rejected before PUT instead of truncating o
  while(bytes(data)<1024*1024-44000)data.posts.push({...draft('large-'+data.posts.length),body:'界'.repeat(6500),variants:[]});
  const filler={...draft('last'),body:'',variants:[]};data.posts.push(filler);const room=1024*1024-bytes(data)-240;assert.ok(room>0);filler.body='界'.repeat(Math.floor(room/3))+'x'.repeat(room%3);assert.ok(bytes(data)<1024*1024);await s.client.save({schemaVersion:data.schemaVersion,revision:data.revision,settings:data.settings,channels:data.channels,posts:data.posts});
  const ui=await s.store.load();s.calls.length=0;assert.throws(()=>s.store.previewDraftBatch(ui,{postIds:['one','two']}),e=>e.code==='BATCH_LIMIT'&&e.status===413);assert.deepEqual(s.calls,[]);
+});
+
+test('multi-channel batch shares real slots, preserves every variant, and reserves every channel for later entries',()=>{
+ const source=fixture();source.posts[0].variants.push(variant('one-linkedin','linkedin'));const before=structuredClone(source);
+ const result=prepareDraftBatch(source,{postIds:['one','three'],now});
+ assert.deepEqual(source,before);assert.deepEqual(result.entries[0].channels.map(c=>c.channelId),['bluesky','linkedin']);
+ assert.equal(Date.parse(result.entries[1].instant)-Date.parse(result.entries[0].instant),3600000);
+ assert.equal(result.next.posts[0].scheduleBinding.refs.length,2);
+ for(const [i,v] of result.next.posts[0].variants.entries())assert.deepEqual(v,{...before.posts[0].variants[i],status:'planned',scheduledAt:result.entries[0].instant,timezone:result.entries[0].timezone});
+});
+test('multi-channel no shared slot and secondary empty/paused channels reject the complete batch without mutation',()=>{
+ for(const kind of ['no_overlap','paused','empty_text']){
+  const source=fixture();source.posts[1].variants.push(variant('two-linkedin','linkedin'));
+  if(kind==='empty_text')source.posts[1].variants[1].body='';
+  else if(kind==='paused')source.channels.find(c=>c.id==='linkedin').postingSchedule.paused=true;
+  else source.channels.find(c=>c.id==='linkedin').postingSchedule.slots=Array.from({length:7},(_,weekday)=>({id:'only'+weekday,weekday,time:'23:00'}));
+  const before=structuredClone(source);assert.throws(()=>prepareDraftBatch(source,{postIds:['one','two'],now}));assert.deepEqual(source,before);
+ }
+});
+for(const [name,factory] of [['server',serverStore],['browser',browserStore]])test(name+' multi-channel actual Worker save preserves independent text/media order in one commit',async t=>{
+ const s=await setup(t,factory,{media:true,multi:true}),before=structuredClone(s.canonical);
+ const p=s.store.previewDraftBatch(s.ui,{postIds:['one','three']});assert.equal(s.calls.length,0);await s.store.scheduleDraftBatch(s.ui,p);assert.deepEqual(s.calls,[['PUT','/api/planner/state']]);
+ const after=await s.client.load(),post=after.posts.find(p=>p.id==='one');
+ for(const [i,v] of post.variants.entries()){const old=before.posts.find(p=>p.id==='one').variants[i];assert.deepEqual(v,{...old,status:'planned',scheduledAt:post.scheduledAt,timezone:post.timezone});}
+ assert.deepEqual(after.media,before.media);assert.equal(post.scheduleBinding.refs.length,2);assert.equal(after.capabilities.automaticPublishing,false);
+});
+for(const [name,factory] of [['server',serverStore],['browser',browserStore]])test(name+' secondary text and media validation rejects entire batch before writing',async t=>{
+ for(const kind of ['long','alt']){
+  const s=await setup(t,factory,{media:kind==='alt',multi:true}),data=await s.client.load(),post=data.posts.find(p=>p.id==='one');
+  if(kind==='long')post.variants[1].body='x'.repeat(3001);
+  else post.variants[0].mediaIds=[];
+  await s.client.save(data);
+  if(kind==='alt')s.env.DB.sql.prepare("UPDATE planner_media SET alt_text='' WHERE owner_id='alice'").run();
+  const ui=await s.store.load();s.calls.length=0;
+  assert.throws(()=>s.store.previewDraftBatch(ui,{postIds:['three','one']}),e=>e.code==='BATCH_CONTENT_REQUIRED');assert.deepEqual(s.calls,[]);
+ }
+});
+test('multi-channel stale secondary text prevents confirmation without a write',async t=>{
+ const s=await setup(t,serverStore,{multi:true}),preview=s.store.previewDraftBatch(s.ui,{postIds:['one']});
+ const changed=structuredClone(s.ui);changed.posts.find(p=>p.id==='one').variantTexts.linkedin='changed';
+ await assert.rejects(s.store.scheduleDraftBatch(changed,preview),e=>e.code==='BATCH_STATE_CHANGED');assert.deepEqual(s.calls,[]);
 });

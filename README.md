@@ -1,6 +1,6 @@
 # Takt · Social-Media-Planer
 
-Quell-Snapshot des Entwicklungsstands v79. Keine Zugangsdaten, Nutzerdaten oder Hosting-Konfiguration enthalten. Dieser Snapshot aktiviert keine Social-Media-Verbindung und veröffentlicht keine Beiträge.
+Quell-Snapshot des Entwicklungsstands v83. Keine Zugangsdaten, Nutzerdaten oder Hosting-Konfiguration enthalten. Dieser Snapshot aktiviert keine Social-Media-Verbindung und veröffentlicht keine Beiträge.
 
 ## Lokal starten
 
@@ -29,12 +29,18 @@ OAuth-Vorbereitung ist kein Nachweis einer funktionsfähigen Live-Verbindung. Au
 
 Dieser bereinigte Quell-Snapshot enthält zwei zuvor freigegebene synthetische Video-Fixtures. 60 weitere Binärfixtures und interne Dokumentation wurden bis zur gesonderten Prüfung ausgeschlossen. Deshalb ist die vollständige Testsuite aus diesem Quell-Snapshot noch nicht reproduzierbar. Nicht als vollständiges Backup bezeichnen.
 
-Die vollständige private v79-Quelle ergab in einem isolierten Lauf 4307 von 4309 erfolgreichen Tests: ein fehlendes historisches v46-Rollback-Archiv und ein zeitabhängiger YouTube-Transporttest. Der separate YouTube-Nachlauf bestand alle 118 Tests. Syntaxprüfung und Worker-Build bestanden. Der Worker dieses bereinigten Snapshots ist byteidentisch zum geprüften privaten v79-Quellbuild.
+Die vollständige private v83-Quelle wurde getrennt geprüft. Dieser bereinigte öffentliche Snapshot lässt ungeklärte Testmedien und interne Dokumentation bewusst weg; dadurch sind Teile der Tests nicht reproduzierbar.
 
 Die eingebauten Provider-Endpunkte und Test-Domains sind keine Zugangsdaten. Eigene Provider-Apps, sichere serverseitige Secrets und passende Berechtigungen sind für echte Verbindungen erforderlich.
 
-## Erneute Prüfung des öffentlichen Teilbackups
+## Änderungen bis v83
 
-Am 11. November 2026: Syntaxprüfung und Worker-Build erfolgreich. Die Tests dieses bereinigten Snapshots ergeben 3903 bestanden und 210 fehlgeschlagen (4113 gesamt). Ausgeschlossene Testmedien, Dokumentationsdateien und das fehlende historische v46-Archiv verhindern einen vollständigen erfolgreichen Testlauf. Die Tests wurden nicht abgeschwächt. Die beiden enthaltenen synthetischen Medien sind hashgleich zu den bereits veröffentlichten v30-Dateien. Generierte Build-Dateien sind nicht enthalten.
+- Mehrkanal-Beiträge gemeinsam einplanen und verlustfrei in Entwürfe zurücknehmen.
+- Rein lesende Kanalstatusansicht mit getrennten Inhalten, Status und Terminen.
+- Kanalweise Suche und Statusfilter, ohne Änderungen an den Beiträgen.
 
-Dies ist ein v79-Quellcheckpoint, nicht automatisch der neueste private Entwicklungsstand. Kein Backup von Datenbank, Medienbibliothek, Zugangsdaten oder Hosting-Konfiguration.
+## Prüfung und Grenzen
+
+Dieser Quellcheckpoint entspricht dem bereinigten App-Code des privaten v83-Stands. Generierte Build-Dateien sind nicht enthalten. Die beiden synthetischen Testmedien sind hashgleich zu den zuvor öffentlichen Dateien. Keine Datenbank, Medienbibliothek, Zugangsdaten, lokalen QA-Daten oder Hosting-Konfiguration enthalten. Kein vollständiges Backup und keine automatische Veröffentlichung von Beiträgen.
+
+Erneute Prüfung am 11. November 2026: Syntax und Build erfolgreich; erzeugter Worker byteidentisch zum privaten v83-Build. Vollständiger Testaufruf des bereinigten Snapshots: 3927/4138 bestanden, 211 fehlgeschlagen. Davon 210 durch ausgeschlossene Testartefakte wie im v79-Teilbackup; zusätzlich ein zeitabhängiger YouTube-Test. Der separate YouTube-Nachlauf bestand 118/118. Tests wurden nicht abgeschwächt.

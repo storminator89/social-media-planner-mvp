@@ -8,12 +8,12 @@ export function prepareReturnDrafts(snapshot,{postIds,now=new Date().toISOString
   const next=structuredClone(snapshot),entries=[];
   for(const postId of postIds){
     const post=next.posts.find(p=>p.id===postId),variant=post?.variants?.[0];
-    if(!post||post.stage!=='planned'||!instant(post.scheduledAt)||post.variants.length!==1||variant.status!=='planned'||variant.format!=='post'||variant.scheduledAt!==post.scheduledAt||variant.timezone!==post.timezone||variant.publishedAt!==null||variant.publishedUrl!==null||typeof post.timezone!=='string'||!post.timezone||typeof variant.inheritsBody!=='boolean'||variant.inheritsBody&&variant.body!==post.body||!Array.isArray(variant.mediaIds)||variant.mediaIds.length>10||new Set(variant.mediaIds).size!==variant.mediaIds.length||variant.mediaIds.some(id=>typeof id!=='string'||!snapshot.media?.some(m=>m.id===id)))fail('RETURN_POST_REQUIRED','Nur geplante Einzelkanal-Beiträge.');
+    if(!post||post.stage!=='planned'||!instant(post.scheduledAt)||typeof post.timezone!=='string'||!post.timezone||!Array.isArray(post.variants)||!post.variants.length||new Set(post.variants.map(v=>v.channelId)).size!==post.variants.length||post.variants.some(v=>v.status!=='planned'||v.format!=='post'||v.scheduledAt!==post.scheduledAt||v.timezone!==post.timezone||v.publishedAt!==null||v.publishedUrl!==null||typeof v.inheritsBody!=='boolean'||v.inheritsBody&&v.body!==post.body||!Array.isArray(v.mediaIds)||v.mediaIds.length>10||new Set(v.mediaIds).size!==v.mediaIds.length||v.mediaIds.some(id=>typeof id!=='string'||!snapshot.media?.some(m=>m.id===id))))fail('RETURN_POST_REQUIRED','Nur gemeinsam geplante Beiträge.');
     try{new Intl.DateTimeFormat('en',{timeZone:post.timezone}).format();}catch{fail('RETURN_POST_REQUIRED','Beitrag einzeln prüfen.');}
     validatePostScheduleBinding(post);
-    entries.push({postId,channelId:variant.channelId,title:post.title,text:variant.body,instant:post.scheduledAt,timezone:post.timezone});
+    entries.push({postId,channelId:variant.channelId,title:post.title,text:variant.body,channels:post.variants.map(v=>({channelId:v.channelId,text:v.body})),instant:post.scheduledAt,timezone:post.timezone});
     post.stage='draft';post.scheduledAt=null;post.scheduleBinding=null;
-    variant.status='draft';variant.scheduledAt=null;
+    for(const v of post.variants){v.status='draft';v.scheduledAt=null;}
   }
   validateScheduleChanges(next,snapshot,now);
   return {next,entries};

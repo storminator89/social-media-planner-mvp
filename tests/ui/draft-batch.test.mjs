@@ -32,7 +32,7 @@ function harness(t,{prepare,save,onSaved,canOpen}={}){
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
 test('opens only the visible drafts unchecked with concise per-row blockers; no reads or writes',t=>{
  const h=harness(t);assert.equal(h.open(['two','none','multi']),true);assert.equal(h.dialog.open,true);assert.equal(h.preparations.length,0);assert.equal(h.writes,0);assert.equal(h.nodes.preview.disabled,true);assert.equal(document.activeElement,h.nodes.close);
- const inputs=h.nodes.list.querySelectorAll('input');assert.equal(inputs.length,3);assert.ok(inputs.every(i=>!i.checked));assert.equal(inputs[0].disabled,false);assert.equal(inputs[1].disabled,true);assert.equal(inputs[2].disabled,true);assert.match(h.nodes.list.textContent,/Kanal wählen/);assert.match(h.nodes.list.textContent,/aufteilen/);
+ const inputs=h.nodes.list.querySelectorAll('input');assert.equal(inputs.length,3);assert.ok(inputs.every(i=>!i.checked));assert.equal(inputs[0].disabled,false);assert.equal(inputs[1].disabled,true);assert.equal(inputs[2].disabled,true);assert.match(h.nodes.list.textContent,/Kanal wählen/);assert.match(h.nodes.list.textContent,/Kanal deaktiviert/);
  assert.equal(h.open(),false);h.cancel();assert.equal(document.activeElement,h.opener);
 });
 test('candidate blockers cover scheduled/multi/none/paused/disabled/no rules/empty override/length/media',()=>{
@@ -93,7 +93,21 @@ test('draft library keeps batch actions and removes the redundant new-draft entr
 test('batch readiness inspects every carousel image, not just the cover',()=>{
  const state=base(),p=state.posts[0],saved={id:'a',url:'/api/planner/media/a',name:'a.png',type:'image/png',alt:'First'};
  assert.equal(batchDraftProblem({...p,mediaItems:[saved,{...saved,id:'b',url:'/api/planner/media/b'}]},state.channels),null);
- assert.equal(batchDraftProblem({...p,mediaItems:[saved,{...saved,alt:''}]},state.channels),'Alternativtext fehlt');
+ assert.equal(batchDraftProblem({...p,mediaItems:[saved,{...saved,id:'b',url:'/api/planner/media/b',alt:''}]},state.channels),'Alternativtext fehlt');
  assert.equal(batchDraftProblem({...p,mediaItems:[saved,{name:'local.png',type:'image/png',alt:'Second',dataUrl:'data:image/png;base64,AAAA'}]},state.channels),'Bild zuerst speichern');
  assert.equal(batchDraftProblem({...p,mediaItems:Array(11).fill(saved)},state.channels),'Bilder prüfen');
+});
+
+test('multi-channel readiness examines all own texts, schedules and ordered media',()=>{
+ const state=base(),post=state.posts[2];state.channels.push({id:'linkedin',name:'LinkedIn',enabled:true,postingSchedule:structuredClone(schedule)});
+ assert.equal(batchDraftProblem(post,state.channels),null);
+ assert.equal(batchDraftProblem({...post,variantTexts:{...post.variantTexts,linkedin:''}},state.channels),'Kanaltext fehlt');
+ const image={id:'a',url:'/api/planner/media/a',name:'a.png',type:'image/png',alt:''};
+ assert.equal(batchDraftProblem({...post,channelMediaItems:{bluesky:[],linkedin:[image]}},state.channels),'Alternativtext fehlt');
+ state.channels[1].postingSchedule.paused=true;assert.equal(batchDraftProblem(post,state.channels),'Posting-Zeiten pausiert');
+});
+test('multi-channel preview renders all exact channel texts safely and cancellation never writes',t=>{
+ const h=harness(t,{prepare:(state,{postIds})=>({token:'multi',revision:state.revision,entries:[{postId:'multi',title:'Multi',text:'First',channelId:'bluesky',channels:[{channelId:'bluesky',text:'First <b>'},{channelId:'linkedin',text:'Second & own'}],instant:'2099-11-01T09:00:00.000Z',local:'2099-11-01T10:00',timezone:'Europe/Berlin'}]})});
+ h.state.channels.push({id:'linkedin',name:'LinkedIn',enabled:true,postingSchedule:structuredClone(schedule)});h.open(['multi']);h.select(0);h.preview();
+ assert.equal(h.nodes.confirm.disabled,false);assert.match(h.nodes.list.textContent,/First <b>/);assert.match(h.nodes.list.textContent,/Second & own/);assert.match(h.nodes.list.textContent,/LinkedIn/);h.cancel();assert.equal(h.writes,0);
 });
