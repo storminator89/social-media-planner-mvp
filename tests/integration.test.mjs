@@ -9,7 +9,7 @@ import { createTaktStore } from '../modules/data/takt-adapter.mjs';
 
 const channels = [{ id: 'linkedin', name: 'LinkedIn', color: '#2866aa', limit: 3000 }];
 const png = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMsTLjBQApgIkn1qIZRDUNKAwBGMgHJ6tENZAAAAABJRU5ErkJggg==', 'base64'));
-const post = (extra = {}) => ({ id: 'post-1', scheduleBinding: null, scheduledInstant: null, text: 'Integrationstest', channels: ['linkedin'], status: 'scheduled', scheduledAt: '2027-01-15T10:30', timeZone: 'Europe/Berlin', media: null, cover: null, createdAt: '2026-11-07T09:00:00.000Z', updatedAt: '2026-11-07T09:00:00.000Z', ...extra });
+const post = (extra = {}) => ({ id: 'post-1', scheduleBinding: null, scheduledInstant: null, text: 'Integrationstest', channels: ['linkedin'], status: 'scheduled', scheduledAt: '2027-01-15T10:30', timeZone: 'Europe/Berlin', mediaItems: [], cover: null, createdAt: '2026-11-07T09:00:00.000Z', updatedAt: '2026-11-07T09:00:00.000Z', ...extra });
 const request = (path = '/api/planner/state', options = {}) => new Request('http://localhost:3000' + path, options);
 async function setup(t) {
   const directory = await mkdtemp(join(tmpdir(), 'takt-test-'));
@@ -41,14 +41,14 @@ test('UI adapter persists UTC + IANA and survives actual database reopening', as
 
 test('uploaded image persists on disk, private URL survives reload and is never stored as data URL', async t => {
   const s = await setup(t), ui = store(s.client), initial = await ui.load();
-  const saved = await ui.save({ ...initial, posts: [post({ media: { dataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}`, name: 'test.png', type: 'image/png', alt: 'Ein Testpixel' } })] });
-  const medium = saved.posts[0].media;
+  const saved = await ui.save({ ...initial, posts: [post({ mediaItems: [{ dataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}`, name: 'test.png', type: 'image/png', alt: 'Ein Testpixel' }] })] });
+  const medium = saved.posts[0].mediaItems[0];
   assert.match(medium.url, /^\/api\/planner\/media\//); assert.equal(medium.dataUrl, undefined);
   assert.equal((await s.client.load()).media.length, 1);
   s.restart();
   const bytes = await s.request(request(medium.url));
   assert.equal(bytes.status, 200); assert.deepEqual(new Uint8Array(await bytes.arrayBuffer()), png);
-  const reloaded = await store(s.client).load(); assert.equal(reloaded.posts[0].media.alt, 'Ein Testpixel');
+  const reloaded = await store(s.client).load(); assert.equal(reloaded.posts[0].mediaItems[0].alt, 'Ein Testpixel');
 });
 
 test('two stale UI stores produce 409 without overwriting the winning edit', async t => {
@@ -136,14 +136,14 @@ test('simple UI save preserves hidden editorial title and per-channel status not
 
 test('image without a target channel fails before upload or state mutation', async t => {
   const s = await setup(t), ui = store(s.client), initial = await ui.load();
-  const draft = post({ status: 'draft', scheduledAt: null, channels: [], media: { dataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}`, name: 'test.png', type: 'image/png', alt: 'Test' } });
+  const draft = post({ status: 'draft', scheduledAt: null, channels: [], mediaItems: [{ dataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}`, name: 'test.png', type: 'image/png', alt: 'Test' }] });
   await assert.rejects(ui.save({ ...initial, posts: [draft] }), error => error.code === 'MEDIA_TARGET_REQUIRED');
   const saved = await s.client.load(); assert.equal(saved.revision, 0); assert.deepEqual(saved.media, []); assert.deepEqual(saved.posts, []);
 });
 
 test('existing image cannot disappear by removing every channel during a simple save', async t => {
   const s = await setup(t), ui = store(s.client), initial = await ui.load();
-  const saved = await ui.save({ ...initial, posts: [post({ status: 'draft', scheduledAt: null, media: { dataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}`, name: 'test.png', type: 'image/png', alt: 'Test' } })] });
+  const saved = await ui.save({ ...initial, posts: [post({ status: 'draft', scheduledAt: null, mediaItems: [{ dataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}`, name: 'test.png', type: 'image/png', alt: 'Test' }] })] });
   saved.posts[0].channels = [];
   await assert.rejects(ui.save(saved), error => error.code === 'MEDIA_TARGET_REQUIRED');
   const current = await s.client.load(); assert.equal(current.revision, 1); assert.equal(current.posts[0].variants[0].mediaIds.length, 1); assert.equal(current.media.length, 1);
@@ -176,11 +176,11 @@ test('same-revision legacy API writes fail without clearing the variant planner'
 
 test('normal post labels roundtrip through actual SQLite with variants, media and scheduled UTC intact', async t => {
   const s=await setup(t),ui=store(s.client),initial=await ui.load();
-  const original=post({title:'Redaktioneller Titel',tags:[' Label ','A\r\nB','A','A','<tag>'],variantTexts:{linkedin:'Eigener Text'},media:{dataUrl:`data:image/png;base64,${Buffer.from(png).toString('base64')}`,name:'labels.png',type:'image/png',alt:'Unverändert'}});
+  const original=post({title:'Redaktioneller Titel',tags:[' Label ','A\r\nB','A','A','<tag>'],variantTexts:{linkedin:'Eigener Text'},mediaItems: [{dataUrl:`data:image/png;base64,${Buffer.from(png).toString('base64')}`,name:'labels.png',type:'image/png',alt:'Unverändert'}]});
   const saved=await ui.save({...initial,posts:[original]}),before=saved.posts[0];
   const changed=await ui.save({...saved,posts:[{...before,tags:['Kampagne','A, B','Sie sagt "ja"']}]});
-  for(const key of ['title','text','variantTexts','timeZone','scheduledAt','media','createdAt'])assert.deepEqual(changed.posts[0][key],before[key]);
-  s.restart();const reloaded=(await store(s.client).load()).posts[0];assert.deepEqual(reloaded.tags,['Kampagne','A, B','Sie sagt "ja"']);assert.deepEqual(reloaded.media,before.media);assert.equal((await s.client.load()).posts[0].scheduledAt,'2027-01-15T09:30:00.000Z');
+  for(const key of ['title','text','variantTexts','timeZone','scheduledAt','mediaItems','createdAt'])assert.deepEqual(changed.posts[0][key],before[key]);
+  s.restart();const reloaded=(await store(s.client).load()).posts[0];assert.deepEqual(reloaded.tags,['Kampagne','A, B','Sie sagt "ja"']);assert.deepEqual(reloaded.mediaItems,before.mediaItems);assert.equal((await s.client.load()).posts[0].scheduledAt,'2027-01-15T09:30:00.000Z');
 });
 
 test('stale label-only save conflicts without replacing the winning labels or variants', async t => {

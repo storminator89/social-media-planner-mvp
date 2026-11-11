@@ -1,3 +1,4 @@
+import {normalizeMediaItems,normalizeChannelMediaItems} from './media-items.mjs';
 /** Editorial queue suggestions for the current Takt UI model. No timers or network. */
 import { WorkflowError, resolveLocalTime, dateKeyAt } from './workflows.mjs';
 
@@ -22,9 +23,9 @@ function localAt(epoch, timeZone) {
 }
 function dayAfter(date, count) { return new Date(Date.parse(`${date}T00:00:00Z`) + count * 86400000).toISOString().slice(0, 10); }
 function weekday(date) { return new Date(`${date}T00:00:00Z`).getUTCDay(); }
-function selectedChannels(post) {
+function selectedChannels(post, {allowEmpty = false} = {}) {
   if (typeof post?.id !== 'string' || !post.id) fail('INVALID_POST', 'Ein Beitragskennzeichen fehlt.');
-  if (!Array.isArray(post?.channels) || !post.channels.length || post.channels.some(id => typeof id !== 'string' || !id)) fail('NO_CHANNELS', 'Wähle mindestens einen Kanal.');
+  if (!Array.isArray(post?.channels) || (!allowEmpty && !post.channels.length) || post.channels.some(id => typeof id !== 'string' || !id)) fail('NO_CHANNELS', 'Wähle mindestens einen Kanal.');
   if (new Set(post.channels).size !== post.channels.length) fail('DUPLICATE_CHANNEL', 'Ein Kanal wurde mehrfach ausgewählt.');
   return post.channels;
 }
@@ -52,7 +53,7 @@ export function normalizeQueueRules(rules) {
 }
 
 function fingerprint(post) {
-  return JSON.stringify({ id: post.id, text: post.text, channels: [...post.channels].sort(), status: post.status, scheduledAt: post.scheduledAt ?? null, timeZone: post.timeZone ?? null, media: post.media ?? null, variantTexts: Object.entries(post.variantTexts ?? {}).sort(([a], [b]) => a.localeCompare(b)), updatedAt: post.updatedAt ?? null });
+  return JSON.stringify({ id: post.id, text: post.text, channels: [...post.channels].sort(), status: post.status, scheduledAt: post.scheduledAt ?? null, timeZone: post.timeZone ?? null, mediaItems: post.mediaItems, channelMediaItems: post.channelMediaItems, variantTexts: Object.entries(post.variantTexts ?? {}).sort(([a], [b]) => a.localeCompare(b)), updatedAt: post.updatedAt ?? null });
 }
 function busyTimes(posts, post, channelIds) {
   if (!Array.isArray(posts)) fail('INVALID_POSTS', 'Die Beitragsliste ist ungültig.');
@@ -144,8 +145,11 @@ export function applyQueueSuggestion({ post, posts = [], rules, suggestion, now 
 /** Duplicates preserve content, including channel overrides, but never old schedule or evidence. */
 export function duplicateTaktDraft(post, { id, now = new Date().toISOString() }) {
   if (typeof id !== 'string' || !id || id === post.id) fail('NEW_ID_REQUIRED', 'Die Kopie benötigt eine neue ID.');
+  if(Object.hasOwn(post,'media'))fail('INVALID_MEDIA','Veraltetes Bildfeld.');
+  normalizeMediaItems(post.mediaItems);
+  if(Object.hasOwn(post,'channelMediaItems'))normalizeChannelMediaItems(post.channelMediaItems,post.channels,post.mediaItems);
   const current = new Date(absoluteTime(now)).toISOString();
-  const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post)], status: 'draft', scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, media: clone(post.media ?? null), createdAt: current, updatedAt: current };
+  const draft = { id, text: String(post.text ?? ''), channels: [...selectedChannels(post, {allowEmpty: post.status === 'draft' && !post.mediaItems?.length})], status: 'draft', scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: post.timeZone ?? 'UTC', cover: post.cover ?? null, mediaItems: clone(post.mediaItems), ...(Object.hasOwn(post,'channelMediaItems')?{channelMediaItems:clone(post.channelMediaItems)}:{}), createdAt: current, updatedAt: current };
   if (post.variantTexts !== undefined) draft.variantTexts = clone(post.variantTexts);
   if (post.title !== undefined) draft.title = post.title;
   if (post.tags !== undefined) draft.tags = clone(post.tags);

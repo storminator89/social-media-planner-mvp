@@ -138,22 +138,41 @@ export function dateKeyAt(instant, timeZone) {
   const p = partsAt(epoch, timeZone); return `${p.year}-${p.month}-${p.day}`;
 }
 
+// Only a synchronous planning operation may reuse civil-time resolutions. Nothing
+// about posts, rules, occupancy, revisions or validation outcomes is cached.
+let civilTimeCache = null;
+export function withCivilTimeCache(run) {
+  const previous = civilTimeCache;
+  civilTimeCache = new Map();
+  try { return run(); }
+  finally { civilTimeCache = previous; }
+}
+
 /** Minute-precision future civil time resolver. Gaps reject; folds require a choice. */
 export function resolveLocalTime(date, time, timeZone, disambiguation) {
   const naive = validateCivil(date, time);
   formatter(timeZone);
-  const offsets = new Set();
-  for (let hour = -48; hour <= 48; hour += 6) {
-    const probe = naive + hour * 3600000, p = partsAt(probe, timeZone);
-    offsets.add(Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - probe);
+  const key = civilTimeCache && typeof date === 'string' && typeof time === 'string' && typeof timeZone === 'string'
+    ? JSON.stringify([date, time, timeZone]) : null;
+  let candidates = key === null ? undefined : civilTimeCache.get(key);
+  if (!candidates) {
+    const offsets = new Set();
+    for (let hour = -48; hour <= 48; hour += 6) {
+      const probe = naive + hour * 3600000, p = partsAt(probe, timeZone);
+      offsets.add(Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - probe);
+    }
+    candidates = [...offsets].map(offset => naive - offset).filter(epoch => {
+      const p = partsAt(epoch, timeZone);
+      return `${p.year}-${p.month}-${p.day}` === date && `${p.hour}:${p.minute}` === time;
+    }).sort((a, b) => a - b).map(epoch => new Date(epoch).toISOString());
+    if (key !== null) {
+      if (civilTimeCache.size >= 4096) civilTimeCache.delete(civilTimeCache.keys().next().value);
+      civilTimeCache.set(key, candidates);
+    }
   }
-  const candidates = [...offsets].map(offset => naive - offset).filter(epoch => {
-    const p = partsAt(epoch, timeZone);
-    return `${p.year}-${p.month}-${p.day}` === date && `${p.hour}:${p.minute}` === time;
-  }).sort((a, b) => a - b).map(epoch => new Date(epoch).toISOString());
   if (!candidates.length) fail('DST_GAP', 'Diese Uhrzeit existiert wegen der Zeitumstellung nicht. Wähle eine andere Zeit.');
   if (candidates.length > 1 && !['earlier', 'later'].includes(disambiguation))
-    fail('DST_AMBIGUOUS', 'Diese Uhrzeit kommt zweimal vor. Wähle die erste oder zweite Uhrzeit.', { candidates });
+    fail('DST_AMBIGUOUS', 'Diese Uhrzeit kommt zweimal vor. Wähle die erste oder zweite Uhrzeit.', { candidates: [...candidates] });
   return { instant: disambiguation === 'later' ? candidates.at(-1) : candidates[0], ambiguous: candidates.length > 1, disambiguation: candidates.length > 1 ? disambiguation : null };
 }
 

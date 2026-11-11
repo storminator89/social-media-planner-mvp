@@ -1,0 +1,8 @@
+/* Read-only archive cards share the available width at narrow layouts. */
+body[data-planner-view="archive"] .draft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:24px;width:100%;min-width:0}
+body[data-planner-view="archive"] .archive-card{display:flex;flex-direction:column;align-items:stretch;width:100%;min-width:0;max-width:100%;padding:18px;gap:12px;text-align:left}
+body[data-planner-view="archive"] .archive-card>strong{overflow-wrap:anywhere;line-height:1.4}
+body[data-planner-view="archive"] .archive-card .post-card-text{margin:0;overflow-wrap:anywhere;line-height:1.6}
+body[data-planner-view="archive"] .archive-card .button{width:100%;min-width:0;max-width:100%;min-height:44px;white-space:normal;overflow-wrap:anywhere;line-height:1.4;text-align:center}
+body[data-planner-view="archive"] .archive-card .post-labels{margin:0;min-width:0}
+@media(max-width:700px){body[data-planner-view="archive"] .draft-grid{grid-template-columns:minmax(0,1fr);padding:16px;gap:16px}}

@@ -18,7 +18,7 @@ test('only confirmed quiet status may collapse, warnings remain visible',()=>{
   assert.doesNotMatch(output,/<details/);assert.match(output,/Prüfung nötig/);assert.match(output,/data-workspace-severity="attention"/);
  }
  assert.match(renderWorkspaceStatus({phase:'saved',message:'Bestätigt'},{available:true}),/<details/);
- const missing=renderWorkspaceStatus({phase:'saved',message:'Bestätigt'},{available:true,omitted:true});assert.doesNotMatch(missing,/<details/);assert.match(missing,/Lokales Bild nicht mitgesichert/);
+ const missing=renderWorkspaceStatus({phase:'saved',message:'Bestätigt'},{available:true,omitted:true});assert.doesNotMatch(missing,/<details/);assert.match(missing,/Lokale Mediendateien fehlen/);
  assert.doesNotMatch(renderWorkspaceStatus({phase:'saved'},{available:false}),/<details/);
 });
 test('preview navigation and safe initial focus preserve current editor data',()=>{

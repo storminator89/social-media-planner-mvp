@@ -6,7 +6,7 @@ import { normalizeState, validatePost, CHANNELS } from '../../public/model.js';
 import { normalizeEditorialMetadata, validateIdea, ideaTitle } from '../../public/ideas.js';
 import { createIdea, updateIdea, parseIdeaTags, formatIdeaTags, prepareIdeaDraft, commitIdeaDraft, filterIdeas } from '../../public/workflows/ideas.mjs';
 const idea=()=>({...createIdea({id:'i1',title:'Ein Titel',text:'Notiz',tags:['Thema, eins','Kampagne'],timezone:'Europe/Berlin',now:'2026-11-07T10:00:00Z'}),scheduleBinding:null,scheduledInstant:null});
-const uiState=posts=>({schemaVersion:2,revision:4,channels:CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null})),settings:{timezone:'Europe/Berlin'},posts});
+const uiState=posts=>({schemaVersion:3,revision:4,channels:CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null})),settings:{timezone:'Europe/Berlin'},posts});
 const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
 function functionSource(name){const start=source.search(new RegExp(`(?:async )?function ${name}\\(`));assert.ok(start>=0);const next=source.slice(start+1).search(/\n(?:async )?function /);return source.slice(start,next<0?undefined:start+1+next);}
 function context(extra={}){
@@ -16,7 +16,7 @@ function context(extra={}){
 test('title-only idea needs no channel or scheduling but cannot be a post',()=>{const p={...idea(),text:''};assert.deepEqual(validatePost(p),[]);assert.ok(validatePost({...p,status:'draft'}).length);});
 test('normalizer retains idea metadata, label punctuation and whitespace',()=>{const p={...idea(),title:'  Titel  ',text:'  Notiz\n'};const state=normalizeState(uiState([p]));assert.deepEqual(state.posts[0],p);});
 test('normalizer retains metadata on drafts with channel-specific text',()=>{const p={...idea(),status:'draft',channels:['bluesky'],variantTexts:{bluesky:'Eigener Text'}};const n=normalizeState(uiState([p])).posts[0];assert.deepEqual(n,p);});
-test('idea cannot hide media, channel variants, covers or a schedule',()=>{for(const patch of [{media:{id:'m'}},{channels:['instagram']},{variantTexts:{bluesky:''}},{cover:'forms'},{scheduledAt:'2027-01-01T10:00'}])assert.throws(()=>normalizeState(uiState([{...idea(),...patch}])));});
+test('idea cannot hide media, channel variants, covers or a schedule',()=>{for(const patch of [{mediaItems:[{id:'m'}]},{channels:['instagram']},{variantTexts:{bluesky:''}},{cover:'forms'},{scheduledAt:'2027-01-01T10:00'}])assert.throws(()=>normalizeState(uiState([{...idea(),...patch}])));});
 test('metadata limits are validated without silently dropping values',()=>{for(const patch of [{title:'x'.repeat(201)},{tags:[12]},{tags:Array.from({length:21},(_,i)=>String(i))}])assert.throws(()=>normalizeEditorialMetadata(patch));});
 test('label edit roundtrip preserves commas and quotes',()=>{const labels=['Thema, eins','Sie sagt "ja"'];assert.deepEqual(parseIdeaTags(formatIdeaTags(labels)),labels);});
 test('display title falls back to note but never changes original',()=>{const p={...idea(),title:'',text:'Erste Zeile\nZweite'};assert.equal(ideaTitle(p),'Erste Zeile');assert.equal(p.text,'Erste Zeile\nZweite');});
@@ -30,18 +30,18 @@ test('deleting an idea only removes it after persistence succeeds',async()=>{let
 
 
 test('actual idea renderer can filter a real label named all without colliding with All labels',()=>{
-  const c=vm.createContext({state:{posts:[{...idea(),id:'selected',tags:['all']},{...idea(),id:'other',tags:['different']}]},ideaTag:'all',query:'',filterIdeas,ideaTitle,Date,JSON,icon:()=>'',esc:value=>String(value).replaceAll('&','&amp;').replaceAll('\"','&quot;'),dateLabel:()=>'',emptyState:()=>''});
+  const c=vm.createContext({ideaReuseUI:null,state:{posts:[{...idea(),id:'selected',tags:['all']},{...idea(),id:'other',tags:['different']}]},ideaTag:'all',query:'',filterIdeas,ideaTitle,Date,JSON,icon:()=>'',esc:value=>String(value).replaceAll('&','&amp;').replaceAll('\"','&quot;'),dateLabel:()=>'',emptyState:()=>''});
   vm.runInContext(functionSource('renderIdeas'),c);const html=c.renderIdeas();assert.match(html,/<option value="">Alle Labels/);assert.match(html,/value="&quot;all&quot;" selected/);assert.match(html,/data-idea-id="selected"/);assert.doesNotMatch(html,/data-idea-id="other"/);assert.equal(c.ideaTag,'all');
 });
 
 
 test('failed Undo exposes the removed content for recovery instead of losing its only visible copy',async()=>{
-  const removed=idea();let writes=0,recovered=null;const c=vm.createContext({state:{posts:[]},saving:false,persist:async()=>{writes++;return false},notify:()=>{},showDeletedRecovery:post=>{recovered=post}});
+  const removed=idea();let writes=0,recovered=null;const c=vm.createContext({ideaReuseUI:null,state:{posts:[]},saving:false,persist:async()=>{writes++;return false},notify:()=>{},showDeletedRecovery:post=>{recovered=post}});
   vm.runInContext(functionSource('restoreDeletedPost'),c);await c.restoreDeletedPost(removed);assert.equal(writes,1);assert.equal(recovered,removed);assert.equal(c.saving,false);assert.equal(c.state.posts.length,0);
 });
 
 test('Undo never overwrites an existing same-ID record and preserves recovery during another save',async()=>{
-  const removed=idea();let writes=0,recovered=0;const c=vm.createContext({state:{posts:[{...removed,text:'Newer content'}]},saving:false,persist:async()=>{writes++;return true},notify:()=>{},showDeletedRecovery:()=>{recovered++}});
+  const removed=idea();let writes=0,recovered=0;const c=vm.createContext({ideaReuseUI:null,state:{posts:[{...removed,text:'Newer content'}]},saving:false,persist:async()=>{writes++;return true},notify:()=>{},showDeletedRecovery:()=>{recovered++}});
   vm.runInContext(functionSource('restoreDeletedPost'),c);await c.restoreDeletedPost(removed);assert.equal(writes,0);assert.equal(recovered,1);assert.equal(c.state.posts[0].text,'Newer content');
   c.state.posts=[];c.saving=true;await c.restoreDeletedPost(removed);assert.equal(writes,0);assert.equal(recovered,2);assert.equal(c.saving,true);
 });
@@ -64,7 +64,7 @@ test('title-only edit does not rewrite untouched CRLF note text',async()=>{
 
 test('label option values retain CRLF and lone surrogates without URI encoding failure',()=>{
   for(const label of ['A\r\nB','\ud800']){
-    const c=vm.createContext({state:{posts:[{...idea(),tags:[label]}]},ideaTag:label,query:'',filterIdeas,ideaTitle,Date,JSON,icon:()=>'',esc:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;'),dateLabel:()=>'',emptyState:()=>''});
+    const c=vm.createContext({ideaReuseUI:null,state:{posts:[{...idea(),tags:[label]}]},ideaTag:label,query:'',filterIdeas,ideaTitle,Date,JSON,icon:()=>'',esc:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;'),dateLabel:()=>'',emptyState:()=>''});
     vm.runInContext(functionSource('renderIdeas'),c);const html=c.renderIdeas();const encoded=html.match(/<option value="([^"]+)" selected/)[1].replaceAll('&quot;','"').replaceAll('&amp;','&');assert.equal(JSON.parse(encoded),label);
   }
 });

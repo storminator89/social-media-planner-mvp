@@ -15,17 +15,20 @@ export function parsePlanningExport(text){
  let raw;try{raw=parseJSON(text);}catch{fail('Die Datei enthält kein gültiges JSON.');}
  const queue=[[raw,0]];while(queue.length){const [v,depth]=queue.pop();if(depth>30)fail('Datei ist zu tief verschachtelt.');if(v&&typeof v==='object')for(const [k,x] of Object.entries(v)){if(['__proto__','constructor','prototype'].includes(k))fail('Unzulässiger Objektschlüssel.');queue.push([x,depth+1]);}}
  fields(raw,['schemaVersion','revision','channels','settings','posts','exportedAt'],'Export');
- if(raw.schemaVersion!==2||!Array.isArray(raw.posts)||raw.posts.length>100)fail('Nur Takt-Planungsexporte mit Schema 2 und höchstens 100 Einträgen werden unterstützt.');
+ if(![2,3].includes(raw.schemaVersion)||!Array.isArray(raw.posts)||raw.posts.length>100)fail('Nur Takt-Planungsexporte mit Schema 2 oder 3 und höchstens 100 Einträgen werden unterstützt.');
  fields(raw.settings,['timezone'],'Einstellungen');
  if(!Array.isArray(raw.channels)||raw.channels.length>20)fail('Ungültige Kanäle.');
  for(const c of raw.channels)fields(c,['id','platform','name','handle','color','enabled','connectionStatus','postingSchedule'],'Kanal');
+ const mediaField=raw.schemaVersion===2?'media':'mediaItems';
  for(const p of raw.posts){
-  fields(p,['id','title','tags','text','variantTexts','channels','status','scheduleBinding','scheduledInstant','scheduledAt','timeZone','cover','media','createdAt','updatedAt'],'Eintrag');
-  if(['id','title','tags','text','variantTexts','channels','status','scheduleBinding','scheduledInstant','scheduledAt','timeZone','cover','media','createdAt','updatedAt'].some(k=>!Object.hasOwn(p,k)))fail('Eintrag enthält unvollständige Daten.');
+  if(p?.status==='archived')fail('Archivierte Beiträge werden nicht importiert. Nichts übernommen.');
+  fields(p,['id','title','tags','text','variantTexts','channels','status','scheduleBinding','scheduledInstant','scheduledAt','timeZone','cover',mediaField,'channelMediaItems','createdAt','updatedAt'],'Eintrag');
+  if(['id','title','tags','text','variantTexts','channels','status','scheduleBinding','scheduledInstant','scheduledAt','timeZone','cover',mediaField,'createdAt','updatedAt'].some(k=>!Object.hasOwn(p,k)))fail('Eintrag enthält unvollständige Daten.');
   if(typeof p.title!=='string'||!Array.isArray(p.tags))fail('Titel und Labels müssen ausdrücklich Text und Liste sein.');
   if(typeof p.timeZone!=='string'||p.timeZone.length>100)fail('Ungültige Zeitzone.');
   if(!/^[A-Za-z0-9_-]{1,100}$/.test(p.id||'')||typeof p.text!=='string'||p.text.length>20000)fail('Ungültige ID oder zu langer Text.');
-  if(p.media!==null||p.cover!==null)fail('Dieser Export enthält Medien oder Titelbilder. JSON enthält keine verlässlich übertragbare Bildsicherung. Import abgebrochen, nichts weggelassen.');
+  if(Object.hasOwn(p,'channelMediaItems')&&(!p.channelMediaItems||typeof p.channelMediaItems!=='object'||Array.isArray(p.channelMediaItems)||Object.values(p.channelMediaItems).some(items=>!Array.isArray(items)||items.length)))fail('Dieser Export enthält Kanalmedien. Import abgebrochen, nichts weggelassen.');
+  if((raw.schemaVersion===2?p.media!==null:!Array.isArray(p.mediaItems)||p.mediaItems.length!==0)||p.cover!==null)fail('Dieser Export enthält Medien oder Titelbilder. JSON enthält keine verlässlich übertragbare Bildsicherung. Import abgebrochen, nichts weggelassen.');
   if(p.scheduleBinding!==null)fail('Gebundene Posting-Zeiten werden nicht importiert. Bestehende Slot-Bindungen dürfen nicht auf einen anderen Planer übertragen werden.');
   if(!p.variantTexts||typeof p.variantTexts!=='object'||Array.isArray(p.variantTexts)||Object.keys(p.variantTexts).some(k=>!p.channels?.includes(k)))fail('Ungültige oder nicht zugeordnete Kanalvarianten.');
   for(const k of ['createdAt','updatedAt'])if(typeof p[k]!=='string'||!/^\d{4}-\d\d-\d\dT/.test(p[k])||!Number.isFinite(Date.parse(p[k]))||new Date(p[k]).toISOString()!==p[k])fail('Erstellungs-/Änderungszeit fehlt oder ist ungültig.');

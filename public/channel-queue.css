@@ -12,3 +12,7 @@ body[data-planner-view="queue"] .view-toolbar{flex-wrap:wrap}body[data-planner-v
 .channel-queue .queue-day-heading{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;padding:16px 0 8px}
 .channel-queue .queue-day-heading .agenda-day{padding:0;flex:1 1 200px;line-height:1.6}
 .channel-queue .queue-calendar-jump{flex:none;min-height:44px;padding:8px 10px;font-size:12px;white-space:nowrap}
+
+.channel-queue .queue-priority-action{justify-self:end;min-height:44px;margin:0 0 10px auto;font-size:12px}
+
+.queue-paused{display:inline-flex;align-items:center;gap:6px;max-width:100%;box-sizing:border-box;margin:0 0 8px;padding:4px 9px;border-radius:7px;background:#fff2ce;color:#664800;font-size:12px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}

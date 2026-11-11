@@ -7,7 +7,7 @@ const renderer=source.slice(source.indexOf('function render(){'),source.indexOf(
 function harness(view){
  const fields=new Map();
  const $=selector=>{if(!fields.has(selector))fields.set(selector,{hidden:false,dataset:{},classList:{toggle(){}},setAttribute(name,value){this[name]=value;},replaceChildren(child){this.child=child;}});return fields.get(selector);};
- const context=vm.createContext({view,$,$$:()=>[],document:{body:{dataset:{}}},history:{replaceState(){}},renderPostLabelFilter(){},renderPlanningChannelControls(){},connectionsPanel:{show(){},hide(){}},state:{posts:[],channels:[]},CHANNELS:[],channel:'all',query:'',postTag:'',calendarStatus:'all',range:'week',anchor:new Date('2026-11-09'),currentZone:()=> 'Europe/Berlin',visiblePeriod:()=>({start:new Date('2026-11-09'),end:new Date('2026-11-15')}),dateLabel:()=> '15. November',dateKey:()=> '2026-11-09',relevantPosts:()=>[],periodPosts:posts=>posts,renderIdeas:()=>'<label>Test filter</label>',emptyState:(title,description,action,label)=>JSON.stringify({title,description,action,label}),renderHomeOverview:()=>'<div>Overview</div>'});
+ const context=vm.createContext({draftGrouping:'none',dateShiftUI:null,draftLabelsUI:null,draftReplaceUI:null,archiveDraftsUI:null,queueSwapUI:null,queuePriorityUI:null,queueReflowUI:null,returnDraftsUI:null,view,$,$$:()=>[],document:{body:{dataset:{}}},history:{replaceState(){}},renderPostLabelFilter(){},renderPlanningChannelControls(){},connectionsPanel:{show(){},hide(){}},state:{posts:[],channels:[]},CHANNELS:[],channel:'all',query:'',ideaTag:'',postTag:'',calendarStatus:'all',range:'week',anchor:new Date('2026-11-09'),currentZone:()=> 'Europe/Berlin',visiblePeriod:()=>({start:new Date('2026-11-09'),end:new Date('2026-11-15')}),dateLabel:()=> '15. November',dateKey:()=> '2026-11-09',relevantPosts:()=>[],periodPosts:posts=>posts,renderIdeas:()=>'<label>Test filter</label>',emptyState:(title,description,action,label)=>JSON.stringify({title,description,action,label}),renderHomeOverview:()=>'<div>Overview</div>'});
  vm.runInContext(renderer,context);context.render();return {context,$};
 }
 test('ideas library keeps label filtering, focused heading and existing creation action',()=>{
@@ -36,7 +36,7 @@ test('v11 Mastodon planning lifecycle and dynamic channel controls remain presen
  assert.match(source,/import \{refreshMastodonPlanningStatus,clearMastodonPlanningStatus\} from '\.\/mastodon-planning\.js'/);
  assert.match(source,/renderPostLabelFilter\(\);renderPlanningChannelControls\(\)/);
  assert.match(source,/refreshMastodonPlanningStatus\(\$\('#mastodon-planning-status'\)\)/);
- assert.match(source,/function closeComposer\(\)\{clearMastodonPlanningStatus\(\)/);
+ assert.match(source,/function closeComposer\(\)\{videoTailEditor.close\(\);videoTailTarget=null;videoSelectionController\?\.abort\(\);videoSelectionController=null;for\(const v of \$\$\(\x27#composer video\x27\)\)v.pause\(\);videoPreviewURLs.clear\(\);clearMastodonPlanningStatus\(\)/);
  const html=readFileSync(new URL('../../public/index.html',import.meta.url),'utf8');assert.match(html,/id="mastodon-planning-status"/);assert.match(html,/id="planning-channel-count"/);
 });
 test('leaving libraries restores calendar and list controls without losing planning context',()=>{
@@ -46,13 +46,13 @@ test('leaving libraries restores calendar and list controls without losing plann
  context.view='calendar';context.render();
  assert.equal(context.document.body.dataset.editorialView,'');
  assert.equal(context.document.body.dataset.plannerView,'calendar');
- assert.equal($('#page-title').textContent,'Redaktionsplan');
+ assert.equal($('#page-title').textContent,'Planung');
  assert.equal($('#calendar-toolbar').hidden,false);
  assert.equal($('#idea-label-filter-wrap').hidden,true);
  assert.equal($('#timezone').textContent,'Europe/Berlin');
  assert.equal($('.create-post').dataset.action,'new-post');
  assert.match($('#content').innerHTML,/Safe planning summary.*Week/);
  context.view='list';context.render();
- assert.equal($('#page-title').textContent,'Deine Beitragsliste.');
+ assert.equal($('#page-title').textContent,'Beitragsliste');
  assert.match($('#content').innerHTML,/Safe planning summary.*Agenda/);
 });

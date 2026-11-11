@@ -4,14 +4,14 @@ import {createDemoState} from '../../public/model.js';
 function harness(save=async()=>{}){
  const element=()=>({textContent:'',value:'',disabled:false,files:[],children:[],focus(){},replaceChildren(){this.children=[];},append(x){this.children.push(x);}});
  const nodes=Object.fromEntries(['input','[data-import-status]','[data-import-list]','[data-import-confirm]','[data-import-close]'].map(k=>[k,element()]));const dialog={open:false,querySelector:k=>nodes[k],events:{},addEventListener(k,fn){this.events[k]=fn;},showModal(){this.open=true;},close(){this.open=false;}};
- const state={...createDemoState(new Date('2030-01-01')),posts:[]};const imported=structuredClone(state);imported.posts=[{id:'one',title:'<img onerror=evil>',text:'text',tags:[],channels:['mastodon'],variantTexts:{},status:'draft',scheduleBinding:null,scheduledInstant:null,scheduledAt:null,timeZone:'UTC',cover:null,media:null,createdAt:'2030-01-01T00:00:00.000Z',updatedAt:'2030-01-01T00:00:00.000Z'}];
+ const state={...createDemoState(new Date('2030-01-01')),posts:[]};const imported=structuredClone(state);imported.posts=[{id:'one',title:'<img onerror=evil>',text:'text',tags:[],channels:['mastodon'],variantTexts:{},status:'draft',scheduleBinding:null,scheduledInstant:null,scheduledAt:null,timeZone:'UTC',cover:null,mediaItems:[],createdAt:'2030-01-01T00:00:00.000Z',updatedAt:'2030-01-01T00:00:00.000Z'}];
  globalThis.document={activeElement:element(),createElement:element};
  const ui=createPlannerImportUI({dialog,getState:()=>state,canOpen:()=>true,save});
  const file=()=>{const b=new TextEncoder().encode(JSON.stringify(imported));return{size:b.byteLength,arrayBuffer:async()=>b.buffer};};
  return{ui,dialog,nodes,state,file,imported};
 }
 test('preview reads locally and renders literal text; cancel writes nothing',async()=>{let saves=0;const h=harness(async()=>saves++);h.ui.open();h.nodes.input.files=[h.file()];await h.nodes.input.onchange();assert.equal(saves,0);assert.equal(h.nodes['[data-import-confirm]'].disabled,false);assert.match(h.nodes['[data-import-list]'].children[0].textContent,/<img onerror=evil>/);h.nodes['[data-import-close]'].onclick();assert.equal(h.dialog.open,false);assert.equal(saves,0);});
-test('one explicit commit, double clicks blocked and uncertain write never retried after reopen',async()=>{let saves=0,reject;const h=harness(()=>{saves++;return new Promise((_,r)=>reject=r);});h.ui.open();h.nodes.input.files=[h.file()];await h.nodes.input.onchange();const first=h.nodes['[data-import-confirm]'].onclick();await h.nodes['[data-import-confirm]'].onclick();h.nodes['[data-import-close]'].onclick();assert.equal(h.dialog.open,true);assert.equal(saves,1);reject(Error('timeout'));await first;assert.match(h.nodes['[data-import-status]'].textContent,/Möglicherweise wurde gespeichert/);h.nodes['[data-import-close]'].onclick();h.ui.open();assert.equal(h.nodes.input.disabled,true);await h.nodes['[data-import-confirm]'].onclick();assert.equal(saves,1);});
+test('one explicit commit, double clicks blocked and uncertain write never retried after reopen',async()=>{let saves=0,reject;const h=harness(()=>{saves++;return new Promise((_,r)=>reject=r);});h.ui.open();h.nodes.input.files=[h.file()];await h.nodes.input.onchange();const first=h.nodes['[data-import-confirm]'].onclick();await h.nodes['[data-import-confirm]'].onclick();h.nodes['[data-import-close]'].onclick();assert.equal(h.dialog.open,true);assert.equal(saves,1);reject(Error('timeout'));await first;assert.match(h.nodes['[data-import-status]'].textContent,/Unklar, ob gespeichert/);h.nodes['[data-import-close]'].onclick();h.ui.open();assert.equal(h.nodes.input.disabled,true);await h.nodes['[data-import-confirm]'].onclick();assert.equal(saves,1);});
 test('stale file response and local revision change cannot commit',async()=>{let saves=0,resolve;const h=harness(async()=>saves++);h.ui.open();h.nodes.input.files=[{size:10,arrayBuffer:()=>new Promise(r=>resolve=r)}];const pending=h.nodes.input.onchange();h.nodes['[data-import-close]'].onclick();resolve(await h.file().arrayBuffer());await pending;assert.equal(h.nodes['[data-import-confirm]'].disabled,true);h.ui.open();h.nodes.input.files=[h.file()];await h.nodes.input.onchange();h.state.revision++;await h.nodes['[data-import-confirm]'].onclick();assert.equal(saves,0);assert.match(h.nodes['[data-import-status]'].textContent,/geändert/);});
 test('invalid UTF8 and oversize files rejected before preview',async()=>{for(const f of [{size:2,arrayBuffer:async()=>new Uint8Array([0xc3,0x28]).buffer},{size:1024*1024+1,arrayBuffer:async()=>{throw Error('must not read');}}]){const h=harness();h.ui.open();h.nodes.input.files=[f];await h.nodes.input.onchange();assert.equal(h.nodes['[data-import-confirm]'].disabled,true);}});
 
@@ -34,5 +34,30 @@ test('confirmed import also remains single-flight after closing and reopening, w
 
 test('reloaded duplicate-only file ignores server timestamp and disables every confirmation without a save',async()=>{
  let saves=0;const h=harness(async()=>saves++);h.state.posts=structuredClone(h.imported.posts);h.state.posts[0].updatedAt='2030-02-02T00:00:00.000Z';h.ui.open();h.nodes.input.files=[h.file()];await h.nodes.input.onchange();
- assert.match(h.nodes['[data-import-status]'].textContent,/0 neue Einträge, 1 unverändert vorhanden und übersprungen/);assert.equal(h.nodes['[data-import-confirm]'].disabled,true);assert.equal(h.nodes['[data-import-list]'].children.length,0);await h.nodes['[data-import-confirm]'].onclick();await h.nodes['[data-import-confirm]'].onclick();assert.equal(saves,0);
+ assert.match(h.nodes['[data-import-status]'].textContent,/0 neu · 1 bereits vorhanden/);assert.equal(h.nodes['[data-import-confirm]'].disabled,true);assert.equal(h.nodes['[data-import-list]'].children.length,0);await h.nodes['[data-import-confirm]'].onclick();await h.nodes['[data-import-confirm]'].onclick();assert.equal(saves,0);
+});
+
+// Use the same browser-client class as the controller, not the server-module copy.
+import {PlannerClientError} from '../../public/data-client/client.mjs';
+for(const [name,error,rejected] of [
+ ['confirmed capacity rejection',new PlannerClientError('private detail',413,'PAYLOAD_TOO_LARGE'),true],
+ ['network failure',new TypeError('network'),false],
+ ['lost reply',new Error('lost reply after commit'),false],
+ ['server error',new PlannerClientError('private detail',500,'STORAGE_ERROR'),false],
+ ['wrong status 500',new PlannerClientError('private detail',500,'PAYLOAD_TOO_LARGE'),false],
+ ['wrong status 400',new PlannerClientError('private detail',400,'PAYLOAD_TOO_LARGE'),false],
+ ['string status',new PlannerClientError('private detail','413','PAYLOAD_TOO_LARGE'),false],
+ ['wrong code',new PlannerClientError('private detail',413,'STORAGE_ERROR'),false],
+ ['malformed JSON 413',new PlannerClientError('private detail',413,'INVALID_RESPONSE'),false],
+ ['missing code',new PlannerClientError('private detail',413),false],
+ ['lookalike error',Object.assign(new Error('private detail'),{status:413,code:'PAYLOAD_TOO_LARGE'}),false],
+ ['null error',null,false],
+ ['revision conflict',new PlannerClientError('private detail',409,'REVISION_CONFLICT'),false],
+])test('import error classification and locked reopen: '+name,async()=>{
+ let saves=0;const h=harness(async()=>{saves++;throw error});h.ui.open();h.nodes.input.files=[h.file()];await h.nodes.input.onchange();await h.nodes['[data-import-confirm]'].onclick();
+ assert.equal(h.nodes['[data-import-status]'].textContent,rejected?'Import zu groß. Nichts importiert.':'Unklar, ob gespeichert. Neu laden und Einträge prüfen.');
+ assert.equal(h.nodes['[data-import-confirm]'].disabled,true);assert.equal(h.nodes.input.disabled,true);assert.equal(h.nodes['[data-import-close]'].disabled,false);
+ await h.nodes['[data-import-confirm]'].onclick();h.nodes['[data-import-close]'].onclick();h.ui.open();
+ assert.equal(h.nodes['[data-import-status]'].textContent,rejected?'Import zu groß. Nichts importiert.':'Neu laden und Einträge prüfen.');
+ await h.nodes.input.onchange();await h.nodes['[data-import-confirm]'].onclick();assert.equal(saves,1);
 });

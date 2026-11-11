@@ -1,0 +1,15 @@
+/* Optional label grouping changes presentation only. */
+#draft-grouping-status{margin-left:8px;color:var(--purple-dark);font-size:12px;font-weight:500}
+#draft-grouping-wrap{display:grid;gap:6px;flex:1 1 100%;min-width:0;max-width:100%;font-size:13px}
+#draft-grouping-wrap .select-wrap{width:100%}
+.draft-group{min-width:0}
+.draft-group-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin:24px 24px 0;font-size:15px;line-height:1.5}
+.draft-group-heading>span{min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.draft-group-heading>small{font-size:12px;font-weight:400;color:var(--muted)}
+.draft-group+.draft-group{border-top:1px solid var(--line)}
+.draft-group .draft-grid{padding-top:16px}
+@media(max-width:760px){
+ #draft-grouping-wrap .select-wrap select{font-size:16px}
+ .draft-group-heading{margin:20px 15px 0;font-size:14px}
+ .draft-group .draft-grid{grid-template-columns:minmax(0,1fr)}
+}

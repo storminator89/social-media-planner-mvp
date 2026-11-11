@@ -35,7 +35,7 @@ test('duplicating a converted post never loses title, quoted labels, or independ
 test('one idea and rich existing draft survive unrelated full-snapshot edits without metadata or media loss',async t=>{
   const {store,client}=await setup(t);let state=await store.load();
   const image={dataUrl:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAGUlEQVR4nGMsTLjBQApgIkn1qIZRDUNKAwBGMgHJ6tENZAAAAABJRU5ErkJggg==',alt:'Testbild',name:'test.png',type:'image/png'};
-  state=await store.save({...state,posts:[idea(),{...idea(),id:'existing-draft',status:'draft',channels:['instagram'],variantTexts:{instagram:''},media:image}]});
+  state=await store.save({...state,posts:[idea(),{...idea(),id:'existing-draft',status:'draft',channels:['instagram'],variantTexts:{instagram:''},mediaItems:[image]}]});
   const before=await client.load();state.posts.find(p=>p.status==='idea').text='Neue Notiz';await store.save(normalizeState(state));const after=await client.load();
   const old=before.posts.find(p=>p.id==='existing-draft'),saved=after.posts.find(p=>p.id==='existing-draft');assert.equal(saved.title,old.title);assert.deepEqual(saved.tags,old.tags);assert.deepEqual(saved.variants,old.variants);assert.deepEqual(after.media,before.media);
 });

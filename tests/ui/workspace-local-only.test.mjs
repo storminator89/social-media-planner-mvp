@@ -1,3 +1,5 @@
+import {preservationContext} from './preservation-context.mjs';
+import {createComposerMedia} from '../../public/composer-media.js';
 import {duplicateTaktDraft} from '../../public/workflows/queue.mjs';
 import {createEditorTiming} from '../../public/editor-timing.js';
 import test from 'node:test';
@@ -167,9 +169,9 @@ function appHarness(t, behavior) {
     get canCloseSafely() { return h.controller.canCloseSafely; },
     get hasUnsavedLocalInput() { return h.controller.snapshot.localOnly === true; },
   };
-  const context = vm.createContext({
-    composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
-    state: { posts: [{ id: 'post-1', status: 'draft', text: 'old stored post', createdAt: '2026-01-01' }] },
+  const context = vm.createContext({...preservationContext(),savedAltEdit:null,cancelSavedAlt(){},splitPending:false,closeDraftSplit(){},updateDraftSplitAvailability(){},
+    composerImages:createComposerMedia(),composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
+    state: { posts: [{ id: 'post-1', status: 'draft', mediaItems: [], text: 'old stored post', createdAt: '2026-01-01' }] },
     editingId: 'post-1', initialEditor: '{}', composerLabelState: { title: '', tags: [], baseline: '' },
     composerBaseText: current.text, composerVariantTexts: {}, composerMedia: null, composerCover: null,
     composerIdeaFingerprint: null, view: 'drafts', workspaceUI,
@@ -268,7 +270,7 @@ test('actual beforeunload warns for local-only input equal to the old editor bas
  const code=source.slice(start,source.indexOf('\n',start));
  for(const [open,localOnly,current,ideaOpen,ideaCurrent,warn] of [[true,true,'same',false,'idea',true],[true,false,'same',false,'idea',false],[false,true,'same',false,'idea',false],[true,false,'changed',false,'idea',true],[false,false,'same',true,'changed idea',true]]){
   let listener,prevented=0;
-  const context=vm.createContext({imageStudio:{hasPendingWork:false},postingTimesUI:null,window:{addEventListener:(name,fn)=>{assert.equal(name,'beforeunload');listener=fn;}},$:id=>({open:id==='#composer'?open:ideaOpen}),workspaceUI:{hasUnsavedLocalInput:localOnly},initialEditor:'same',editorSnapshot:()=>current,initialIdeaEditor:'idea',ideaEditorSnapshot:()=>ideaCurrent});
+  const context=vm.createContext({...preservationContext(),savedAltEdit:null,cancelSavedAlt(){},splitPending:false,closeDraftSplit(){},updateDraftSplitAvailability(){},imageStudio:{hasPendingWork:false},postingTimesUI:null,window:{addEventListener:(name,fn)=>{assert.equal(name,'beforeunload');listener=fn;}},$:id=>({open:id==='#composer'?open:ideaOpen}),workspaceUI:{hasUnsavedLocalInput:localOnly},initialEditor:'same',editorSnapshot:()=>current,initialIdeaEditor:'idea',ideaEditorSnapshot:()=>ideaCurrent});
   vm.runInContext(code,context);const event={preventDefault:()=>prevented++};listener(event);assert.equal(prevented,warn?1:0);assert.equal(event.returnValue,warn?'':undefined);
  }
 });

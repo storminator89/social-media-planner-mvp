@@ -83,7 +83,7 @@ test('owned media resolution preserves omission and alt conflicts without any fi
 test('actual controller reconciles lost save and closed410 discard receipts through real HTTP and SQLite',async t=>{
  const h=createSitesHandler(),e=env(),a=clients(h,e);let ids=0;const c=createWorkspaceController({client:a.workspace,uuid:()=>`controller-identifier-${++ids}`,setTimer:()=>1,clearTimer:()=>{}});t.after(()=>c.destroy());
  c.open({payload:payload()});c.changed(payload({text:'Confirmed draft body'}));const batch=e.DB.batch.bind(e.DB);let lose=true,writes=0;
- e.DB.batch=async statements=>{const result=await batch(statements);if(lose){lose=false;writes++;throw Error('postcommit fixture');}return result;};
+ e.DB.batch=async statements=>{const result=await batch(statements);if(lose&&statements.length>=3){lose=false;writes++;throw Error('postcommit fixture');}return result;};
  await c.save();assert.equal(c.snapshot.phase,'uncertain');assert.equal(c.snapshot.pendingWrite,true);assert.equal((await a.planner.load()).revision,0);
  await c.reconcile();assert.equal(c.snapshot.phase,'saved');assert.equal(c.snapshot.pendingWrite,false);assert.equal(c.snapshot.workspace.revision,1);assert.equal(writes,1);
  await a.planner.save(fixture());lose=true;assert.equal(await c.completed(),false);assert.equal(c.snapshot.phase,'uncertain');

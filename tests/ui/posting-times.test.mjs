@@ -243,3 +243,20 @@ test('unconfirmed snapshots and missing channels cannot begin a settings session
     assert.equal(h.controller.snapshot.open, false); assert.equal(h.writes.length, 0);
   }
 });
+
+test('current v3 planner opens and confirms pause without changing rich post data',async()=>{
+ let current=state();current.schemaVersion=3;current.posts=[{id:'kept',mediaItems:[{id:'image'}],channelMediaItems:{a:[]},status:'archived',scheduledAt:null}];
+ const original=structuredClone(current.posts);
+ const controller=createPostingTimesController({getState:()=>current,saveState:async next=>(current={...next,revision:current.revision+1})});
+ assert.equal(controller.open('a'),true);controller.patch({paused:true});assert.equal(await controller.save(),true);
+ assert.equal(current.schemaVersion,3);assert.equal(current.channels[0].postingSchedule.paused,true);assert.deepEqual(current.posts,original);
+});
+
+test('v3 refuses downgraded save receipts without retry',async()=>{
+ const current={...state(),schemaVersion:3};let writes=0;
+ const c=createPostingTimesController({getState:()=>current,saveState:async next=>{writes++;return {...next,schemaVersion:2,revision:next.revision+1};}});
+ c.open('a');c.patch({paused:true});assert.equal(await c.save(),false);assert.equal(c.snapshot.blocked,true);assert.equal(c.snapshot.dirty,true);assert.equal(c.snapshot.message,'');assert.equal(await c.save(),false);assert.equal(writes,1);
+});
+test('unknown and string schema versions cannot open',()=>{
+ for(const schemaVersion of [4,'3',null]){const c=createPostingTimesController({getState:()=>({...state(),schemaVersion}),saveState:()=>assert.fail()});assert.throws(()=>c.open('a'));}
+});

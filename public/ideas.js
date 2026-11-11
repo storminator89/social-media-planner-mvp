@@ -15,6 +15,6 @@ export function validateIdea(idea){
   if(!idea.title?.trim()&&!idea.text?.trim())errors.push('Halte einen Titel oder eine Notiz fest.');
   if(typeof idea.text!=='string'||idea.text.length>20000)errors.push('Die Notiz darf höchstens 20.000 Zeichen enthalten.');
   try{normalizeEditorialMetadata(idea)}catch(error){errors.push(error.message)}
-  if(idea.status!=='idea'||idea.channels?.length||Object.keys(idea.variantTexts||{}).length||idea.scheduledAt||idea.media||idea.cover)errors.push('Eine Idee hat noch keine Kanäle, Bilder oder Termine.');
+  if(idea.status!=='idea'||idea.channels?.length||Object.keys(idea.variantTexts||{}).length||idea.scheduledAt||idea.mediaItems?.length||idea.cover)errors.push('Eine Idee hat noch keine Kanäle, Bilder oder Termine.');
   return errors;
 }

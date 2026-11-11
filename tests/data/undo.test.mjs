@@ -33,5 +33,5 @@ test('Undo cache expires without silently choosing a repeated-hour instant',asyn
 
 test('Undo cannot silently drop cached independent channel text or convert a deleted post backwards to an idea',async()=>{
   const {store,repo}=await seeded(),ui=await store.load();const deleted=await store.save({...ui,posts:[]});const missing=structuredClone(ui.posts[0]);delete missing.variantTexts;await assert.rejects(store.save({...deleted,posts:[missing]}),e=>e.code==='VARIANT_TEXTS_REQUIRED');
-  const backward={...ui.posts[0],status:'idea',channels:[],variantTexts:{},scheduledAt:null,media:null};await assert.rejects(store.save({...deleted,posts:[backward]}),e=>e.code==='IDEA_TRANSITION_UNSUPPORTED');assert.equal((await repo.load('alice')).posts.length,0);
+  const backward={...ui.posts[0],status:'idea',channels:[],variantTexts:{},scheduledAt:null,mediaItems:[]};await assert.rejects(store.save({...deleted,posts:[backward]}),e=>e.code==='IDEA_TRANSITION_UNSUPPORTED');assert.equal((await repo.load('alice')).posts.length,0);
 });

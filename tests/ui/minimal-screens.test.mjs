@@ -16,7 +16,7 @@ test('image, posting-time and workspace screens retain actionable states without
  assert.match(read('image-studio.js'),/id="studio-status" role="status"/);
  assert.match(read('posting-times-ui.js'),/data-times-guard/);
  assert.doesNotMatch(read('posting-times-ui.js'),/Beiträge später selbst zuordnen/);
- assert.match(read('workspace-ui.js'),/Lokales Bild nicht mitgesichert/);
+ assert.match(read('workspace-ui.js'),/Lokale Mediendateien fehlen/);
  assert.match(read('workspace-ui.js'),/Das Original wird nicht überschrieben/);
  assert.doesNotMatch(read('workspace-ui.js'),/Wiederherstellung: Was wird gesichert/);
 });

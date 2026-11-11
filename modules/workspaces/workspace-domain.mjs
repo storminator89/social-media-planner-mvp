@@ -1,6 +1,9 @@
+const savedKind=k=>['planner_image','planner_video'].includes(k);
+const kindType=(k,t)=>(k==='planner_image'?['image/png','image/jpeg','image/webp']:k==='planner_video'?['video/mp4','video/webm']:[]).includes(t);
 /** Unfinished editor data only. No post authorization, publication, auth or storage. */
 import {normalizeScheduleBinding} from '../workflows/posting-schedules.mjs';
-export const WORKSPACE_SCHEMA_VERSION=1;
+export const WORKSPACE_SCHEMA_VERSION=1; // SQL container version remains unchanged.
+export const WORKSPACE_PROTOCOL_VERSION=2;
 export const WORKSPACE_LIMITS=Object.freeze({active:20,total:100,jsonBytes:128*1024,text:20000,variants:20,channels:20,retentionMs:30*24*60*60*1000});
 export class WorkspaceError extends Error{constructor(status,code,details){super(code);this.status=status;this.code=code;if(details)this.details=details;}}
 export function fail(code,status=400,details){throw new WorkspaceError(status,code,details);}
@@ -46,17 +49,40 @@ function planningSnapshot(source){
  if(p.scheduleBinding!==null&&p.scheduledInstant!==p.scheduleBinding.instant)fail('WORKSPACE_INPUT_INVALID');return p;
 }
 export function payloadSnapshot(source){
- const p=ownSnapshot(source,['title','tags','rawTags','baselineRenderedTags','text','variantTexts','channels','date','time','timeZone','media','cover','activeTextTarget','localMediaOmitted'],'WORKSPACE_INPUT_INVALID',['planning']);
+ const version=Object.getOwnPropertyDescriptor(source??{},'schemaVersion');
+ if(version&&(!Object.hasOwn(version,'value')||![2,3,4].includes(version.value)))fail('WORKSPACE_SCHEMA_CHANGED',409);
+ const v2=!!version,v4=version?.value===4;
+ const p=ownSnapshot(source,['title','tags','rawTags','baselineRenderedTags','text','variantTexts','channels','date','time','timeZone',...(v2?['schemaVersion','mediaItems',...(v4?['channelMediaRefs']:[])]:['media']),'cover','activeTextTarget',...(!v2?['localMediaOmitted']:[])],'WORKSPACE_INPUT_INVALID',['planning']);
  p.title=text(p.title,200);p.tags=arraySnapshot(p.tags,20,x=>text(x,60));p.rawTags=text(p.rawTags,4096);p.baselineRenderedTags=text(p.baselineRenderedTags,4096);p.text=text(p.text,WORKSPACE_LIMITS.text);p.variantTexts=variantSnapshot(p.variantTexts);p.channels=arraySnapshot(p.channels,WORKSPACE_LIMITS.channels,id);if(new Set(p.channels).size!==p.channels.length)fail('WORKSPACE_INPUT_INVALID');
  // Raw work-in-progress values: do not parse dates/CSV, trim text, infer UTC or schedule.
  p.date=text(p.date,32);p.time=text(p.time,32);p.timeZone=text(p.timeZone,100);p.activeTextTarget=text(p.activeTextTarget,100);if(p.activeTextTarget!=='base'&&!p.channels.includes(p.activeTextTarget))fail('WORKSPACE_INPUT_INVALID');
  if(![null,'sunrise','forms','studio','nature'].includes(p.cover))fail('WORKSPACE_INPUT_INVALID');
- if(typeof p.localMediaOmitted!=='boolean'||(p.localMediaOmitted&&p.media!==null))fail('WORKSPACE_INPUT_INVALID');
+ if(v2){p.mediaItems=arraySnapshot(p.mediaItems,v4?200:10,slot=>{
+ const d=ownSnapshot(slot,['kind','alt','name','type'],'WORKSPACE_INPUT_INVALID',['id']);
+ if(!['planner_image','local_omitted',...(p.schemaVersion===3?['planner_video']:[])].includes(d.kind)||Object.hasOwn(d,'id')!==(savedKind(d.kind)))fail('WORKSPACE_INPUT_INVALID');
+ d.alt=text(d.alt,2000);d.name=text(d.name,255);d.type=text(d.type,100);if(v4&&!kindType('planner_image',d.type))fail('WORKSPACE_INPUT_INVALID');
+ if(savedKind(d.kind)){d.id=id(d.id);if(!kindType(d.kind,d.type))fail('WORKSPACE_INPUT_INVALID');}
+ return d;});if(new Set(p.mediaItems.filter(x=>savedKind(x.kind)).map(x=>x.id)).size!==p.mediaItems.filter(x=>savedKind(x.kind)).length)fail('WORKSPACE_INPUT_INVALID');}
+ else {if(typeof p.localMediaOmitted!=='boolean'||(p.localMediaOmitted&&p.media!==null))fail('WORKSPACE_INPUT_INVALID');
  if(p.media!==null){p.media=ownSnapshot(p.media,['kind','id','alt']);if(p.media.kind!=='planner_image')fail('WORKSPACE_INPUT_INVALID');p.media.id=id(p.media.id);p.media.alt=text(p.media.alt,2000);}
+ }
+ if(v4){
+  if(!p.channels.length)fail('WORKSPACE_INPUT_INVALID');
+  const refs=ownSnapshot(p.channelMediaRefs,p.channels),ordered=Object.create(null),seen=new Set();
+  for(const channel of p.channels){
+   const indices=arraySnapshot(refs[channel],10,index=>{if(!Number.isSafeInteger(index)||index<0||index>=p.mediaItems.length)fail('WORKSPACE_INPUT_INVALID');return index;});
+   if(new Set(indices).size!==indices.length)fail('WORKSPACE_INPUT_INVALID');
+   for(const index of indices)seen.add(index);
+   ordered[channel]=indices;
+  }
+  if(seen.size!==p.mediaItems.length)fail('WORKSPACE_INPUT_INVALID');
+  p.channelMediaRefs=ordered;
+ }
+ if(p.schemaVersion===3&&p.mediaItems.some(m=>m.type.startsWith('video/'))&&(p.mediaItems.length!==1||!['video/mp4','video/webm'].includes(p.mediaItems[0].type)))fail('WORKSPACE_INPUT_INVALID');
  if(Object.hasOwn(p,'planning'))p.planning=planningSnapshot(p.planning);
  const json=JSON.stringify(p);if(new TextEncoder().encode(json).byteLength>WORKSPACE_LIMITS.jsonBytes)fail('WORKSPACE_TOO_LARGE',413);return p;
 }
-export function saveSnapshot(source){const s=ownSnapshot(source,['schemaVersion','workspaceId','expectedRevision','writeId','sourcePostId','basePlannerRevision','payload']);if(s.schemaVersion!==WORKSPACE_SCHEMA_VERSION)fail('WORKSPACE_SCHEMA_CHANGED',409);s.workspaceId=mutationId(s.workspaceId);s.writeId=mutationId(s.writeId);s.expectedRevision=revision(s.expectedRevision);if(s.sourcePostId!==null)s.sourcePostId=id(s.sourcePostId);if(s.basePlannerRevision!==null)s.basePlannerRevision=revision(s.basePlannerRevision);s.payload=payloadSnapshot(s.payload);return s;}
-export function discardSnapshot(source){const s=ownSnapshot(source,['schemaVersion','workspaceId','expectedRevision','writeId']);if(s.schemaVersion!==WORKSPACE_SCHEMA_VERSION)fail('WORKSPACE_SCHEMA_CHANGED',409);s.workspaceId=mutationId(s.workspaceId);s.writeId=mutationId(s.writeId);s.expectedRevision=revision(s.expectedRevision);if(s.expectedRevision===0)fail('WORKSPACE_INPUT_INVALID');return s;}
+export function saveSnapshot(source){const s=ownSnapshot(source,['schemaVersion','workspaceId','expectedRevision','writeId','sourcePostId','basePlannerRevision','payload']);if(![1,2,3,4].includes(s.schemaVersion))fail('WORKSPACE_SCHEMA_CHANGED',409);s.workspaceId=mutationId(s.workspaceId);s.writeId=mutationId(s.writeId);s.expectedRevision=revision(s.expectedRevision);if(s.sourcePostId!==null)s.sourcePostId=id(s.sourcePostId);if(s.basePlannerRevision!==null)s.basePlannerRevision=revision(s.basePlannerRevision);s.payload=payloadSnapshot(s.payload);if((s.payload.schemaVersion??1)!==s.schemaVersion)fail('WORKSPACE_SCHEMA_CHANGED',409);return s;}
+export function discardSnapshot(source){const s=ownSnapshot(source,['schemaVersion','workspaceId','expectedRevision','writeId']);if(![1,2,3,4].includes(s.schemaVersion))fail('WORKSPACE_SCHEMA_CHANGED',409);s.workspaceId=mutationId(s.workspaceId);s.writeId=mutationId(s.writeId);s.expectedRevision=revision(s.expectedRevision);if(s.expectedRevision===0)fail('WORKSPACE_INPUT_INVALID');return s;}
 export function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 export async function hash(value){try{return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),x=>x.toString(16).padStart(2,'0')).join('');}catch{fail('WORKSPACE_UNAVAILABLE',503);}}

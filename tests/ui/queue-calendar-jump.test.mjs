@@ -1,8 +1,9 @@
+import {videoContext} from './video-context.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {channelQueue,renderChannelQueue,queueCalendarDay,QUEUE_STATUSES} from '../../public/channel-queue.js';
+import {channelQueue,renderChannelQueue,queueCalendarDay,queuePriorityAvailable,QUEUE_STATUSES} from '../../public/channel-queue.js';
 import {calendarTime,calendarPosts,planningStatus,periodSummary} from '../../public/calendar-model.js';
 import {CHANNELS,dateKey,addDays,startOfWeek,zonedNow,filterPosts,displayTitle,normalizeState} from '../../public/model.js';
 import {effectiveText,variantCount} from '../../public/variants.js';
@@ -43,8 +44,8 @@ function harness(t,{state=fixture(),status='all',channel='all',query='',tag='',s
   const location={hash:'#queue'},entries=['#queue'];let index=0;
   const history={blocked:false,replaceState(value,title,url){assert.equal(value,null);calls.push(['replace',url]);entries[index]=url;location.hash=url;},pushState(value,title,url){if(this.blocked)throw Error('History unavailable');assert.equal(value,null);calls.push(['push',url]);entries.splice(index+1);entries.push(url);index++;location.hash=url;},go(delta){const next=index+delta;if(next<0||next>=entries.length)return;index=next;location.hash=entries[index];windowHandlers.get('hashchange')();}};
   const forbidden=name=>()=>assert.fail('Unexpected '+name);
-  const c=vm.createContext({state:freeze(state),view:'queue',range:'month',anchor:new Date('2026-10-15T12:00'),channel,query,postTag:tag,ideaTag:'',calendarStatus:'review',queueStatus:status,queueCalendarReturnDay:null,plannerLoaded:true,saving:false,workspacePlannerReading:false,config:{},Date,Intl,Set,Map,document:doc,window:{addEventListener:(name,fn)=>windowHandlers.set(name,fn)},location,history,$,$$:()=>[],
-    channelQueue,renderChannelQueue,queueCalendarDay,QUEUE_STATUSES,calendarTime,calendarPosts,planningStatus,periodSummary,CHANNELS,dateKey,addDays,startOfWeek,zonedNow,filterPosts,displayTitle,effectiveText,variantCount,postLabelOptions,inspectScheduleBinding,renderPlanningHint,
+  const c=vm.createContext({...videoContext(),ideaReuseNavigation:0,ideaReuseUI:null,draftGrouping:'none',dateShiftUI:null,draftLabelsUI:null,draftReplaceUI:null,archiveDraftsUI:null,queueSwapUI:null,queuePriorityUI:null,queueReflowUI:null,returnDraftsUI:null,state:freeze(state),view:'queue',range:'month',anchor:new Date('2026-10-15T12:00'),channel,query,postTag:tag,ideaTag:'',calendarStatus:'review',queueStatus:status,queueCalendarReturnDay:null,plannerLoaded:true,saving:false,workspacePlannerReading:false,config:{},Date,Intl,Set,Map,document:doc,window:{addEventListener:(name,fn)=>windowHandlers.set(name,fn)},location,history,$,$$:()=>[],
+    channelQueue,renderChannelQueue,queueCalendarDay,queuePriorityAvailable,QUEUE_STATUSES,calendarTime,calendarPosts,planningStatus,periodSummary,CHANNELS,dateKey,addDays,startOfWeek,zonedNow,filterPosts,displayTitle,effectiveText,variantCount,postLabelOptions,inspectScheduleBinding,renderPlanningHint,
     connectionsPanel:{hide(){},show(){}},openComposer:forbidden('composer'),persist:forbidden('persist'),fetch:forbidden('fetch'),store:{save:forbidden('store.save'),uploadMedia:forbidden('upload')},localStorage:{setItem:forbidden('storage')},sessionStorage:{setItem:forbidden('storage')},requestAnimationFrame:forbidden('deferred focus'),
     days:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],dateLabel:(d,o={})=>new Date(d).toLocaleDateString('de-DE',o),esc:value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),icon:name=>`<svg aria-hidden="true" data-test-icon="${name}"></svg>`,platform:()=>'',stack:()=>''});
   for(const name of ['currentZone','mediaSource','cover','scheduleNeedsReview','badge','shownTime','calendarContext','renderCalendarSummary','postLabelDescription','postLabels','postCard','relevantPosts','visiblePeriod','periodPosts','emptyState','renderWeek','renderMobileWeek','renderMonth','renderAgenda','renderPostLabelFilter','renderPlanningChannelControls','render','goView','openQueueCalendar']){
@@ -119,10 +120,10 @@ test('Escape/Enter/Space do not create a post through the global keyboard shortc
 test('hard reload restores only the existing route, not transient jump day or filters',async t=>{
   const h=harness(t,{status:'planned',channel:'instagram',query:'Individual',tag:'Focus'}),saved=structuredClone(h.c.state);
   await h.click(h.dayButton('2027-01-03'));assert.equal(dateKey(h.c.anchor),'2027-01-03');
-  const fresh=vm.createContext({Date,startOfWeek,addDays,zonedNow,dateKey,calendarPosts,loaded:saved,location:{hash:h.location.hash},config:{}});
+  const fresh=vm.createContext({...videoContext(),Date,startOfWeek,addDays,zonedNow,dateKey,calendarPosts,loaded:saved,location:{hash:h.location.hash},config:{}});
   for(const prefix of ['let state,view=',"let calendarStatus=","let queueStatus=","let queueCalendarReturnDay=",'let editingIdeaId='])vm.runInContext(app.split('\n').find(line=>line.startsWith(prefix)),fresh);
   vm.runInContext(actual('currentZone'),fresh);vm.runInContext('state=loaded;',fresh);
-  const start=app.indexOf("if(['home','calendar','list','queue','drafts','ideas','connections'].includes(location.hash.slice(1)))view=");
+  const start=app.indexOf("if(['home','calendar','list','queue','drafts','ideas','connections','archive'].includes(location.hash.slice(1)))view=");
   const end=app.indexOf("if(config.storageMode===",start);assert.ok(start>=0&&end>start);vm.runInContext(app.slice(start,end),fresh);
   const reset=JSON.parse(vm.runInContext('JSON.stringify({view,range,day:dateKey(anchor),channel,query,postTag,calendarStatus,queueStatus,queueCalendarReturnDay})',fresh));
   assert.deepEqual(reset,{view:'calendar',range:'week',day:'2026-12-28',channel:'all',query:'',postTag:'',calendarStatus:'all',queueStatus:'planned',queueCalendarReturnDay:null});assert.deepEqual(saved,h.c.state);

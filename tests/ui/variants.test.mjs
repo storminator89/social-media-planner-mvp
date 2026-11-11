@@ -1,8 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import { effectiveText, hasTextVariant, selectedVariantTexts, variantCount, channelTextChecks, inheritedChannels, searchableText } from '../../public/variants.js';
 import { normalizeState,validatePost,filterPosts,CHANNELS } from '../../public/model.js';
-const post=(extra={})=>({id:'variant-test',text:'Gemeinsamer Basistext',channels:['instagram','linkedin','bluesky'],variantTexts:{},status:'draft',scheduledAt:null,scheduleBinding:null,scheduledInstant:null,timeZone:'Europe/Berlin',media:null,cover:null,createdAt:'2026-11-07T00:00:00Z',updatedAt:'2026-11-07T00:00:00Z',...extra});
-const uiState=posts=>({schemaVersion:2,revision:4,channels:CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null})),settings:{timezone:'Europe/Berlin'},posts});
+const post=(extra={})=>({id:'variant-test',text:'Gemeinsamer Basistext',channels:['instagram','linkedin','bluesky'],variantTexts:{},status:'draft',scheduledAt:null,scheduleBinding:null,scheduledInstant:null,timeZone:'Europe/Berlin',mediaItems:[],cover:null,createdAt:'2026-11-07T00:00:00Z',updatedAt:'2026-11-07T00:00:00Z',...extra});
+const uiState=posts=>({schemaVersion:3,revision:4,channels:CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null})),settings:{timezone:'Europe/Berlin'},posts});
 const scheduled=extra=>post({status:'scheduled',scheduledAt:'2027-01-12T10:00',...extra});
 const now=new Date('2026-11-07T00:00:00Z');
 test('missing channel text inherits base text',()=>{assert.equal(effectiveText(post(),'instagram'),'Gemeinsamer Basistext');assert.equal(hasTextVariant(post(),'instagram'),false)});
@@ -17,7 +17,7 @@ test('long base valid for long channels if short channel has own text',()=>{cons
 test('too-long individual version blocks planning only for its channel',()=>{const p=scheduled({variantTexts:{bluesky:'x'.repeat(301)}});const errors=validatePost(p,now);assert.equal(errors.length,1);assert.match(errors[0],/Bluesky.*300.*301/)});
 test('empty individual version blocks planning but can remain unfinished in draft',()=>{const variants={bluesky:''};assert.ok(validatePost(scheduled({variantTexts:variants}),now).some(e=>e.includes('Bluesky')));assert.deepEqual(validatePost(post({variantTexts:variants}),now),[])});
 test('over-limit text can be saved as a draft without losing work',()=>{assert.deepEqual(validatePost(post({text:'x'.repeat(3500)}),now),[])});
-test('draft still requires some content and a chosen channel',()=>{assert.ok(validatePost(post({text:' ',variantTexts:{instagram:''}}),now).some(e=>e.includes('Schreibe')));assert.ok(validatePost(post({channels:[]}),now).some(e=>e.includes('Kanal')))});
+test('draft still requires some content; scheduling requires a chosen channel',()=>{assert.ok(validatePost(post({text:' ',variantTexts:{instagram:''}}),now).some(e=>e.includes('Schreibe')));assert.deepEqual(validatePost(post({channels:[],variantTexts:{}}),now),[]);assert.ok(validatePost(scheduled({channels:[],variantTexts:{}}),now).some(e=>e.includes('Kanal')))});
 test('base can be empty when every planned channel has valid individual text',()=>{assert.deepEqual(validatePost(scheduled({text:'',variantTexts:{instagram:'IG',linkedin:'LI',bluesky:'BS'}}),now),[])});
 test('variant count and inherited channels reflect explicit overrides',()=>{const p=post({variantTexts:{linkedin:'Same',bluesky:''}});assert.equal(variantCount(p),2);assert.deepEqual(inheritedChannels(p),['instagram'])});
 test('channel checks use effective text and unicode code points',()=>{const p=post({variantTexts:{bluesky:'👋'.repeat(300)}});const check=channelTextChecks(p,CHANNELS).find(c=>c.channelId==='bluesky');assert.equal(check.count,300);assert.equal(check.valid,true);assert.equal(check.custom,true)});

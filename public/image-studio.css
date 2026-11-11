@@ -8,3 +8,14 @@
 
 /* The edit toolbar and canvas remain usable at narrow phone widths. */
 .studio-toolbar{flex-wrap:wrap}.studio-toolbar>span{min-width:0;flex:1 1 100px}.studio-history{display:flex;gap:4px}.studio-history .button{min-width:44px;padding:6px 10px;font-size:20px}.studio-section .studio-check{display:flex;align-items:center;gap:8px;line-height:1.5}.studio-check input{width:20px;height:20px;flex:0 0 20px;accent-color:var(--takt-accent,#5c49ba)}#studio-canvas{touch-action:auto;cursor:default}#studio-canvas[data-draggable="true"]{touch-action:none;cursor:grab}#studio-canvas[data-dragging="true"]{cursor:grabbing}.studio-history button:disabled{opacity:.4;cursor:default}
+
+/* Transparency is a preview backdrop only; it never enters exported pixels. */
+#studio-canvas[data-format="png"]{background-color:#fff;background-image:conic-gradient(#ddd 25%,transparent 0 50%,#ddd 0 75%,transparent 0);background-size:20px 20px}
+
+/* Attached-image navigation remains inside the editor, including narrow screens. */
+.studio-carousel,.studio-switch{display:flex;align-items:center;justify-content:center;gap:.65rem;flex-wrap:wrap;padding:.65rem 1rem;border-bottom:1px solid var(--line,#ddd)}
+.studio-carousel[hidden],.studio-switch[hidden]{display:none}
+.studio-carousel span{font-size:.85rem;white-space:nowrap}
+.studio-switch strong{font-size:.9rem}
+.studio-footer>div{flex-wrap:wrap}
+@media(max-width:540px){.studio-carousel{gap:.4rem;padding:.5rem}.studio-carousel button{font-size:.75rem;padding:.5rem}.studio-switch{justify-content:flex-start}.studio-switch strong{width:100%}.studio-footer>div{gap:.4rem}.studio-footer button{white-space:normal}}

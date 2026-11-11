@@ -1,3 +1,5 @@
+import {normalizeMediaItems,normalizeChannelMediaItems,effectiveMediaItems,allReferencedMediaItems} from './workflows/media-items.mjs';
+export {normalizeMediaItems,normalizeChannelMediaItems,effectiveMediaItems,allReferencedMediaItems} from './workflows/media-items.mjs';
 import { normalizeEditorialMetadata, validateIdea } from './ideas.js';
 import { effectiveText, selectedVariantTexts, channelTextChecks, searchableText } from './variants.js';
 import { resolveLocalTime as resolveWorkflowTime } from './workflows/workflows.mjs';
@@ -8,7 +10,7 @@ export const CHANNELS = [
   { id: 'bluesky', name: 'Bluesky', handle: '@studionord.example', limit: 300, color: '#1680d9', abbreviation: 'bs' },
   { id: 'mastodon', name: 'Mastodon', handle: 'kanoa.de · Planungsziel', limit: 500, color: '#6364ff', abbreviation: 'm' }
 ];
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export function defaultTimeZone(){return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
 export function isTimeZone(zone){if(typeof zone!=='string'||/^[+-]/.test(zone))return false;try{new Intl.DateTimeFormat('en',{timeZone:zone}).format();return typeof zone==='string'&&zone.length>0}catch{return false}}
 function zoneParts(date,zone){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date);return Object.fromEntries(parts.filter(p=>p.type!=='literal').map(p=>[p.type,p.value]))}
@@ -65,10 +67,12 @@ export function validatePost(post, now = new Date()) {
   const errors = [];
   let schedule;
   try{schedule=normalizePostSchedule(post)}catch(error){errors.push(error.message)}
+  try{if(Object.hasOwn(post,'media'))throw Error('Veraltetes Bildfeld.');for(const media of allReferencedMediaItems(post))if(!media.alt.trim())errors.push(media.type.startsWith('video/')?'Ergänze eine Beschreibung für das Video.':'Ergänze einen Alternativtext für jedes Bild.');}catch(error){errors.push(error.message)}
   if(post.status==='idea')return [...new Set([...errors,...validateIdea(post)])];
   try{normalizeEditorialMetadata(post)}catch(error){errors.push(error.message)}
   if (!post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
-  if (!Array.isArray(post.channels) || !post.channels.length) errors.push('Wähle mindestens einen Kanal.');
+  if (!Array.isArray(post.channels) || (post.status !== 'draft' && !post.channels.length)) errors.push('Wähle mindestens einen Kanal.');
+  if (post.status === 'draft' && Array.isArray(post.channels) && !post.channels.length && post.mediaItems?.length) errors.push('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.');
   for (const result of channelTextChecks(post,CHANNELS)) {
     if (result.unknown) errors.push('Ein ausgewählter Kanal ist ungültig.');
     else if(post.status==='scheduled') {
@@ -76,7 +80,7 @@ export function validatePost(post, now = new Date()) {
       if(result.overLimit) errors.push(`${result.name}: maximal ${result.limit.toLocaleString('de-DE')} Zeichen (${result.count.toLocaleString('de-DE')} vorhanden).`);
     }
   }
-  if (post.media && !post.media.alt?.trim()) errors.push('Ergänze einen Alternativtext für dein Bild.');
+
   if (post.status === 'scheduled' && schedule) {
     const date=schedule.scheduledInstant===null?zonedInstant(schedule.scheduledAt,schedule.timeZone):new Date(schedule.scheduledInstant);
     if(date<=now)errors.push('Wähle einen Zeitpunkt in der Zukunft.');
@@ -94,14 +98,14 @@ export function createDemoState(now = new Date()) {
     ['Ein Blick hinter die Kulissen.\n\nDiese Woche haben wir an etwas Neuem gearbeitet. Hier ist ein kleiner Einblick in unseren Prozess. ✨', ['instagram','linkedin'], 4, '14:00', 'studio'],
     ['Zeit für frische Perspektiven. 🌿\n\nWir sammeln am Wochenende Inspiration draußen. Die besten Ideen kommen manchmal, wenn man nicht nach ihnen sucht.', ['instagram'], 6, '10:00', 'nature']
   ];
-  const posts = entries.map((e,i) => ({id:`demo-${i+1}`,text:e[0],channels:e[1],scheduledAt:localDateTime(addDays(week,e[2]),e[3]),status:'scheduled',cover:e[4],media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()}));
-  posts.push({id:'demo-draft-1',text:'3 Dinge, die wir diesen Monat gelernt haben.\n\n1. Gute Fragen sind oft wertvoller als schnelle Antworten.\n2. Kleine Schritte bringen uns weiter.\n3. …',channels:['linkedin'],scheduledAt:null,status:'draft',cover:null,media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()});
-  posts.push({id:'demo-draft-2',text:'Eine neue Idee nimmt Form an.\n\nMehr dazu bald. ✨',channels:['instagram'],scheduledAt:null,status:'draft',cover:'forms',media:null,createdAt:now.toISOString(),updatedAt:now.toISOString()});
+  const posts = entries.map((e,i) => ({id:`demo-${i+1}`,text:e[0],channels:e[1],scheduledAt:localDateTime(addDays(week,e[2]),e[3]),status:'scheduled',cover:e[4],mediaItems:[],createdAt:now.toISOString(),updatedAt:now.toISOString()}));
+  posts.push({id:'demo-draft-1',text:'3 Dinge, die wir diesen Monat gelernt haben.\n\n1. Gute Fragen sind oft wertvoller als schnelle Antworten.\n2. Kleine Schritte bringen uns weiter.\n3. …',channels:['linkedin'],scheduledAt:null,status:'draft',cover:null,mediaItems:[],createdAt:now.toISOString(),updatedAt:now.toISOString()});
+  posts.push({id:'demo-draft-2',text:'Eine neue Idee nimmt Form an.\n\nMehr dazu bald. ✨',channels:['instagram'],scheduledAt:null,status:'draft',cover:'forms',mediaItems:[],createdAt:now.toISOString(),updatedAt:now.toISOString()});
   const channels=CHANNELS.map(({id,name,handle,color})=>({id,platform:id,name,handle,color,enabled:true,connectionStatus:'manual',postingSchedule:null}));
   return {schemaVersion:SCHEMA_VERSION,revision:0,channels,settings:{timezone},posts:posts.map(p=>({...p,title:'',tags:[],timeZone:timezone,variantTexts:{},scheduleBinding:null,scheduledInstant:null}))};
 }
 export function normalizeState(value) {
-  if (!value || value.schemaVersion !== SCHEMA_VERSION || !Array.isArray(value.posts)) throw new Error('Die gespeicherten Planungsdaten haben ein unbekanntes Format.');
+  if (!value || ![2,SCHEMA_VERSION].includes(value.schemaVersion) || !Array.isArray(value.posts)) throw new Error('Die gespeicherten Planungsdaten haben ein unbekanntes Format.');
   if (!Number.isSafeInteger(value.revision) || value.revision<0) throw new Error('Eine bestätigte Planungsrevision ist erforderlich.');
   if (!isTimeZone(value.settings?.timezone)) throw new Error('Die gespeicherte IANA-Zeitzone ist ungültig.');
   const timezone=value.settings.timezone;
@@ -109,18 +113,17 @@ export function normalizeState(value) {
   const channelIds=new Set(channels.map(channel=>channel.id));
   const ids = new Set();
   const posts = value.posts.map(p => {
-    if (!p || typeof p.id !== 'string' || ids.has(p.id) || typeof p.text !== 'string' || !Array.isArray(p.channels) || p.channels.some(id=>!channelIds.has(id)) || new Set(p.channels).size!==p.channels.length || !['idea','draft','scheduled'].includes(p.status)) throw new Error('Die gespeicherten Planungsdaten sind beschädigt.');
+    if (!p || typeof p.id !== 'string' || ids.has(p.id) || typeof p.text !== 'string' || !Array.isArray(p.channels) || p.channels.some(id=>!channelIds.has(id)) || new Set(p.channels).size!==p.channels.length || !['idea','draft','scheduled','archived'].includes(p.status)) throw new Error('Die gespeicherten Planungsdaten sind beschädigt.');
     ids.add(p.id);
     const metadata=normalizeEditorialMetadata(p);
-    if(p.status==='idea'&&(p.channels.length||p.scheduledAt||p.media||p.cover||Object.keys(p.variantTexts||{}).length))throw new Error('Eine Idee enthält noch nicht unterstützte Kanal-, Bild- oder Terminangaben.');
+    if(Object.hasOwn(p,'media')&&Object.hasOwn(p,'mediaItems'))throw Error('Mehrdeutige Bildfelder.');
+    let mediaItems;
+    if(value.schemaVersion===2){if(!Object.hasOwn(p,'media')||Object.hasOwn(p,'mediaItems'))throw Error('Das alte Bildfeld fehlt.');mediaItems=normalizeMediaItems(p.media===null?[]:[p.media]);}
+    else {if(Object.hasOwn(p,'media'))throw Error('Veraltetes Bildfeld.');mediaItems=normalizeMediaItems(p.mediaItems);}
+    const channelMedia=Object.hasOwn(p,'channelMediaItems')?{channelMediaItems:normalizeChannelMediaItems(p.channelMediaItems,p.channels,mediaItems)}:{};
+    if(p.status==='idea'&&(p.channels.length||p.scheduledAt||mediaItems.length||p.cover||Object.keys(p.variantTexts||{}).length))throw new Error('Eine Idee enthält noch nicht unterstützte Kanal-, Bild- oder Terminangaben.');
     const schedule=normalizePostSchedule(p);
-    let media=null;
-    if(p.media){
-      const metadata={alt:String(p.media.alt||''),name:String(p.media.name||'Bild'),type:String(p.media.type||'image/jpeg')};
-      if(typeof p.media.dataUrl==='string'&&/^data:image\/(png|jpeg|webp);base64,/.test(p.media.dataUrl))media={...metadata,dataUrl:p.media.dataUrl};
-      else if(typeof p.media.url==='string'&&/^\/api\/planner\/media\/[A-Za-z0-9_-]+$/.test(p.media.url))media={...metadata,id:String(p.media.id||p.media.url.split('/').pop()),url:p.media.url};
-    }
-    return {id:p.id,...metadata,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,...schedule,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,media,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
+    return {id:p.id,...metadata,text:p.text,variantTexts:selectedVariantTexts(p.variantTexts,p.channels),channels:[...new Set(p.channels)],status:p.status,...schedule,cover:['sunrise','forms','studio','nature'].includes(p.cover)?p.cover:null,mediaItems,...channelMedia,createdAt:p.createdAt||new Date().toISOString(),updatedAt:p.updatedAt||new Date().toISOString()};
   });
   return {schemaVersion:SCHEMA_VERSION,revision:value.revision,channels,settings:{timezone},posts};
 }

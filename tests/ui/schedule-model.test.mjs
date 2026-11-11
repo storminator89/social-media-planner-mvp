@@ -4,7 +4,7 @@ import { CHANNELS, SCHEMA_VERSION, createDemoState, normalizeState, validatePost
 import { inspectScheduleBinding } from '../../public/workflows/posting-schedules.mjs';
 
 const NOW=new Date('2026-11-07T12:00:00.000Z');
-const post=(patch={})=>({id:'scheduled-post',title:'  Titel  ',tags:['  Kampagne / Q4  ','a,b'],text:'Ein Beitrag',variantTexts:{instagram:'Ein Kanaltext'},channels:['instagram'],status:'scheduled',scheduledAt:'2027-01-15T10:00',scheduledInstant:'2027-01-15T09:00:23.456Z',scheduleBinding:null,timeZone:'Europe/Berlin',media:null,cover:null,createdAt:NOW.toISOString(),updatedAt:NOW.toISOString(),...patch});
+const post=(patch={})=>({id:'scheduled-post',title:'  Titel  ',tags:['  Kampagne / Q4  ','a,b'],text:'Ein Beitrag',variantTexts:{instagram:'Ein Kanaltext'},channels:['instagram'],status:'scheduled',scheduledAt:'2027-01-15T10:00',scheduledInstant:'2027-01-15T09:00:23.456Z',scheduleBinding:null,timeZone:'Europe/Berlin',mediaItems:[],cover:null,createdAt:NOW.toISOString(),updatedAt:NOW.toISOString(),...patch});
 const state=(posts=[post()],patch={})=>({...createDemoState(NOW),revision:8,settings:{timezone:'Europe/Berlin'},posts,...patch});
 const rule=(patch={})=>({schemaVersion:1,timezone:'Europe/Berlin',paused:false,minimumGapMinutes:30,overlapChoice:'later',slots:[{id:'sunday-fold',weekday:0,time:'02:30'}],...patch});
 const binding=(overlapChoice='later')=>({schemaVersion:1,mode:'queue',instant:overlapChoice==='later'?'2027-10-31T01:30:00.000Z':'2027-10-31T00:30:00.000Z',selectedAt:NOW.toISOString(),sourceRevision:7,refs:[{channelId:'instagram',slotId:'sunday-fold',local:'2027-10-31T02:30',timezone:'Europe/Berlin',overlapChoice,minimumGapMinutes:30}]});
@@ -13,7 +13,7 @@ const without=(value,key)=>{const copy=structuredClone(value);delete copy[key];r
 
 test('demo schema 2 explicitly declares revision, full channel definitions and nullable timing fields',()=>{
   const before=structuredClone(CHANNELS),demo=createDemoState(NOW);
-  assert.equal(SCHEMA_VERSION,2);assert.equal(demo.schemaVersion,2);assert.equal(demo.revision,0);
+  assert.equal(SCHEMA_VERSION,3);assert.equal(demo.schemaVersion,3);assert.equal(demo.revision,0);
   assert.ok(demo.channels.every(c=>c.postingSchedule===null&&c.platform===c.id&&c.enabled===true&&c.connectionStatus==='manual'));
   assert.ok(demo.posts.every(p=>p.scheduleBinding===null&&p.scheduledInstant===null));
   assert.deepEqual(normalizeState(demo),demo);assert.deepEqual(CHANNELS,before);

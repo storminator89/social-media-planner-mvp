@@ -28,6 +28,18 @@ function validMediaSignature(bytes,mime){
   const at=(arr,index=0)=>arr.every((b,i)=>bytes[index+i]===b);const ascii=(text,index=0)=>at([...text].map(c=>c.charCodeAt(0)),index);
   return (mime==='image/png'&&at([137,80,78,71,13,10,26,10]))||(mime==='image/jpeg'&&at([255,216,255]))||(mime==='image/gif'&&(ascii('GIF87a')||ascii('GIF89a')))||(mime==='image/webp'&&ascii('RIFF')&&ascii('WEBP',8))||(mime==='video/mp4'&&ascii('ftyp',4))||(mime==='video/webm'&&at([0x1a,0x45,0xdf,0xa3]));
 }
+// Only single ranges are served. Unsupported units/multipart ranges are ignored
+// (full 200); malformed or unsatisfiable single byte ranges return 416.
+function mediaRange(value,size){
+  if(!value||!value.startsWith('bytes=')||value.includes(','))return null;
+  const match=/^bytes=(\d*)-(\d*)$/.exec(value);
+  if(!match||(!match[1]&&!match[2]))return false;
+  const first=match[1]?Number(match[1]):null,last=match[2]?Number(match[2]):null;
+  if((first!==null&&!Number.isSafeInteger(first))||(last!==null&&!Number.isSafeInteger(last)))return false;
+  if(first===null){if(!last)return false;const length=Math.min(last,size);return {offset:size-length,length};}
+  if(first>=size||(last!==null&&last<first))return false;
+  return {offset:first,length:Math.min(last??size-1,size-1)-first+1};
+}
 /** Returns null for non-planner routes; integrate before the app's normal router. */
 export async function handlePlannerRequest(request,env){
   const url=new URL(request.url);if(url.pathname!==PREFIX&&!url.pathname.startsWith(PREFIX+'/'))return null;
@@ -61,9 +73,27 @@ export async function handlePlannerRequest(request,env){
       if(!env.BUCKET)throw new PlannerError(503,'MEDIA_UNAVAILABLE','Medienspeicher ist noch nicht verfügbar.');
       const media=await repo.getMedia(owner,validId(mediaMatch[1]));
       if(!media)throw new PlannerError(404,'NOT_FOUND','Medium nicht gefunden.');
-      const object=await env.BUCKET.get(media.object_key);
+      // Ownership is established before parsing ranges, reporting length or R2 access.
+      const size=media.byte_size;
+      if(!Number.isSafeInteger(size)||size<1||size>LIMITS.uploadBytes)throw new PlannerError(500,'INVALID_MEDIA','Ungültige Mediengröße.');
+      const headers={'Content-Type':media.mime_type,'Content-Length':String(size),'Content-Disposition':`inline; filename*=UTF-8''${encodeURIComponent(media.filename)}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox",'Vary':'oai-authenticated-user-id','Accept-Ranges':'bytes'};
+      // Range applies only to GET. Without validators, If-Range cannot match.
+      const range=request.method==='GET'&&!request.headers.has('If-Range')?mediaRange(request.headers.get('Range'),size):null;
+      if(range===false)return new Response(null,{status:416,headers:{...headers,'Content-Length':'0','Content-Range':`bytes */${size}`}});
+      if(request.method==='HEAD'){
+        const object=typeof env.BUCKET.head==='function'?await env.BUCKET.head(media.object_key):await env.BUCKET.get(media.object_key);
+        if(!object)throw new PlannerError(404,'NOT_FOUND','Medium nicht gefunden.');
+        if(object.body)await object.body.cancel();
+        return new Response(null,{headers});
+      }
+      const object=await env.BUCKET.get(media.object_key,range?{range}:undefined);
       if(!object)throw new PlannerError(404,'NOT_FOUND','Medium nicht gefunden.');
-      return new Response(request.method==='HEAD'?null:object.body,{headers:{'Content-Type':media.mime_type,'Content-Length':String(media.byte_size),'Content-Disposition':`inline; filename*=UTF-8''${encodeURIComponent(media.filename)}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox",'Vary':'oai-authenticated-user-id'}});
+      // Never label an ignored or inconsistent storage range as a partial response.
+      if(range&&(object.size!==size||object.range?.offset!==range.offset||object.range?.length!==range.length)){
+        await object.body?.cancel();throw new PlannerError(500,'INVALID_MEDIA','Medienbereich konnte nicht bestätigt werden.');
+      }
+      if(range){headers['Content-Length']=String(range.length);headers['Content-Range']=`bytes ${range.offset}-${range.offset+range.length-1}/${size}`;}
+      return new Response(object.body,{status:range?206:200,headers});
     }
     return json({error:{code:'NOT_FOUND',message:'Planer-Endpunkt nicht gefunden.'}},404);
   }catch(error){if(error instanceof PlannerError)return json({error:{code:error.code,message:error.message,...(error.details?{details:error.details}:{})}},error.status);

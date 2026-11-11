@@ -82,3 +82,7 @@ body[data-editorial-view]:not([data-editorial-view=""]) .button{min-height:44px;
  body[data-editorial-view]:not([data-editorial-view=""]) .button{font-size:14px}
  body[data-editorial-view]:not([data-editorial-view=""]) .view-tab{min-height:44px;font-size:12px}
 }
+
+/* Both idea actions remain readable and reachable at narrow widths and zoom. */
+body[data-editorial-view="ideas"] .idea-card-footer{display:flex;flex-wrap:wrap;gap:6px}
+body[data-editorial-view="ideas"] .idea-card-footer .button{white-space:normal;text-align:left;max-width:100%;height:auto;overflow-wrap:anywhere}

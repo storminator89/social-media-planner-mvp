@@ -8,7 +8,8 @@ export class D1TestAdapter {
 export class R2TestAdapter {
   data=new Map();
   async put(key,value,opts){this.data.set(key,{value:new Uint8Array(value),opts});return{key,size:value.byteLength,etag:'fixture-etag'};}
-  async get(key){const item=this.data.get(key);return item?{body:new Blob([item.value]).stream()}:null;}
+  async head(key){const item=this.data.get(key);return item?{size:item.value.byteLength}:null;}
+  async get(key,options={}){const item=this.data.get(key);if(!item)return null;const range=options?.range;return {size:item.value.byteLength,...(range?{range:{...range}}:{}),body:new Blob([range?item.value.slice(range.offset,range.offset+range.length):item.value]).stream()};}
   async delete(key){this.data.delete(key);}
 }
 export const fixture=()=>({schemaVersion:3,revision:0,settings:{timezone:'Europe/Berlin',locale:'de-DE'},channels:[{id:'instagram',platform:'instagram',name:'Instagram',color:'#aabbcc',postingSchedule:null}],posts:[{id:'post-1',scheduleBinding:null,title:'Start',body:'Hallo Welt',stage:'planned',cover:'sunrise',scheduledAt:'2026-11-09T09:00:00+01:00',timezone:'Europe/Berlin',variants:[{id:'variant-1',channelId:'instagram',body:'Eigener Kanaltext',inheritsBody:false,status:'planned',format:'post',mediaIds:[]}]}]});

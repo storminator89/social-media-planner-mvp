@@ -38,7 +38,7 @@ function readCatalog(getCatalog) {
 export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoose, fallbackFocus = () => {}}) {
  if (typeof getCatalog !== 'function' || typeof onChoose !== 'function') throw TypeError('getCatalog und onChoose müssen Funktionen sein.');
  let dialog = null, ui = null, opened = false, generation = 0, returnTarget = null;
- let catalog = null, selected = null, pending = null, rows = [];
+ let catalog = null, selected = [], pending = null, rows = [], multiple = false, capacity = 1;
  const active = token => opened && token === generation;
  const allowed = () => { try { return !!canOpen(); } catch { return false; } };
  const status = message => { ui.status.textContent = message; };
@@ -61,12 +61,13 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
 
  function renderState() {
   dialog.setAttribute('aria-busy', String(!!pending));
-  ui.apply.disabled = !!pending || !selected;
-  ui.apply.textContent = pending ? 'Bild wird übernommen …' : 'Bild übernehmen';
+  ui.apply.disabled = !!pending || !selected.length;
+  ui.apply.textContent = pending ? 'Bild wird übernommen …' : multiple ? `${selected.length} Bilder übernehmen` : 'Bild übernehmen';
   for (const row of rows) {
-   row.button.disabled = !!pending;
-   row.button.setAttribute('aria-pressed', String(row.item.id === selected?.id));
-   row.mark.textContent = row.item.id === selected?.id ? 'Ausgewählt' : 'Auswählen';
+   const index = selected.findIndex(item => item.id === row.item.id);
+   row.button.disabled = !!pending || (multiple && index < 0 && selected.length >= capacity);
+   row.button.setAttribute('aria-pressed', String(index >= 0));
+   row.mark.textContent = index >= 0 ? (multiple ? String(index + 1) : 'Ausgewählt') : 'Auswählen';
   }
  }
 
@@ -102,8 +103,12 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    const token = generation;
    card.addEventListener('click', () => {
     if (!active(token) || pending) return;
-    selected = item;
-    status('Bild ausgewählt. Mit „Bild übernehmen“ bestätigst du die Auswahl.');
+    const index = selected.findIndex(value => value.id === item.id);
+    if (multiple) {
+     if (index >= 0) selected.splice(index, 1);
+     else if (selected.length < capacity) selected.push(item);
+    } else selected = [item];
+    status(multiple ? `${selected.length} Bilder ausgewählt.` : 'Bild ausgewählt. Mit „Bild übernehmen“ bestätigst du die Auswahl.');
     renderState();
    });
    rows.push({item, button: card, mark});
@@ -122,7 +127,7 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   generation++;
   const adoption = pending;
   pending = null;
-  selected = null;
+  selected = [];
   adoption?.abort();
   if (dialog?.open) dialog.close();
   if (ui) {
@@ -133,17 +138,17 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
  }
 
  async function apply() {
-  if (!opened || pending || !selected) return;
+  if (!opened || pending || !selected.length) return;
   if (!allowed()) { status('Der Editor ist gerade beschäftigt. Bitte versuche es gleich erneut.'); return; }
   const current = readCatalog(getCatalog);
   if (!current.available) { status(UNAVAILABLE); return; }
-  const chosen = current.items.find(item => item.id === selected.id && savedImageIdentity(item.media) === savedImageIdentity(selected.media));
-  if (!chosen) { status(CHANGED); return; }
+  const chosen = selected.map(value => current.items.find(item => item.id === value.id && savedImageIdentity(item.media) === savedImageIdentity(value.media)));
+  if (chosen.some(item => !item)) { status(CHANGED); return; }
   const token = generation, controller = new AbortController();
   pending = controller;
   status('Das gespeicherte Bild wird geprüft …'); renderState();
   try {
-   const accepted = await onChoose(copyMedia(chosen.media), {signal: controller.signal});
+   const accepted = await onChoose(multiple ? chosen.map(item => copyMedia(item.media)) : copyMedia(chosen[0].media), {signal: controller.signal});
    if (!active(token) || controller.signal.aborted) return;
    if (accepted !== true) throw Error('Selection was not adopted.');
    // The parent's own adoption may set its busy flag. Do not call canOpen here.
@@ -188,7 +193,7 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   applyButton.type = 'button'; applyButton.dataset.savedImageAction = 'apply';
   actions.append(cancel, applyButton); footer.append(statusNode, actions);
   dialog.append(header, body, footer);
-  ui = {title, notice, empty, list, status: statusNode, cancel, apply: applyButton};
+  ui = {title, intro, notice, empty, list, status: statusNode, cancel, apply: applyButton};
   cancel.addEventListener('click', () => dismiss());
   applyButton.addEventListener('click', apply);
   dialog.addEventListener('cancel', event => { event.preventDefault(); dismiss(); });
@@ -200,13 +205,17 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
  }
 
  return {
-  open() {
+  open({intent = 'replace', remaining = 1} = {}) {
    if (opened || !allowed()) return false;
+   multiple = intent === 'add';
+   capacity = multiple && Number.isInteger(remaining) ? Math.max(0, Math.min(10, remaining)) : 1;
    ensureDialog();
+   ui.title.textContent = multiple ? 'Bilder aus der Planung wählen' : 'Bild aus der Planung wählen';
+   ui.intro.textContent = multiple ? 'Wähle gespeicherte Bilder aus den geladenen Beiträgen.' : 'Wähle ein gespeichertes Bild aus den geladenen Beiträgen. Es wird erst mit „Bild übernehmen“ in deinen aktuellen Beitrag übernommen.';
    returnTarget = document.activeElement;
    generation++;
    catalog = readCatalog(getCatalog);
-   selected = null; pending = null;
+   selected = []; pending = null;
    status(''); renderCatalog();
    try { dialog.showModal(); } catch { returnTarget = null; ui.list.replaceChildren(); rows = []; return false; }
    opened = true;

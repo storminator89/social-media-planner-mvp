@@ -7,7 +7,7 @@ import {CHANNELS} from '../../public/model.js';
 import {handlePlannerRequest} from '../../modules/data/api.mjs';
 import {D1TestAdapter,R2TestAdapter} from './support.mjs';
 const {parsePlanningExport,previewPlanningImport,applyPlanningImport}=await import(process.env.IMPORT_MODULE||new URL('../../public/planner-import.js',import.meta.url));
-const draft=id=>({id,title:'Import',tags:['B','A'],text:'Basis <b>Klartext</b> 👩‍💻',variantTexts:{mastodon:''},channels:['mastodon','linkedin','bluesky'],status:'draft',scheduleBinding:null,scheduledInstant:null,scheduledAt:null,timeZone:'Europe/Berlin',cover:null,media:null,createdAt:'2030-01-01T00:00:00.000Z',updatedAt:'2030-01-01T00:00:00.000Z'});
+const draft=id=>({id,title:'Import',tags:['B','A'],text:'Basis <b>Klartext</b> 👩‍💻',variantTexts:{mastodon:''},channels:['mastodon','linkedin','bluesky'],status:'draft',scheduleBinding:null,scheduledInstant:null,scheduledAt:null,timeZone:'Europe/Berlin',cover:null,mediaItems:[],createdAt:'2030-01-01T00:00:00.000Z',updatedAt:'2030-01-01T00:00:00.000Z'});
 function setup(t,factory){
  const env={DB:new D1TestAdapter(),BUCKET:new R2TestAdapter()},calls=[];t.after(()=>env.DB.sql.close());
  const client=createPlannerClient({fetcher:(path,opts={})=>{calls.push([opts.method||'GET',path]);return handlePlannerRequest(new Request('https://planner.example'+path,{...opts,headers:{...opts.headers,'oai-authenticated-user-id':'alice'}}),env);}});

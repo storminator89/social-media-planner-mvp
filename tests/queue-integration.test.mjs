@@ -13,7 +13,7 @@ test('selected queue slot round-trips UTC + variant text; stale clients cannot o
   const client=createPlannerClient({fetcher:(path,options)=>app.fetch(new Request('http://localhost:3000'+path,options))});
   const options={client,timezone:'Europe/Berlin',channels:[{id:'linkedin',name:'LinkedIn'}]};
   const one=createTaktStore(options),two=createTaktStore(options);const a=await one.load(),b=await two.load();
-  const post={id:'p',text:'Basis',variantTexts:{linkedin:'Eigener Text'},channels:['linkedin'],status:'draft',scheduledAt:null,timeZone:'Europe/Berlin'};
+  const post={id:'p',mediaItems:[],text:'Basis',variantTexts:{linkedin:'Eigener Text'},channels:['linkedin'],status:'draft',scheduledAt:null,timeZone:'Europe/Berlin'};
   const rules=[{channelId:'linkedin',timezone:'Europe/Berlin',slots:[{weekday:1,time:'09:00'}]}];
   const suggestion=suggestQueueSlots({post,posts:a.posts,rules,after:'2027-01-01T00:00:00Z'}).suggestions[0];
   assert.equal((await client.load()).revision,0);

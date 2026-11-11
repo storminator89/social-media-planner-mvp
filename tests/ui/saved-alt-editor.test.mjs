@@ -1,0 +1,43 @@
+import {videoContext} from './video-context.mjs';
+import {createComposerMedia} from '../../public/composer-media.js';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import {imageAltIsReadOnly} from '../../public/post-labels.js';
+const source=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
+function actual(name){const start=source.search(new RegExp(`(?:async )?function ${name}\\(`));assert.ok(start>=0);const next=source.slice(start+1).search(/\n(?:async )?function /);return source.slice(start,next<0?undefined:start+1+next);}
+const tick=()=>new Promise(setImmediate);
+function harness({copy,decodeFailure=false,decodeDelay=false}={}){
+ const original={id:'m1',url:'/api/planner/media/m1',type:'image/png',name:'original.png',alt:'Alt'};
+ const fields={'#composer':{open:true},'#media-alt':{value:'Alt',readOnly:true,focus(){},setAttribute(){},parentElement:{querySelector:()=>({}),append(){}}},'#media-editor [data-action="edit-saved-alt"]':{},'#saved-alt-actions [data-action="apply-saved-alt"]':{},'#saved-alt-error':{},'#save-draft':{},'#schedule-post':{},'#workspace-missing-media':{},'#media-file':{},'#post-tags':{value:''},'#post-date':{value:''},'#post-time':{value:''},'#post-zone':{value:'UTC'}};
+ const composerImages=createComposerMedia();composerImages.reset([original]);const images=[],calls=[],captures=[];let reads=0;
+ const c=vm.createContext({...videoContext(),composerImages,AbortController,setTimeout,clearTimeout,imageAltIsReadOnly,savedAltEdit:null,saving:false,mediaLoading:false,composerMedia:original,composerCover:null,composerMissingMedia:false,composerGeneration:1,mediaGeneration:1,composerTiming:{planning:{}},composerBaseText:'Keep text',composerVariantTexts:{},composerLabelState:null,activeTextTarget:'base',currentComposerRawTags:()=>'',structuredClone,$:id=>fields[id],$$:()=>[],document:{createElement:()=>({})},notify:message=>calls.push(['notice',message]),renderMediaEditor(){fields['#media-alt'].value=c.composerMedia.alt;fields['#media-alt'].readOnly=imageAltIsReadOnly(c.composerMedia);},renderPreview(){},workspaceUI:{captureChanged(){captures.push(structuredClone(c.captureWorkspacePayload()))}},copySavedImage:async(media,alt,opts)=>{calls.push(['copy',media,alt]);return copy?copy(media,alt,opts):{name:media.name,type:media.type,size:12}},FileReader:class{readAsDataURL(){reads++;this.result='data:image/png;base64,iVBORw0KGgoAAAAA';queueMicrotask(()=>this.onload?.())}},Image:class{naturalWidth=20;naturalHeight=20;set src(value){if(!value)return;images.push(this);if(!decodeDelay)queueMicrotask(()=>decodeFailure?this.onerror?.():this.onload?.())}}});
+ for(const name of ['prepareMediaCommit','openSavedAlt','cancelSavedAlt','applySavedAlt','readMedia','updateSaveAvailability','captureWorkspacePayload','editorSnapshot'])vm.runInContext(actual(name),c);
+ return {c,fields,original,calls,captures,images,get reads(){return reads}};
+}
+function start(h,alt='New 🦋'){h.c.openSavedAlt();h.fields['#media-alt'].value=alt;}
+test('apply stages a local copy with new alt; explicit Save remains separate and workspace omits local bytes',async()=>{
+ const h=harness();start(h);assert.equal(h.fields['#save-draft'].disabled,true);assert.equal(h.original.alt,'Alt');await h.c.applySavedAlt();assert.equal(h.c.composerMedia.alt,'New 🦋');assert.equal(h.c.composerMedia.name,'original.png');assert.equal(h.c.composerMedia.id,undefined);assert.equal(h.original.alt,'Alt');assert.equal(h.c.savedAltEdit,null);assert.equal(h.c.mediaLoading,false);assert.equal(h.fields['#save-draft'].disabled,false);assert.equal(h.c.composerBaseText,'Keep text');assert.equal(h.captures[0].mediaItems[0].kind,'local_omitted');assert.equal(h.captures[0].mediaItems[0].alt,'New 🦋');assert.doesNotMatch(JSON.stringify(h.captures[0]),/dataUrl|base64/);
+});
+test('cancel and unchanged apply are no-ops without file reads or requests',async()=>{for(const cancel of [true,false]){const h=harness();start(h,cancel?'Different':'Alt');if(cancel)h.c.cancelSavedAlt();else await h.c.applySavedAlt();assert.equal(h.c.composerMedia,h.original);assert.equal(h.calls.length,0);assert.equal(h.reads,0);assert.equal(h.c.savedAltEdit,null);}});
+test('double Apply is one request and Save disabled throughout fetch/decode',async()=>{let done;const h=harness({copy:()=>new Promise(resolve=>done=resolve)});start(h);const pending=h.c.applySavedAlt();await h.c.applySavedAlt();assert.equal(h.calls.length,1);assert.equal(h.fields['#schedule-post'].disabled,true);done({name:'original.png',type:'image/png',size:12});await pending;assert.equal(h.reads,1);});
+for(const stage of ['fetch','decode'])for(const action of ['cancel','close-reopen','replace'])test(`${action} during ${stage} cannot apply late copy`,async()=>{
+ let done;const h=harness({copy:stage==='fetch'?()=>new Promise(resolve=>done=resolve):undefined,decodeDelay:stage==='decode'});start(h);const pending=h.c.applySavedAlt();await tick();h.c.cancelSavedAlt();if(action==='close-reopen'){h.c.composerGeneration++;h.c.composerMedia={...h.original,alt:'New session'};}if(action==='replace')h.c.composerMedia={dataUrl:'replacement',alt:'Replacement'};const expected=h.c.composerMedia;if(stage==='fetch')done({name:'original.png',type:'image/png',size:12});else h.images[0].onload();await pending;assert.equal(h.c.composerMedia,expected);assert.equal(h.c.mediaLoading,false);assert.equal(h.captures.length,0);
+});
+test('invalid decode keeps original and inline error allows retry',async()=>{const h=harness({decodeFailure:true});start(h);await h.c.applySavedAlt();assert.equal(h.c.composerMedia,h.original);assert.ok(h.c.savedAltEdit);assert.equal(h.c.mediaLoading,false);assert.equal(h.c.savedAltEdit.pending,false);assert.ok(h.fields['#saved-alt-error'].textContent);assert.equal(h.fields['#media-alt'].readOnly,false);});
+test('in-place metadata change during fetch is not overwritten',async()=>{let done;const h=harness({copy:()=>new Promise(resolve=>done=resolve)});start(h);const pending=h.c.applySavedAlt();h.original.alt='Newer';done({name:'original.png',type:'image/png',size:12});await pending;assert.equal(h.original.alt,'Newer');assert.equal(h.reads,0);});
+test('readMedia rejects excessive decoded dimensions without staging',async()=>{const h=harness({decodeDelay:true});start(h);const pending=h.c.applySavedAlt();await tick();h.images[0].naturalWidth=16385;h.images[0].onload();await pending;assert.equal(h.c.composerMedia,h.original);assert.equal(h.captures.length,0);});
+
+test('opening an unchanged editor is clean; typed pending description is dirty until cancel',()=>{const h=harness(),before=h.c.editorSnapshot();h.c.openSavedAlt();assert.equal(h.c.editorSnapshot(),before);h.fields['#media-alt'].value='Changed pending';assert.notEqual(h.c.editorSnapshot(),before);h.c.cancelSavedAlt();assert.equal(h.c.editorSnapshot(),before);});
+test('editing selected second shared saved image stages only that slot and preserves source, order and long sibling alt',async()=>{
+ const h=harness(),first={...h.original,alt:'x'.repeat(2000)},last={dataUrl:'data:image/png;base64,AAAA',type:'image/png',name:'last.png',alt:'Last'};
+ h.c.composerImages.reset([first,h.original,last]);h.c.composerImages.select(h.c.composerImages.rows[1].key);h.c.composerMedia=h.c.composerImages.selected;const original=structuredClone(h.original);
+ start(h,'Selected only');await h.c.applySavedAlt();const items=h.c.composerImages.items;
+ assert.equal(items.length,3);assert.deepEqual(items[0],first);assert.equal(items[1].alt,'Selected only');assert.equal(items[1].id,undefined);assert.deepEqual(items[2],last);assert.deepEqual(h.original,original);assert.deepEqual(h.captures[0].mediaItems,items.map(m=>({kind:m.id?'planner_image':'local_omitted',...(m.id?{id:m.id}:{}),alt:m.alt,name:m.name,type:m.type})));assert.doesNotMatch(JSON.stringify(h.captures[0]),/dataUrl|base64|url/);
+});
+for(const mutation of ['move','remove','select'])test(`saved alt fetch cannot land after carousel ${mutation}`,async()=>{
+ let finish;const h=harness({copy:()=>new Promise(resolve=>finish=resolve)});h.c.composerImages.reset([h.original,{...h.original,id:'m2'}]);h.c.composerMedia=h.c.composerImages.selected;start(h);const pending=h.c.applySavedAlt();
+ if(mutation==='move')h.c.composerImages.move(1);if(mutation==='remove')h.c.composerImages.remove();if(mutation==='select')h.c.composerImages.select(h.c.composerImages.rows[1].key);
+ h.c.composerMedia=h.c.composerImages.selected;const before=h.c.composerImages.items;finish({name:'original.png',type:'image/png',size:12});await pending;assert.deepEqual(h.c.composerImages.items,before);assert.equal(h.reads,0);
+});

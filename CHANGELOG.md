@@ -1,3 +1,33 @@
+## Local v76 candidate: optional draft label groups
+
+- Added session-only `Gruppierung: Nach Labels` inside the existing draft Filter controls, with a visible active marker and unchanged flat default.
+- Read-only groups preserve exact stored label identities, multiple memberships, unlabelled drafts, current filters and distinct draft totals. No campaign entity or extra quota use.
+- Repeated cards retain canonical edit/duplicate/archive/batch targets and restore their exact focus occurrence across ordinary saves.
+- No persistence, provider, runtime, security, hosting, schema, migration or service changes. See `docs/draft-groups.md`.
+
+## Local v75 candidate: reuse a saved idea
+
+- Added a secondary “Als neuen Entwurf verwenden” card action. The existing idea conversion remains available.
+- One canonical CAS appends a fresh channel-less draft, preserving exact title, body and labels while leaving the original idea and unrelated records unchanged except existing repository update bookkeeping.
+- Full receipts, shared unknown-outcome mutation fences, source staleness, cap100, duplicate-click and safe fresh-draft workspace origin checks.
+- Kept v73 mobile warnings/layout and v74 batch archive. Current-source write-paused fallback disables idea reuse. No provider, runtime, security, hosting, schema, migration or new service changes.
+
+## v74 local candidate: selected saved-draft archive
+
+- Added explicitly selected batch archive inside the existing draft actions disclosure, full per-channel review, exact-count confirmation and an honest unchanged100-post quota.
+- One canonical CAS preserves channel-specific media, empty overrides, hidden history and unrelated data; uncertain receipts fence planner and workspace mutations until validated reload.
+- Added cancellation, close-event, success-render, full-receipt, invalid-reload, cap and current-source v4-compatible paused-fallback regression tests. No provider, runtime, hosting or migration changes. See `docs/batch-archive.md`.
+
+## v72 candidate: separate recovery for channel images
+
+- Pre-release browser finding corrected: opening and restoring an editor now preserves explicit selected-channel order, including an intentionally empty primary channel; ordinary save uses that same order.
+
+- Separate editor workspaces retain complete, ordered channel image assignments using payload protocol 4; SQL container and migrations are unchanged.
+- Existing v1-v3 workspaces remain readable. Cached v71 clients reject protocol 4 rather than flattening media. Rollback requires the generated archive/channel-readable write-paused fallback, not the normal v71 worker.
+- Saved-image metadata is owner-resolved and guarded atomically with a bounded JSON SQL predicate; up to 200 distinct images stay within D1's parameter limit.
+- Local files are never uploaded by workspace recovery. Only explicitly omitted metadata is retained; restoration and safe-close remain blocked, and the UI labels partial metadata protection honestly.
+- No provider posting, security, host or retention changes. Local candidate only; independent final review and browser/reload/narrow checks remain release gates.
+
 # Änderungsprotokoll
 
 ## 0.10.0
@@ -90,3 +120,9 @@
 - 89 automatisierte Prüfungen sowie ergänzende Browserprüfungen.
 
 Dieser Stand ist ein lokaler Prototyp ohne Anmeldung, Social-Konten, automatischen Versand oder Sites-Deployment. Kanalvarianten und Queue-Bedienung sind kein Bestandteil dieser Version.
+
+## Local v71 candidate: saved images per channel
+
+- Added a saved-draft-only channel image dialog under Weitere Aktionen, with explicit image selection, order and empty lists.
+- Preserved full per-channel media through canonical saves and downstream copy/archive/split paths.
+- Added explicit unsupported-workspace safety and a candidate-readable, write-paused fallback. No protocol, migration, provider, security or hosting changes.

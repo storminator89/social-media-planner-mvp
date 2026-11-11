@@ -128,6 +128,7 @@ function refFor(channelId, schedule, chosen) {
   return { channelId, slotId: slot.id, local, timezone: schedule.timezone, overlapChoice: schedule.overlapChoice, minimumGapMinutes: schedule.minimumGapMinutes };
 }
 function postEvents(post) {
+  if(post.stage==='archived'||post.status==='archived')return []; 
   if (Array.isArray(post.variants)) {
     return post.variants.filter(variant => variant.status === 'planned' || (variant.status == null && isPlanned(post))).map(variant => ({ postId: post.id, channels: [variant.channelId], epoch: Date.parse(instant(variant.scheduledAt ?? post.scheduledAt)) }));
   }

@@ -1,3 +1,4 @@
+import {normalizeMediaItems} from './media-items.mjs';
 import {normalizeScheduleBinding,scheduleLocalTime,validatePostScheduleBinding} from './posting-schedules.mjs';
 /** Text-first ideas and deliberate preparation. No persistence, identity, provider, or network. */
 import { WorkflowError, resolveLocalTime } from './workflows.mjs';
@@ -30,8 +31,10 @@ function id(value) {
 function assertIdea(idea) {
   if (!idea || idea.status !== 'idea') fail('NOT_IDEA', 'Dieser Eintrag ist keine offene Idee.');
   id(idea.id);
+  if(Object.hasOwn(idea,'media'))fail('INVALID_IDEA_STATE','Veraltetes Bildfeld.');
+  normalizeMediaItems(idea.mediaItems);
   if (idea.scheduleBinding != null || idea.scheduledInstant != null || idea.scheduledAt !== null && idea.scheduledAt !== undefined) fail('IDEA_HAS_SCHEDULE', 'Eine Idee darf keinen vorgemerkten Termin tragen.');
-  if ((idea.channels?.length ?? 0) || Object.keys(idea.variantTexts ?? {}).length || idea.media != null) fail('INVALID_IDEA_STATE', 'Ideen haben noch keine Kanäle, Kanalvarianten oder Medien. Übernimm solche Inhalte als Entwurf.');
+  if ((idea.channels?.length ?? 0) || Object.keys(idea.variantTexts ?? {}).length || (idea.mediaItems?.length ?? 0) > 0) fail('INVALID_IDEA_STATE', 'Ideen haben noch keine Kanäle, Kanalvarianten oder Medien. Übernimm solche Inhalte als Entwurf.');
 }
 function validateContent({ title = '', text: body = '', tags = [] }) {
   const result = { title: text(title, 'Titel', LIMITS.title), text: text(body, 'Notiz', LIMITS.text), tags: normalizeIdeaTags(tags) };
@@ -84,7 +87,7 @@ export function formatIdeaTags(tags = []) {
 
 export function createIdea({ id: ideaId, title = '', text: body = '', tags = [], timezone = 'UTC', now = new Date().toISOString() }) {
   const content = validateContent({ title, text: body, tags }), createdAt = nowIso(now);
-  return { id: id(ideaId), ...content, status: 'idea', channels: [], variantTexts: {}, scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: zone(timezone), media: null, cover: null, createdAt, updatedAt: createdAt };
+  return { id: id(ideaId), ...content, status: 'idea', channels: [], variantTexts: {}, scheduledAt: null, scheduledInstant: null, scheduleBinding: null, timeZone: zone(timezone), mediaItems: [], cover: null, createdAt, updatedAt: createdAt };
 }
 
 export function updateIdea(idea, patch, { now = new Date().toISOString() } = {}) {
@@ -97,7 +100,7 @@ export function updateIdea(idea, patch, { now = new Date().toISOString() } = {})
 
 export function ideaFingerprint(idea) {
   assertIdea(idea);
-  return JSON.stringify({ id: idea.id, title: idea.title ?? '', text: idea.text, tags: idea.tags ?? [], channels: [...(idea.channels ?? [])].sort(), variantTexts: Object.entries(idea.variantTexts ?? {}).sort(([a], [b]) => a.localeCompare(b)), media: idea.media ?? null, cover: idea.cover ?? null, timeZone: idea.timeZone, updatedAt: idea.updatedAt });
+  return JSON.stringify({ id: idea.id, title: idea.title ?? '', text: idea.text, tags: idea.tags ?? [], channels: [...(idea.channels ?? [])].sort(), variantTexts: Object.entries(idea.variantTexts ?? {}).sort(([a], [b]) => a.localeCompare(b)), mediaItems: idea.mediaItems, cover: idea.cover ?? null, timeZone: idea.timeZone, updatedAt: idea.updatedAt });
 }
 
 /** Opening the composer is preparation, never a saved transition. */
@@ -110,13 +113,16 @@ export function prepareIdeaDraft(idea, { channels = [] } = {}) {
 /** Produces a proposed snapshot. Persist it atomically before claiming the idea was moved. */
 export function commitIdeaDraft(posts, draft, { sourceFingerprint, now = new Date().toISOString(), allowedChannels } = {}) {
   if (!Array.isArray(posts) || !draft || typeof draft.id !== 'string') fail('INVALID_POSTS', 'Ungültige Beitragsdaten.');
+  if(Object.hasOwn(draft,'media'))fail('INVALID_MEDIA','Veraltetes Bildfeld.');
+  normalizeMediaItems(draft.mediaItems);
   const matches = posts.filter(post => post.id === draft.id);
   if (matches.length !== 1 || matches[0].status !== 'idea') fail('IDEA_CHANGED', 'Die Idee wurde inzwischen geändert, verschoben oder entfernt. Lade sie erneut.');
   const original = matches[0];
   if (ideaFingerprint(original) !== sourceFingerprint) fail('IDEA_CHANGED', 'Die Idee wurde inzwischen geändert. Deine Vorbereitung bleibt erhalten; vergleiche beide Fassungen.');
   if (!['draft', 'scheduled'].includes(draft.status)) fail('INVALID_TRANSITION', 'Eine Idee lässt sich nur als Entwurf oder Vormerkung übernehmen.');
-  if (!Array.isArray(draft.channels) || !draft.channels.length || draft.channels.some(channel => typeof channel !== 'string' || !channel) || new Set(draft.channels).size !== draft.channels.length) fail('CHANNEL_REQUIRED', 'Wähle mindestens einen Zielkanal.');
+  if (!Array.isArray(draft.channels) || (draft.status === 'scheduled' && !draft.channels.length) || draft.channels.some(channel => typeof channel !== 'string' || !channel) || new Set(draft.channels).size !== draft.channels.length) fail('CHANNEL_REQUIRED', 'Wähle mindestens einen Zielkanal.');
   if (allowedChannels && draft.channels.some(channel => !allowedChannels.includes(channel))) fail('INVALID_CHANNELS', 'Ein Zielkanal wird nicht unterstützt.');
+  if (!draft.channels.length && draft.mediaItems?.length) fail('MEDIA_TARGET_REQUIRED', 'Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.');
   const body = text(draft.text, 'Beitragstext', LIMITS.text), variants = draft.variantTexts ?? {};
   if (!variants || typeof variants !== 'object' || Array.isArray(variants)) fail('INVALID_VARIANTS', 'Die Kanaltexte sind ungültig.');
   for (const [channel, value] of Object.entries(variants)) {

@@ -14,7 +14,7 @@ export function savedMastodonText(state,reference){
  if(!state||state.revision!==reference.revision)throw Error('Der gespeicherte Planerstand hat sich geändert. Bitte den Beitrag im Planer erneut öffnen.');
  const p=state.posts?.find(p=>p.id===reference.id);
  if(!p||!['draft','scheduled'].includes(p.status)||!p.channels?.includes('mastodon'))throw Error('Kein gespeicherter Mastodon-Beitrag gefunden.');
- if(p.media||p.cover||(p.attachments!=null&&(!Array.isArray(p.attachments)||p.attachments.length>0)))throw Error('Dieser Beitrag enthält ein Bild oder weitere Anhänge. Der Versanddialog unterstützt nur Text; es wird nichts stillschweigend weggelassen.');
+ if((Object.hasOwn(p,'channelMediaItems')&&(!p.channelMediaItems||typeof p.channelMediaItems!=='object'||Array.isArray(p.channelMediaItems)||Object.values(p.channelMediaItems).some(items=>!Array.isArray(items)||items.length)))||!Array.isArray(p.mediaItems)||p.mediaItems.length||Object.hasOwn(p,'media')||p.cover||(p.attachments!=null&&(!Array.isArray(p.attachments)||p.attachments.length>0)))throw Error('Dieser Beitrag enthält ein Bild oder weitere Anhänge. Der Versanddialog unterstützt nur Text; es wird nichts stillschweigend weggelassen.');
  const text=effectiveText(p,'mastodon');
  if(typeof text!=='string'||!text.trim()||Array.from(text).length>500)throw Error('Der gespeicherte Mastodon-Text muss 1 bis 500 Zeichen enthalten.');
  return text;

@@ -3,19 +3,31 @@ const ID=/^[A-Za-z0-9_-]{1,100}$/;
 const copy=media=>({id:media.id,url:media.url,alt:media.alt,name:media.name,type:media.type});
 export const savedImageIdentity=media=>JSON.stringify([media.id,media.url,media.alt,media.name,media.type]);
 export function isSavedImage(media){
- return !!media&&typeof media==='object'&&!Array.isArray(media)&&!Object.hasOwn(media,'dataUrl')&&typeof media.id==='string'&&ID.test(media.id)&&media.url===`/api/planner/media/${media.id}`&&TYPES.has(media.type)&&typeof media.alt==='string'&&media.alt.length<=2000&&typeof media.name==='string'&&media.name.length<=255;
+ return !!media&&typeof media==='object'&&!Array.isArray(media)&&!Object.hasOwn(media,'dataUrl')&&typeof media?.id==='string'&&ID.test(media.id)&&media.url===`/api/planner/media/${media.id}`&&TYPES.has(media.type)&&typeof media.alt==='string'&&media.alt.length<=2000&&typeof media.name==='string'&&media.name.length<=255;
 }
 /** Only images referenced by loaded posts, not an inventory of all retained storage. */
 export function savedImageCatalog(state,{available=true}={}){
  if(!available)return {available:false,items:[],hasUnavailableImages:false};
  const entries=new Map(),blocked=new Set();let hasUnavailableImages=false;
  for(const post of state.posts){
-  const media=post.media;if(!media)continue;
-  if(!isSavedImage(media)||!media.alt.trim()){hasUnavailableImages=true;if(typeof media.id==='string'&&ID.test(media.id))blocked.add(media.id);continue;}
+  // Catalogs inspect each reference independently: extra record metadata is
+  // stripped, while any conflicting/invalid occurrence still poisons its ID.
+  const lists=[post.mediaItems];
+  if(Object.hasOwn(post,'channelMediaItems')){
+   const map=post.channelMediaItems;
+   if(map&&typeof map==='object'&&!Array.isArray(map))lists.push(...Object.values(map));
+   else hasUnavailableImages=true;
+  }
+  const references=[];for(const list of lists){if(Array.isArray(list))references.push(...list);else hasUnavailableImages=true;}
+  const used=new Set();
+  for(const media of references){
+  if(!isSavedImage(media)||!media.alt.trim()){hasUnavailableImages=true;if(typeof media?.id==='string'&&ID.test(media.id))blocked.add(media.id);continue;}
   const label=(typeof post.title==='string'&&post.title.trim()?post.title:typeof post.text==='string'?post.text.split('\n')[0]:'').slice(0,100)||'Beitrag ohne Text';
   const found=entries.get(media.id);
-  if(found){if(savedImageIdentity(found.media)!==savedImageIdentity(media)){blocked.add(media.id);hasUnavailableImages=true;}else{found.usageCount++;if(!found.sourceTitles.includes(label))found.sourceTitles.push(label);}}
+  if(found){if(savedImageIdentity(found.media)!==savedImageIdentity(media)){blocked.add(media.id);hasUnavailableImages=true;}else{if(!used.has(media.id))found.usageCount++;if(!found.sourceTitles.includes(label))found.sourceTitles.push(label);}}
   else entries.set(media.id,{id:media.id,media:copy(media),sourceTitles:[label],usageCount:1});
+  used.add(media.id);
+ }
  }
  return {available:true,items:[...entries.values()].filter(item=>!blocked.has(item.id)),hasUnavailableImages};
 }

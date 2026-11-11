@@ -95,9 +95,9 @@ test('owner boundaries include posting configurations and binding records', asyn
   const { repo } = setup(), state = await configured(repo); state.posts.push(queued(state)); await repo.save('alice', state);
   const other = await repo.load('bob'); assert.equal(other.revision, 0); assert.deepEqual(other.channels, []); assert.deepEqual(other.posts, []);
 });
-test('UIv2 exposes revision, explicit fields and preserved canonical timestamp', async () => {
+test('UIv3 exposes revision, explicit fields and preserved canonical timestamp', async () => {
   const { repo } = setup(); await repo.save('alice', fixture()); const client = clientFor(repo), store = createTaktStore({ client, timezone: 'Europe/Berlin', channels: definitions });
-  const ui = await store.load(); assert.equal(ui.schemaVersion, 2); assert.equal(ui.revision, 1); assert.equal(ui.channels[0].postingSchedule, null); assert.equal(ui.posts[0].scheduleBinding, null); assert.equal(ui.posts[0].scheduledInstant, '2026-11-09T08:00:00.000Z');
+  const ui = await store.load(); assert.equal(ui.schemaVersion, 3); assert.equal(ui.revision, 1); assert.equal(ui.channels[0].postingSchedule, null); assert.equal(ui.posts[0].scheduleBinding, null); assert.equal(ui.posts[0].scheduledInstant, '2026-11-09T08:00:00.000Z');
   const saved = await store.save(ui); assert.equal(saved.revision, 2);
 });
 test('old/missing UI fields fail before any save or upload', async () => {

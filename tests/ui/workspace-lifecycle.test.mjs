@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorkspaceUI } from '../../public/workspace-ui.js';
 import {
-  wid, clone, payload, workspace, saved, discarded, closed, error,
+  wid, clone, payload as legacyPayload, workspace as legacyWorkspace, saved, discarded, closed, error,
   deferred, settle, listing,
 } from './workspace-fixtures.mjs';
+
+const payload=(extra={})=>legacyPayload({localMediaOmitted:false,...extra});
+const workspace=(extra={})=>legacyWorkspace({payload:payload(),...extra});
 
 // This file gets its own document under Node's normal per-file test isolation.
 // Keep real listener identities and previously saved callbacks independently:
@@ -93,7 +96,7 @@ function harness(t, behavior = {}) {
     },
     async read(id, options) {
       calls.read.push({ id, signal: options?.signal });
-      return behavior.read ? behavior.read(id, options) : workspace({ workspaceId: id });
+      return behavior.read ? behavior.read(id, options) : workspace({ workspaceId: id, payload:payload({localMediaOmitted:false}) });
     },
     async save(request, options) {
       calls.save.push({ request: clone(request), signal: options?.signal });
@@ -106,6 +109,7 @@ function harness(t, behavior = {}) {
   };
   const ui = createWorkspaceUI({
     statusContainer, dialog, openButton, client,
+    isCarousel:()=>!!behavior.carousel,
     capture() { counts.capture++; return behavior.capture ? behavior.capture() : payload(); },
     canRestore() { counts.canRestore++; return true; },
     async refreshPlanner(value) {
@@ -317,6 +321,7 @@ for (const outcome of ['resolve', 'reject']) {
     const gate = deferred();
     h.behavior.refresh = () => gate.promise;
     const restoring = h.action('restore-copy');
+    await settle();
     assert.equal(h.calls.refresh.length, 2);
     h.ui.destroy();
     const after = h.snapshot();
@@ -405,4 +410,48 @@ test('in-flight read-remote action cannot reopen the dialog from an earlier remo
   await reading;
   assert.deepEqual(h.snapshot(), after);
   assert.equal(h.dialog.open, false);
+});
+
+
+const image=i=>({kind:'planner_image',id:`image-${i}`,alt:`Alt ${i}`,name:`${i}.png`,type:'image/png'});
+function carousel(items,extra={}){const {media,localMediaOmitted,...p}=payload();return {...p,schemaVersion:2,mediaItems:items,...extra};}
+function carouselWorkspace(items,extra={}){const {resolvedMedia,...w}=workspace();return {...w,payload:carousel(items),resolvedMediaItems:items.map(m=>m.kind==='local_omitted'?null:{id:m.id,url:`/api/planner/media/${m.id}`,alt:m.alt,name:m.name,type:m.type}),...extra};}
+test('add, reorder and remove keep the same workspace ID and never retire a checkpoint',async t=>{
+ const h=harness(t,{capture:()=>carousel([image(0)])});await h.ui.init();h.ui.editorOpened({},carouselWorkspace([image(0)]));
+ for(const items of [[image(0),image(1)],[image(1),image(0)],[image(1)]]){h.behavior.capture=()=>carousel(items);h.ui.captureChanged();await h.ui.controller.save();assert.deepEqual(h.calls.save.at(-1).request.payload.mediaItems,items);}
+ assert.equal(new Set(h.calls.save.map(x=>x.request.workspaceId)).size,1);assert.equal(h.calls.save[0].request.workspaceId,wid);assert.equal(h.calls.discard.length,0);assert.equal(h.ui.canCloseSafely,true);
+});
+for(const index of [0,4,9])test(`confirmed omitted slot ${index} never permits safe close`,async t=>{
+ const items=Array.from({length:10},(_,i)=>image(i));items[index]={kind:'local_omitted',alt:'Missing image alt',name:'local.png',type:'image/png'};
+ const h=harness(t,{capture:()=>carousel(items)});await h.ui.init();h.ui.editorOpened({});h.behavior.capture=()=>carousel(items,{text:'edited'});h.ui.captureChanged();await h.ui.controller.save();assert.equal(h.ui.controller.snapshot.dirty,false);assert.equal(h.ui.canCloseSafely,false);assert.equal(h.ui.hasUnsavedLocalInput,true);
+ await h.action('copy-local');assert.match(h.content.innerHTML,/keine lokalen Mediendateien/);assert.match(h.content.innerHTML,/Missing image alt/);assert.equal(h.calls.discard.length,0);
+});
+test('ten saved images resume together without creating a new workspace',async t=>{
+ const w=carouselWorkspace(Array.from({length:10},(_,i)=>image(i)));const h=harness(t,{read:async()=>clone(w)});await h.selected();await h.action('restore-source');assert.equal(h.calls.restore.length,1);assert.equal(h.calls.restore[0][1].mediaItems.length,10);assert.equal(h.calls.read.length,2);assert.equal(h.calls.refresh.length,2);assert.equal(h.ui.controller.snapshot.workspaceId,wid);assert.equal(h.ui.canCloseSafely,true);
+});
+test('metadata drift on fresh workspace read requires new explicit review before applying',async t=>{
+ const w=carouselWorkspace([image(0)]),h=harness(t,{read:async()=>clone(w)});await h.selected();w.resolvedMediaItems[0].name='Changed.png';w.mediaMetadataConflict=true;await h.action('restore-source');assert.equal(h.calls.restore.length,0);assert.match(h.content.innerHTML,/erneut prüfen/);assert.match(h.content.innerHTML,/Changed.png/);assert.match(h.content.innerHTML,/workspace-canonical-alt/);
+});
+test('workspace revision drift on fresh read cannot overwrite the reviewed checkpoint',async t=>{
+ const w=carouselWorkspace([image(0)]),h=harness(t,{read:async()=>clone(w)});await h.selected();w.revision++;w.payload.text='Other session';await h.action('restore-copy');assert.equal(h.calls.restore.length,0);assert.match(h.content.innerHTML,/erneut prüfen/);
+});
+test('opening and closing another editor while fresh read waits invalidates restore session',async t=>{
+ const w=carouselWorkspace([image(0)]),h=harness(t,{read:async()=>clone(w)});await h.selected();const gate=deferred();h.behavior.read=()=>gate.promise;const pending=h.action('restore-copy');h.ui.editorOpened({});h.ui.editorClosed();gate.resolve(clone(w));await pending;assert.equal(h.calls.restore.length,0);
+});
+test('typing and reordering while save is pending retains same ID and checkpoints newer input next',async t=>{
+ const gate=deferred();let submitted;const h=harness(t,{capture:()=>carousel([image(0)]),save:r=>{submitted=r;return gate.promise}});await h.ui.init();h.ui.editorOpened({});h.behavior.capture=()=>carousel([image(0),image(1)]);h.ui.captureChanged();const pending=h.ui.controller.save();h.behavior.capture=()=>carousel([image(1),image(0)],{text:'newer'});h.ui.captureChanged();gate.resolve(saved(submitted));await pending;assert.equal(h.ui.controller.snapshot.dirty,true);assert.equal(h.ui.canCloseSafely,false);h.behavior.save=async r=>saved(r);await h.ui.controller.save();assert.equal(h.calls.save.length,2);assert.equal(h.calls.save[0].request.workspaceId,h.calls.save[1].request.workspaceId);assert.equal(h.calls.save[1].request.payload.text,'newer');assert.equal(h.calls.discard.length,0);
+});
+test('uncertain carousel save uses exact readback without new workspace or resend',async t=>{
+ let submitted;const h=harness(t,{capture:()=>carousel([image(0)]),save:async r=>{submitted=r;throw error()},read:async()=>saved(submitted)});await h.ui.init();h.ui.editorOpened({});h.behavior.capture=()=>carousel([image(0),image(1)]);h.ui.captureChanged();await h.ui.controller.save();assert.equal(h.ui.canCloseSafely,false);await h.ui.controller.save();assert.equal(h.calls.save.length,1);await h.ui.controller.reconcile();assert.equal(h.ui.canCloseSafely,true);assert.equal(h.calls.discard.length,0);
+});
+test('quota conflict leaves full carousel local without new ID or retry',async t=>{
+ const h=harness(t,{capture:()=>carousel([image(0)]),save:async()=>{throw error(409)}});await h.ui.init();h.ui.editorOpened({});const id=h.ui.controller.snapshot.workspaceId;h.behavior.capture=()=>carousel([image(0),image(1)]);h.ui.captureChanged();await h.ui.controller.save();await h.ui.controller.save();assert.equal(h.ui.controller.snapshot.phase,'conflict');assert.equal(h.ui.controller.snapshot.workspaceId,id);assert.equal(h.ui.controller.snapshot.payload.mediaItems.length,2);assert.equal(h.calls.save.length,1);assert.equal(h.calls.discard.length,0);assert.equal(h.ui.canCloseSafely,false);
+});
+
+
+test('capture exceptions invalidate open/change/retained protection and copy failure is visible without stale copy',async t=>{
+ const h=harness(t);await h.ui.init();h.ui.editorOpened({});assert.equal(h.ui.canCloseSafely,true);
+ h.behavior.capture=()=>{throw Error('private capture failure');};h.ui.captureChanged();assert.equal(h.ui.controller.snapshot.valid,false);assert.equal(h.ui.canCloseSafely,false);assert.equal(h.ui.hasUnsavedLocalInput,true);assert.equal(h.calls.save.length,0);
+ await h.action('copy-local');assert.match(h.content.innerHTML,/nicht verlustfrei kopiert/);assert.doesNotMatch(h.content.innerHTML,/private capture failure|Kopierbare Arbeitsfassung/);
+ h.ui.retainNewerInput();assert.equal(h.ui.controller.snapshot.localOnly,true);assert.equal(h.ui.controller.snapshot.valid,false);h.ui.editorClosed();h.ui.editorOpened({});assert.equal(h.ui.controller.snapshot.phase,'invalid');assert.equal(h.ui.canCloseSafely,false);
 });

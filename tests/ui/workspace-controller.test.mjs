@@ -1,3 +1,5 @@
+import {preservationContext} from './preservation-context.mjs';
+import {createComposerMedia} from '../../public/composer-media.js';
 import {createEditorTiming} from '../../public/editor-timing.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -60,7 +62,7 @@ test('opening is read/write free, allocates known ID once and snapshots source p
   assert.equal(h.open(p), true);
   assert.equal(h.controller.snapshot.phase, 'saved');
   assert.equal(h.controller.snapshot.dirty, false);
-  assert.equal(h.controller.canCloseSafely, true);
+  assert.equal(h.controller.canCloseSafely, false);
   assert.equal(h.controller.snapshot.workspaceId, 'generated-000000000001');
   assert.equal(h.uuidCount, 1);
   assert.deepEqual(h.calls, { save: [], read: [], discard: [] });
@@ -109,7 +111,7 @@ test('opening invalid existing metadata keeps the editor visibly dirty without t
   assert.deepEqual(h.calls.save[0].request.payload, corrected);
   assert.equal(h.controller.snapshot.phase, 'saved');
   assert.equal(h.controller.snapshot.dirty, false);
-  assert.equal(h.controller.canCloseSafely, true);
+  assert.equal(h.controller.canCloseSafely, false);
 });
 
 test('debounce has one pending timer, restoring original input cancels it, closing never creates a copy', async t => {
@@ -138,7 +140,7 @@ test('new save uses CAS revision zero, later intent uses confirmed revision and 
   assert.equal(first.sourcePostId, 'post-1'); assert.equal(second.sourcePostId, 'post-1');
   assert.equal(first.basePlannerRevision, 7); assert.equal(second.basePlannerRevision, 7);
   assert.equal(h.uuidCount, 3); assert.equal(h.controller.snapshot.workspace.revision, 2);
-  assert.equal(h.controller.canCloseSafely, true);
+  assert.equal(h.controller.canCloseSafely, false);
   assert.equal(h.calls.discard.length, 0);
 });
 
@@ -281,7 +283,7 @@ test('exact readback confirms save without modifying raw metadata or warning and
   h.behavior.read = () => saved(request, { currentPlannerRevision: 42, sourceExists: false });
   await h.controller.reconcile();
   assert.equal(h.controller.snapshot.phase, 'saved'); assert.equal(h.controller.snapshot.dirty, false);
-  assert.equal(h.controller.snapshot.pendingWrite, false); assert.equal(h.controller.canCloseSafely, true);
+  assert.equal(h.controller.snapshot.pendingWrite, false); assert.equal(h.controller.canCloseSafely, false);
   assert.deepEqual(h.controller.snapshot.payload, request.payload);
   assert.equal(h.controller.snapshot.payload.localMediaOmitted, true);
   assert.equal(h.controller.snapshot.payload.rawTags, payload().rawTags);
@@ -551,8 +553,8 @@ test('actual post-save bridge locks cleanup and rechecks unexpected late local c
     '#post-date': { value: '' }, '#post-time': { value: '' }, '#search': { value: '' },
     '#form-errors': { hidden: true, textContent: '', innerHTML: '' },
   };
-  const context = vm.createContext({
-    composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
+  const context = vm.createContext({...preservationContext(),isVideoMedia:m=>['video/mp4','video/webm'].includes(m?.type),videoWorkspaceVersion:2,videoSelectionController:null,videoPreviewURLs:{clear(){}},savedAltEdit:null,cancelSavedAlt(){},
+    composerImages:createComposerMedia(),composerTiming:createEditorTiming(),saving: false, mediaLoading: false, composerMissingMedia: false,
     state: { posts: [{ id: 'post-1', status: 'draft', createdAt: '2026-01-01' }] },
     editingId: 'post-1', initialEditor: '{}', composerLabelState: { title: '', tags: [], baseline: '' },
     composerBaseText: 'submitted text', composerVariantTexts: {}, composerMedia: null, composerCover: null,
@@ -579,7 +581,7 @@ test('actual post-save bridge locks cleanup and rechecks unexpected late local c
 test('actual delete bridge locks cleanup; late edits remain an unsaved new copy and never recreate the deleted post', async () => {
   for (const hasLateEdit of [false, true]) {
     const gate = deferred(); let currentInput = 'submitted editor', closes = 0, persists = 0;
-    const context = vm.createContext({
+    const context = vm.createContext({...preservationContext(),isVideoMedia:m=>['video/mp4','video/webm'].includes(m?.type),videoWorkspaceVersion:2,videoSelectionController:null,videoPreviewURLs:{clear(){}},savedAltEdit:null,cancelSavedAlt(){},
       saving: false, editingId: 'post-1', composerIdeaFingerprint: 'old-fingerprint',
       state: { posts: [{ id: 'post-1', status: 'draft' }] },
       editorSnapshot: () => currentInput,

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDemoState} from '../../public/model.js';
 import {parsePlanningExport,previewPlanningImport,applyPlanningImport} from '../../public/planner-import.js';
-const post=()=>({id:'same',title:'Title',tags:['B','A'],text:'Base\nText',variantTexts:{mastodon:'',linkedin:'Base\nText'},channels:['mastodon','linkedin'],status:'draft',scheduleBinding:null,scheduledInstant:null,scheduledAt:null,timeZone:'Europe/Berlin',cover:null,media:null,createdAt:'2030-01-01T00:00:00.000Z',updatedAt:'2030-01-01T00:00:00.000Z'});
+const post=()=>({id:'same',title:'Title',tags:['B','A'],text:'Base\nText',variantTexts:{mastodon:'',linkedin:'Base\nText'},channels:['mastodon','linkedin'],status:'draft',scheduleBinding:null,scheduledInstant:null,scheduledAt:null,timeZone:'Europe/Berlin',cover:null,mediaItems:[],createdAt:'2030-01-01T00:00:00.000Z',updatedAt:'2030-01-01T00:00:00.000Z'});
 const state=()=>({...createDemoState(new Date('2030-01-01')),settings:{timezone:'Europe/Berlin'},posts:[post()]});
 const incoming=p=>parsePlanningExport(JSON.stringify({...state(),posts:[p]}));
 const freeze=value=>{if(value&&typeof value==='object'){Object.freeze(value);Object.values(value).forEach(freeze)}return value};
@@ -11,7 +11,7 @@ test('only server updatedAt and channel set order are ignored, without changing 
  const preview=previewPlanningImport(current,file);assert.deepEqual(preview.duplicates,['same']);assert.deepEqual(current,before);assert.equal(preview.additions.length,0);
 });
 test('every authoring field, timestamp of creation, tag order and explicit inheritance remain strict',()=>{
- const mutations=[p=>p.title+='x',p=>p.text+=' ',p=>p.tags.reverse(),p=>p.tags.push('X'),p=>p.variantTexts.mastodon='text',p=>delete p.variantTexts.mastodon,p=>delete p.variantTexts.linkedin,p=>p.channels=['linkedin'],p=>p.status='scheduled',p=>p.timeZone='UTC',p=>p.createdAt='2030-01-02T00:00:00.000Z',p=>p.media={id:'image',url:'/api/planner/media/image',alt:'alt'},p=>p.cover='forms',p=>p.scheduleBinding={changed:true}];
+ const mutations=[p=>p.title+='x',p=>p.text+=' ',p=>p.tags.reverse(),p=>p.tags.push('X'),p=>p.variantTexts.mastodon='text',p=>delete p.variantTexts.mastodon,p=>delete p.variantTexts.linkedin,p=>p.channels=['linkedin'],p=>p.status='scheduled',p=>p.timeZone='UTC',p=>p.createdAt='2030-01-02T00:00:00.000Z',p=>p.mediaItems=[{id:'image',url:'/api/planner/media/image',alt:'alt',name:'image.png',type:'image/png'}],p=>p.cover='forms',p=>p.scheduleBinding={changed:true}];
  for(const change of mutations){const current=state();current.posts[0].updatedAt='2030-02-02T00:00:00.000Z';change(current.posts[0]);assert.throws(()=>previewPlanningImport(current,incoming(post())),undefined,change.toString());}
 });
 test('null and proven exact UTC agree, but no other local, zone, or millisecond difference does',()=>{

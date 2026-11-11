@@ -1,3 +1,6 @@
+import {preservationContext} from './preservation-context.mjs';
+import {videoContext} from './video-context.mjs';
+import {createComposerMedia} from '../../public/composer-media.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -30,7 +33,7 @@ async function harness(t,{local='2027-01-31T10:15',postZone='Europe/Berlin',cale
   if(faults&&options.method==='PUT'&&mode==='delay'){started();await gate;}return result;
  }})});
  let state=normalizeState(await store.load());
- const initial={id:'keep-post',scheduleBinding:null,scheduledInstant:null,title:'Keep title',tags:['Keep label','Literal, label'],text:'Keep body',variantTexts:{mastodon:'Keep variant',instagram:'Keep body'},channels:['mastodon','instagram'],status:'scheduled',scheduledAt:local,timeZone:postZone,cover:null,media:{dataUrl:'data:image/png;base64,'+Buffer.from(png).toString('base64'),type:'image/png',name:'original.png',alt:'Original alt'},createdAt:'2026-11-09T10:00:00.000Z'};
+ const initial={id:'keep-post',scheduleBinding:null,scheduledInstant:null,title:'Keep title',tags:['Keep label','Literal, label'],text:'Keep body',variantTexts:{mastodon:'Keep variant',instagram:'Keep body'},channels:['mastodon','instagram'],status:'scheduled',scheduledAt:local,timeZone:postZone,cover:null,mediaItems:[{dataUrl:'data:image/png;base64,'+Buffer.from(png).toString('base64'),type:'image/png',name:'original.png',alt:'Original alt'}],createdAt:'2026-11-09T10:00:00.000Z'};
  state=normalizeState(await store.save({...state,posts:[initial]}));
  if(bound){
   state=normalizeState(await store.save({...state,channels:state.channels.map(c=>({...c,postingSchedule:{schemaVersion:1,timezone:postZone,paused:false,minimumGapMinutes:30,overlapChoice:'reject',slots:[{id:'sunday',weekday:0,time:'10:15'}]}}))}));
@@ -43,12 +46,12 @@ async function harness(t,{local='2027-01-31T10:15',postZone='Europe/Berlin',cale
  function $(s){if(!fields.has(s)){const el={value:'',hidden:false,disabled:false,open:false,isConnected:true,scrollTop:0,dataset:{},setAttribute(){},scrollIntoView(){this.scrolled=true;},focus(){doc.activeElement=this;},showModal(){this.open=true;},close(){this.open=false;},classList:{toggle(){}}};Object.defineProperty(el,'innerHTML',{set(value){this.html=value;if(s==='#composer-channels')checks=[...value.matchAll(/value="([^"]+)" (checked)?/g)].map(([,value,checked])=>({value,checked:!!checked,disabled:false}));},get(){return this.html||'';}});fields.set(s,el);}return fields.get(s);}
  const $$=s=>s.includes('composer-channels')?(s.includes(':checked')?checks.filter(x=>x.checked):checks):[];
  const timing=createEditorTiming();
- const c=vm.createContext({store,state,normalizeState,validatePost,editedPostLabels,selectedVariantTexts,calendarTime,startOfWeek,dateKey,addDays,zonedNow,displayTitle,CHANNELS,Date,Promise,crypto,structuredClone,formatIdeaTags,
+ const c=vm.createContext({...preservationContext(),...videoContext(),composerImages:createComposerMedia(),savedAltEdit:null,cancelSavedAlt(){},composerFileDrop:{reset(){}},savedTextPicker:null,postTemplatePicker:null,splitPending:false,closeDraftSplit(){},updateDraftSplitAvailability(){},store,state,normalizeState,validatePost,editedPostLabels,selectedVariantTexts,calendarTime,startOfWeek,dateKey,addDays,zonedNow,displayTitle,CHANNELS,Date,Promise,crypto,structuredClone,formatIdeaTags,
   composerTiming:timing,composerMedia:null,composerCover:null,composerMissingMedia:false,composerBaseText:'',composerVariantTexts:{},composerLabelState:null,activeTextTarget:'base',composerIdeaFingerprint:null,editingId:null,composerRestoredWorkspace:false,saving:false,mediaLoading:false,initialEditor:'',view:'calendar',range:'month',anchor:new Date('2027-01-15T12:00'),calendarStatus:'all',workspaceRestoring:false,workspacePlannerReading:false,composerGeneration:0,mediaGeneration:0,plannerLoaded:true,channel:'all',returnFocus:null,
   $,$$,document:doc,requestAnimationFrame:fn=>raf.push(fn),setComposerBusy(){},focusComposerErrors:el=>el.focus(),notify:x=>notices.push(x),currentZone:()=>calendarZone,render(){},renderMediaEditor(){},renderVariantTabs(){},renderPreview(){if($('#composer').open)c.workspaceUI.captureChanged();},populateZoneSelect:(el,value)=>{el.value=value;},refreshMastodonPlanningStatus(){},clearMastodonPlanningStatus(){},queuePanel:{reset(){},invalidate(){}},imageStudio:{close(){}},showInfo:(title,html)=>modalNotices.push([title,html]),
   workspaceUI:{editorOpened(data){workspaceEvents.push(['open',data,c.editorSnapshot()]);},captureChanged(){workspaceEvents.push(['changed',c.editorSnapshot()]);},editorClosed(){workspaceEvents.push(['close']);},beforePostSave(){workspaceEvents.push(['before']);},afterPostSave(){workspaceEvents.push(['after']);if(mode==='cleanup-late')c.composerBaseText='Late cleanup text';},retainNewerInput(){workspaceEvents.push(['retain']);},hasUnsavedLocalInput:false,canCloseSafely:false},
   esc:s=>String(s??'').replaceAll('"','&quot;').replaceAll('<','&lt;'),platform:()=>''});
- for(const name of ['setComposerDate','currentComposerRawTags','editorSnapshot','openComposer','applyCalendarReschedule','calendarRescheduleBusy','askDiscard','closeComposer','savePost','persist'])vm.runInContext(actual(name),c);
+ for(const name of ['renderComposerChannels','setComposerDate','currentComposerRawTags','editorSnapshot','openComposer','applyCalendarReschedule','calendarRescheduleBusy','askDiscard','closeComposer','savePost','persist'])vm.runInContext(actual(name),c);
  return {c,$,fields,requests,store,repo,env,post,before,mediaBefore,ready,resolveWrite,notices,workspaceEvents,modalNotices,raf,get otherDialog(){return otherDialog;},set otherDialog(v){otherDialog=v;},apply(day='2027-02-01'){return c.applyCalendarReschedule(post,proposeCalendarReschedule(post,day,calendarZone));}};
 }
 const writes=h=>h.requests.filter(r=>r.method==='PUT');
@@ -66,3 +69,12 @@ test('CAS rejects stale move without merge/retry or data loss',async t=>{const h
 test('lost successful save response is not retried or reported as success',async t=>{const h=await harness(t,{mode:'lost'});h.apply();await h.c.savePost('scheduled');const after=await preserved(h);assert.equal(after.revision,h.before.revision+1);assert.equal(writes(h).length,1);assert.equal(h.$('#composer').open,true);assert.equal(h.c.state.revision,h.before.revision);assert.equal(h.c.state.posts[0].scheduledAt,h.post.scheduledAt);assert.equal(h.$('#post-date').value,'2027-02-01');assert.equal(dateKey(h.c.anchor),'2027-01-15');assert.equal(h.workspaceEvents.some(([type])=>type==='after'),false);assert.equal(h.notices.some(n=>n.includes('eingeplant.')),false);});
 test('double save while pending sends exactly one write; late edits stay open',async t=>{const h=await harness(t,{mode:'delay'});h.apply();const pending=h.c.savePost('scheduled');await h.ready;await h.c.savePost('scheduled');h.c.composerBaseText='Late unsent text';h.resolveWrite();await pending;await preserved(h);assert.equal(writes(h).length,1);assert.equal(h.$('#composer').open,true);assert.equal(h.c.composerBaseText,'Late unsent text');assert.equal(dateKey(h.c.anchor),'2027-01-15');assert.equal(h.workspaceEvents.filter(([type])=>type==='retain').length,1);});
 test('late input during workspace close remains open after confirmed save',async t=>{const h=await harness(t,{mode:'cleanup-late'});h.apply();await h.c.savePost('scheduled');await preserved(h);assert.equal(writes(h).length,1);assert.equal(h.$('#composer').open,true);assert.equal(h.c.composerBaseText,'Late cleanup text');assert.equal(h.workspaceEvents.filter(([type])=>type==='retain').length,1);});
+test('opening a clean multi-channel draft refreshes split availability after clearing prior workspace context',async t=>{
+ const h=await harness(t),c=h.c;
+ const p=c.state.posts.find(p=>p.id===h.post.id);p.status='draft';p.scheduledAt=null;p.scheduledInstant=null;p.scheduleBinding=null;p.channels=['instagram','linkedin'];
+ let priorWorkspace={id:'old-workspace'},observed=[];
+ c.workspaceUI.editorOpened=()=>{priorWorkspace=null;};
+ c.updateDraftSplitAvailability=()=>observed.push({workspace:priorWorkspace,revision:c.composerSavedRevision,open:h.$('#composer').open});
+ c.openComposer(p.id);
+ assert.deepEqual(observed,[{workspace:null,revision:c.state.revision,open:true}]);
+});

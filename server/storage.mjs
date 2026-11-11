@@ -1,6 +1,7 @@
+import {Readable} from 'node:stream';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, mkdirSync } from 'node:fs';
-import { readFile, writeFile, rename, unlink } from 'node:fs/promises';
+import { readFileSync, mkdirSync, createReadStream } from 'node:fs';
+import { writeFile, rename, unlink, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -62,9 +63,16 @@ export class LocalBucket {
     try { await writeFile(temporary, content, { flag: 'wx' }); await rename(temporary, target); return { key, size: content.byteLength, etag: createHash('sha256').update(content).digest('hex') }; }
     catch (error) { await unlink(temporary).catch(() => {}); throw error; }
   }
-  async get(key) {
-    try { return { body: new Blob([await readFile(this.path(key))]).stream() }; }
+  async head(key) {
+    try { return {size:(await stat(this.path(key))).size}; }
     catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  }
+  async get(key,options={}) {
+    const object=await this.head(key);if(!object)return null;
+    const range=options?.range;
+    if(range&&(!Number.isSafeInteger(range.offset)||!Number.isSafeInteger(range.length)||range.offset<0||range.length<1||range.offset+range.length>object.size))throw Error('Invalid local object range');
+    const stream=createReadStream(this.path(key),range?{start:range.offset,end:range.offset+range.length-1}:undefined);
+    return {...object,...(range?{range:{...range}}:{}),body:Readable.toWeb(stream)};
   }
   async delete(key) { try { await unlink(this.path(key)); } catch (error) { if (error.code !== 'ENOENT') throw error; } }
 }

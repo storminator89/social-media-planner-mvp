@@ -1,3 +1,4 @@
+import {checkCallbackLandings} from '../worker/oauth-landing-support.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -23,6 +24,7 @@ async function setup(t) {
   assert.equal((source.match(/export default /g) ?? []).length, 1);
   runInContext(source.replace('export default ', 'globalThis.worker = '), context);
   assert.equal(runInContext('typeof process + ":" + typeof Buffer', context), 'undefined:undefined');
+  checkCallbackLandings(context.worker,'linkedin',()=>provider.requests.length);
   const env = {DB, TAKT_LINKEDIN_ENABLED: 'true',
     TAKT_LINKEDIN_CONFIGURATION: JSON.stringify({siteId:'built-fixture', siteOrigin:origin,
       clientId:provider.clientId, redirectUri:origin+callback, accountType:'personal',

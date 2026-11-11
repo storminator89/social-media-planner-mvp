@@ -41,3 +41,9 @@
 .planning-clock-notice small{display:block;font-size:12px;line-height:1.5;color:#675b79}
 .planning-clock-notice button{flex-shrink:0;min-height:44px;white-space:normal}
 @media(max-width:600px){.planning-clock-notice{align-items:stretch;flex-direction:column;margin:12px;gap:12px}.planning-clock-notice button{width:100%;min-height:44px}}
+
+/* Session-only continuous local planning; no publishing action. */
+.composer-footer{flex-wrap:wrap}.continue-composer-option{flex-basis:100%;display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;line-height:1.5;cursor:pointer}.continue-composer-option input{width:17px;height:17px;margin:0;accent-color:var(--purple)}.continue-composer-option span{color:var(--muted);font-size:11px}@media(max-width:760px){.continue-composer-option span{flex-basis:100%;margin-left:25px}.continue-composer-option{font-size:12px}}
+
+/* Saved draft titles distinguish originals without changing publication text. */
+.post-card-title{display:block;margin:10px 14px 0;font-size:12px;line-height:1.4;overflow-wrap:anywhere;text-align:left}.original-draft-badge{display:inline-block;align-self:flex-start;margin:8px 14px 0;padding:3px 7px;border-radius:5px;background:var(--purple-light);color:var(--purple-dark);font-size:11px;font-weight:600}

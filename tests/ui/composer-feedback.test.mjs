@@ -17,7 +17,7 @@ test('501-character Mastodon scheduling remains rejected and summary stays label
  const html=readFileSync(new URL('../../public/index.html',import.meta.url),'utf8');
  assert.match(html,/id="form-errors"[^>]*role="alert"[^>]*aria-label="Hinweis zum Beitrag"[^>]*tabindex="-1"/);
  const app=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
- assert.match(app,/if\(errors.length\).*focusComposerErrors\(\$\('#form-errors'\)\);return/);
+ assert.match(app,/if\(errors.length\).*focusComposerErrors\(\$\('#form-errors'\),\{errors,post\}\);return/);
  assert.match(app,/if\(!success\)focusComposerErrors/);
  assert.doesNotMatch(app,/form-errors'\)\.scrollIntoView\(\{block:'nearest',behavior:'smooth'/);
 });

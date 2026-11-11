@@ -153,7 +153,7 @@ test('list enforces active-only summaries, exact retention policy and lifetime c
   assert.equal(data.policy.automaticDeletion, false);
   assert.equal(data.policy.retainedAfterClosure, true);
   for (const invalid of [
-    { ...data, schemaVersion: 2 }, { ...data, cursor: 'unexpected-pagination' },
+    { ...data, schemaVersion: 5 }, { ...data, cursor: 'unexpected-pagination' },
     { ...data, policy: { ...data.policy, automaticDeletion: true } },
     { ...data, policy: { ...data.policy, resumeWindowMs: 1 } },
     { ...data, capacity: { ...data.capacity, totalRemaining: 1 } },
@@ -234,7 +234,7 @@ test('HTTP client uses only fixed same-origin routes and exact mutation envelope
   const { workspaceId, ...saveBody } = saveRequest;
   assert.deepEqual(JSON.parse(calls[2].options.body), { schemaVersion: 1, ...saveBody });
   assert.deepEqual(JSON.parse(calls[3].options.body), {
-    schemaVersion: 1, expectedRevision: 1, writeId: discardRequest.writeId,
+    schemaVersion: 4, expectedRevision: 1, writeId: discardRequest.writeId,
   });
 });
 

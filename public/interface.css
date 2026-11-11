@@ -1,0 +1,73 @@
+/* Presentation-only simplification. Errors and recovery/status regions stay outside disclosures. */
+.ui-disclosure{min-width:0;color:var(--ink)}
+.ui-disclosure>summary{cursor:pointer;min-height:44px;padding:11px 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface);font-size:14px;font-weight:600;line-height:1.5;list-style-position:inside;overflow-wrap:anywhere}
+.ui-disclosure>summary:hover{background:var(--purple-light)}
+.ui-disclosure>summary:focus-visible{outline:3px solid var(--purple);outline-offset:3px}
+.ui-disclosure[open]>summary{background:var(--purple-light);color:var(--purple-dark)}
+.ui-disclosure-body{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 0 0}
+.ui-disclosure .button{min-height:44px;font-size:13px;white-space:normal}
+.workspace-entry.posting-times-entry{margin:0 0 18px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.workspace-tools{width:100%}.workspace-tools>summary{width:max-content}
+.workspace-tools .ui-disclosure-body{padding-bottom:4px}
+.workspace-entry #workspace-global-notice{flex-basis:100%;margin:0}
+body[data-editorial-view]:not([data-editorial-view=""]) #open-posting-times{display:inline-flex}
+.page-heading{margin-bottom:18px}.page-heading h1{font-size:30px;margin:0;letter-spacing:-.7px}
+.page-heading .create-post{position:static;inset:auto;margin:0;min-height:44px;font-size:14px;white-space:normal}
+.topbar{height:62px}.breadcrumb>span{display:none}.breadcrumb strong{font-size:14px}
+.top-avatar,.quiet-card{display:none}.sidebar-bottom{padding-top:24px}.nav-item{font-size:14px;min-height:44px}.channel-row{min-height:44px}.channel-row strong{font-size:13px}
+.view-toolbar{align-items:flex-start;gap:12px;flex-wrap:wrap}.view-tabs{min-height:44px;align-items:center}.view-tab{min-height:44px;font-size:14px}
+body .filter-actions{flex:1;display:flex;justify-content:flex-end;align-items:flex-start;gap:10px;min-width:0;flex-wrap:wrap}
+body .filter-actions .search-field{flex:1 1 210px;max-width:360px;min-height:44px}
+body .filter-actions .search-field input{width:100%;font-size:14px}
+.planning-filters{flex:0 1 auto;min-width:100px;max-width:100%}.planning-filters>summary{white-space:nowrap}
+.planning-filters .ui-disclosure-body{max-width:430px;justify-content:flex-end}
+#active-filter-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;background:var(--purple);color:white;border-radius:50%;font-size:12px}
+body .planning-filters .select-wrap{min-height:44px;flex:1 1 150px;max-width:100%}
+body .planning-filters .select-wrap select{font-size:14px;min-height:42px;width:100%;max-width:none}
+body .planning-filters .idea-label-filter{margin:0}
+.storage-note{max-width:none;margin:18px 0 0;color:#696273;font-size:12px;line-height:1.5}
+.calendar-brief{gap:12px}.calendar-brief .calendar-safe{font-size:12px}.calendar-brief>div p{margin:0}
+.draft-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.draft-section-head>span{padding-top:12px}
+body[data-editorial-view="drafts"] .draft-section-head .ui-disclosure .button{display:inline-flex}
+.channel-queue-actions{display:block;max-width:100%}.channel-queue-actions .ui-disclosure-body{justify-content:flex-end;max-width:520px}
+.channel-queue-head h2{font-size:20px;letter-spacing:-.3px}
+.more-navigation{display:grid;gap:8px;margin:0 0 20px}.more-navigation button{min-height:48px;text-align:left;font-size:16px;border:1px solid var(--line);border-radius:9px;padding:12px 16px;background:var(--surface)}
+.more-navigation button:hover{background:var(--purple-light)}
+.composer-dialog .media-controls{gap:8px}.composer-dialog .media-options{flex-basis:100%}
+.composer-dialog .media-options>summary{width:max-content;max-width:100%;font-size:13px;border:0;padding:10px 0;background:transparent;color:var(--purple-dark)}
+.composer-dialog .media-options .ui-disclosure-body{padding:0 0 8px}
+.composer-dialog .composer-labels{margin:18px 0}
+.composer-dialog .composer-labels>summary{background:transparent;border:0;padding:8px 0;font-size:14px}
+.composer-dialog .composer-labels .post-label-editor{margin:8px 0 16px}
+.composer-dialog .composer-actions{min-width:0;margin:18px 0 0}
+.composer-dialog .composer-actions>summary{width:max-content;max-width:100%;font-size:13px}
+.composer-dialog .composer-actions .ui-disclosure-body{align-items:flex-start}
+.composer-dialog .composer-actions .continue-composer-option{margin:0;flex-basis:100%}
+.composer-dialog .composer-actions .edit-actions{margin:0}
+.composer-dialog .composer-footer .save-actions{margin-left:auto}
+@media(max-width:760px){
+ main{padding:24px 16px calc(90px + env(safe-area-inset-bottom))}
+ .topbar{height:58px;padding-inline:16px}.page-heading{align-items:flex-start;flex-wrap:wrap;gap:16px}
+ .page-heading h1{font-size:28px}.page-heading .create-post{max-width:100%}
+ body .view-toolbar{display:flex;margin-bottom:16px}
+ body .view-tabs,body[data-editorial-view]:not([data-editorial-view=""]) .view-tabs{display:flex;flex-wrap:wrap;width:auto;margin:0;max-width:100%;overflow:visible}
+ body .filter-actions{width:100%;flex-basis:100%;justify-content:flex-start}
+ body .filter-actions .search-field{flex:1 1 170px;max-width:none;width:auto}
+ .planning-filters{flex:0 1 auto}.planning-filters[open]{flex:1 1 100%}
+ .planning-filters .ui-disclosure-body{max-width:none;justify-content:flex-start}
+ body .planning-filters .select-wrap select,body .filter-actions .search-field input{font-size:16px}
+ .workspace-tools .button{flex:1 1 140px}
+ .channel-queue-head{padding-top:16px}.channel-queue-actions{width:100%}.channel-queue-actions>summary{width:max-content;max-width:100%}
+ .channel-queue-actions .ui-disclosure-body{justify-content:flex-start}.channel-queue-actions .button{flex:1 1 140px}
+ .storage-note{font-size:12px}.calendar-safe{max-width:100%}
+ .composer-dialog .composer-actions .ui-disclosure-body{padding-top:8px}
+ .composer-dialog .composer-actions>summary{min-height:40px;padding:8px 10px}
+ .composer-dialog .composer-footer .save-actions{flex:1 1 100%;margin-left:0}
+ .composer-dialog .media-options .button{flex:1 1 140px}
+}
+/* Legacy compact overview rules must not hide the relocated storage status. */
+body .overview-note.storage-note{display:flex;max-width:none;grid-column:1 / -1;margin:18px 0 0}
+/* Long publishing handoff labels must wrap even in a very narrow editor. */
+.composer-dialog .composer-footer .button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.connections-intro{margin:0 0 16px}

@@ -343,3 +343,15 @@ test('thumbnail uses a fixed-height flex box instead of an intrinsic grid track'
  assert.match(css,/\.saved-image-thumbnail\{display:flex;align-items:center;justify-content:center;[^}]*height:132px/);
  assert.match(css,/\.saved-image-thumbnail img\{[^}]*min-width:0;min-height:0;[^}]*object-fit:contain/);
 });
+
+test('append toggles in first-selected order, reselection appends, and limit leaves deselection enabled',async()=>{
+ const chosen=[];const h=harness({catalog:available(item('a'),item('b'),item('c')),onChoose:async value=>{chosen.push(value);return true}});
+ try{h.picker.open({intent:'add',remaining:2});await h.choose(1);await h.choose(0);assert.equal(h.apply.textContent,'2 Bilder übernehmen');assert.equal(h.cards[2].disabled,true);assert.equal(h.cards[1].disabled,false);assert.equal(h.cards[1].children[1].children.at(-1).textContent,'1');await h.choose(1);await h.choose(2);await h.choose(0);await h.choose(1);await h.confirm();assert.deepEqual(chosen[0].map(x=>x.id),['c','b']);}finally{h.restore()}
+});
+test('replacement retains exactly one selection and zero capacity cannot select',async()=>{
+ for(const remaining of [0,10]){const chosen=[];const h=harness({catalog:available(item('a'),item('b')),onChoose:async value=>{chosen.push(value);return true}});try{h.picker.open({intent:'replace',remaining});await h.choose(0);await h.choose(1);await h.choose(1);await h.confirm();assert.equal(chosen[0].id,'b');assert.equal(Array.isArray(chosen[0]),false);}finally{h.restore()}}
+ const h=harness();try{h.picker.open({intent:'add',remaining:0});await h.choose();assert.equal(h.apply.disabled,true);assert.equal(h.cards[0].disabled,true);}finally{h.restore()}
+});
+test('invalid middle selection rejects entire batch before callback',async()=>{
+ let calls=0;const h=harness({catalog:available(item('a'),item('b'),item('c')),onChoose:async()=>{calls++;return true}});try{h.picker.open({intent:'add',remaining:10});for(let i=0;i<3;i++)await h.choose(i);h.catalog=available(item('a'),item('c'));await h.confirm();assert.equal(calls,0);assert.equal(h.picker.isOpen,true);}finally{h.restore()}
+});

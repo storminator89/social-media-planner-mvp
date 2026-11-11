@@ -1,0 +1,13 @@
+.queue-swap-dialog{width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto}
+.queue-swap-list{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}
+.queue-swap-list li{padding:14px;border:1px solid var(--border,#e5e3eb);border-radius:12px;display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
+.queue-swap-list time{font-size:13px;color:var(--text-muted,#656274)}
+.queue-swap-list p{white-space:pre-wrap;font-size:14px;margin:4px 0;max-height:140px;overflow:auto}
+.queue-swap-dialog [data-swap-status]{margin:12px 0;overflow-wrap:anywhere}
+.queue-swap-dialog .settings-actions{display:flex;gap:8px;flex-wrap:wrap}
+.queue-swap-dialog button{min-height:44px;white-space:normal}
+@media(max-width:600px){.queue-swap-dialog{padding:18px}.queue-swap-dialog .settings-actions>button{flex:1 1 120px}}
+
+.queue-swap-list label{display:flex;align-items:center;gap:12px}.queue-swap-list input{width:20px;height:20px;flex-shrink:0}
+#date-shift-days{display:block;width:120px;min-height:44px;margin:8px 0;padding:8px;border:1px solid var(--border,#e5e3eb);border-radius:8px;font:inherit}
+#date-shift-dialog [data-shift-status]{margin:12px 0;overflow-wrap:anywhere}

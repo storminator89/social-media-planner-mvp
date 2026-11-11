@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {savedImageCatalog,resolveSavedImage,isSavedImage,savedImageIdentity,decodeSavedImage} from '../../public/saved-images.js';
 const media=(id='a',extra={})=>({id,url:'/api/planner/media/'+id,name:'Photo.png',type:'image/png',alt:'Original description',...extra});
-const post=(id,image,extra={})=>({id,title:'Title '+id,text:'Original text',media:image,...extra});
+const post=(id,image,extra={})=>({id,title:'Title '+id,text:'Original text',mediaItems:image?[image]:[],...extra});
 const freeze=value=>{if(value&&typeof value==='object'){Object.freeze(value);Object.values(value).forEach(freeze)}return value};
 const state=posts=>({posts,settings:{timezone:'UTC'}});
 test('catalog is a pure full-post projection, deduplicates media and strips unrelated metadata',()=>{

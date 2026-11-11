@@ -14,7 +14,7 @@ test('failed revocation keeps publication locked with no retry',async()=>{const{
 test('every content edit clears the ready status and requires a fresh preview',async()=>{for(const id of ['text','visibility','spoiler','sensitive']){const{nodes:n,calls:c}=await harness();await n.composer.onsubmit({preventDefault(){}});assert.match(n.status.textContent,/Vorschau bereit/);n[id].events.input();assert.equal(n.review.hidden,true);assert.equal(n.publish.disabled,true);assert.match(n.status.textContent,/Vorschau verworfen/);assert.doesNotMatch(n.status.textContent,/Vorschau bereit/);await n.publish.onclick();assert.equal(c.filter(([p])=>p.endsWith('submit')).length,0);await n.composer.onsubmit({preventDefault(){}});assert.match(n.status.textContent,/Vorschau bereit/);}});
 
 test('saved variant requires deliberate transfer and fresh preview; never auto sends',async()=>{
- const h=await harness({hash:'#planner=saved-1&revision=4',plannerState:{revision:4,posts:[{id:'saved-1',status:'draft',channels:['mastodon'],text:'base',variantTexts:{mastodon:'stored variant'}}]}});
+ const h=await harness({hash:'#planner=saved-1&revision=4',plannerState:{revision:4,posts:[{id:'saved-1',mediaItems:[],status:'draft',channels:['mastodon'],text:'base',variantTexts:{mastodon:'stored variant'}}]}});
  assert.equal(h.plannerReads(),0);assert.equal(h.nodes['planner-transfer'].hidden,false);
  await Promise.all([h.nodes['planner-transfer-load'].onclick(),h.nodes['planner-transfer-load'].onclick()]);
  assert.equal(h.plannerReads(),1);assert.equal(h.nodes.text.value,'stored variant');assert.equal(h.nodes.visibility.value,'private');

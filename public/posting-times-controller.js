@@ -17,7 +17,7 @@ export function createPostingTimesController({getState,saveState,onChange=()=>{}
     if(disposed||busy)return false;
     if(dirty())return false;
     const state=getState(), channel=state.channels?.find(c=>c.id===id);
-    if(state.schemaVersion!==2||!Number.isSafeInteger(state.revision)||!channel)throw Error('Lade zuerst einen bestätigten Planungsstand.');
+    if(![2,3].includes(state.schemaVersion)||!Number.isSafeInteger(state.revision)||!channel)throw Error('Lade zuerst einen bestätigten Planungsstand.');
     base=copy(state);channelId=id;original=copy(channel.postingSchedule);draft=copy(original);
     blocked=false;error='';message='';confirmation=null;generation++;emit();return true;
   }
@@ -54,7 +54,7 @@ export function createPostingTimesController({getState,saveState,onChange=()=>{}
       const saved=await saveState(copy(proposal.snapshot));
       if(disposed||epoch!==generation)return false;
       const channel=saved?.channels?.find(c=>c.id===channelId);
-      if(saved?.schemaVersion!==2||!Number.isSafeInteger(saved.revision)||saved.revision!==base.revision+1||!channel||!same(normalizePostingSchedule(channel.postingSchedule),normalizePostingSchedule(draft)))throw Error('Die Speicherbestätigung ist nicht eindeutig.');
+      if(saved?.schemaVersion!==base.schemaVersion||!Number.isSafeInteger(saved.revision)||saved.revision!==base.revision+1||!channel||!same(normalizePostingSchedule(channel.postingSchedule),normalizePostingSchedule(draft)))throw Error('Die Speicherbestätigung ist nicht eindeutig.');
       base=copy(saved);original=copy(channel.postingSchedule);draft=copy(original);confirmation=null;
       message=proposal.affected.length?`Zeiten gespeichert. ${proposal.affected.length} ${proposal.affected.length===1?'Termin bleibt':'Termine bleiben'} zur Prüfung markiert.`:'Zeiten gespeichert. Bestehende Termine bleiben unverändert.';
       return true;

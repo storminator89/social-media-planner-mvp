@@ -1,0 +1,66 @@
+{
+  "analysis": {
+    "cuts": [
+      {
+        "id": "24:47",
+        "videoCount": 24,
+        "audioCount": 47,
+        "numerator": 47104,
+        "denominator": 48000,
+        "seconds": 0.9813333333333333,
+        "lastVideoSeconds": 0.9583333333333334,
+        "nextVideoSeconds": 1
+      },
+      {
+        "id": "48:94",
+        "videoCount": 48,
+        "audioCount": 94,
+        "numerator": 95232,
+        "denominator": 48000,
+        "seconds": 1.984,
+        "lastVideoSeconds": 1.9583333333333333,
+        "nextVideoSeconds": 2
+      },
+      {
+        "id": "72:141",
+        "videoCount": 72,
+        "audioCount": 141,
+        "numerator": 143360,
+        "denominator": 48000,
+        "seconds": 2.986666666666667,
+        "lastVideoSeconds": 2.9583333333333335,
+        "nextVideoSeconds": 3
+      },
+      {
+        "id": "96:188",
+        "videoCount": 96,
+        "audioCount": 188,
+        "numerator": 191488,
+        "denominator": 48000,
+        "seconds": 3.989333333333333,
+        "lastVideoSeconds": 3.9583333333333335,
+        "nextVideoSeconds": 4
+      },
+      {
+        "id": "120:235",
+        "videoCount": 120,
+        "audioCount": 235,
+        "numerator": 239616,
+        "denominator": 48000,
+        "seconds": 4.992,
+        "lastVideoSeconds": 4.958333333333333,
+        "nextVideoSeconds": 5
+      }
+    ],
+    "width": 1280,
+    "height": 720,
+    "sourceSeconds": 6
+  },
+  "hashes": [
+    "74e4a62ac548b80a1625266963676c34559946727562cffaf4215b7481266a6d",
+    "ca5d85405c2ace6d4a27dcfe0785e05c562310e00f7f7529ebc38db914470a8e",
+    "4c97b13917bc1efb11110bec7cfeb34818213dffce77cf8f68655fe15b7d7395",
+    "48cbc630e7ca9dbf9f777fe01e80e58911da115893ebd4ada6dc999922804685",
+    "9ca3f3aa3671b2ece5985622962884e1da81ac16d36d12f09883c4d67c93904f"
+  ]
+}

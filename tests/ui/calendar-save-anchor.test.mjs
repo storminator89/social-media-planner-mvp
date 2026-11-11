@@ -1,3 +1,5 @@
+import {preservationContext} from './preservation-context.mjs';
+import {createComposerMedia} from '../../public/composer-media.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -30,14 +32,15 @@ async function harness(t,{local='2026-12-01T10:00',postZone='Europe/Berlin',cale
   if(fault&&options.method==='PUT'&&mode==='delay'){started();await gate;}return result;
  }})});
  let state=normalizeState(await store.load());
- const initial={id:'keep-post',scheduleBinding:null,scheduledInstant:null,title:'Keep title',tags:['Keep label'],text:'Keep body',variantTexts:{mastodon:'Keep variant'},channels:['mastodon'],status:'draft',scheduledAt:null,timeZone:postZone,cover:null,media:{dataUrl:'data:image/png;base64,'+Buffer.from(png).toString('base64'),type:'image/png',name:'original.png',alt:'Original alt'},createdAt:'2026-11-09T10:00:00.000Z'};
+ const initial={id:'keep-post',scheduleBinding:null,scheduledInstant:null,title:'Keep title',tags:['Keep label'],text:'Keep body',variantTexts:{mastodon:'Keep variant'},channels:['mastodon'],status:'draft',scheduledAt:null,timeZone:postZone,cover:null,mediaItems:[{dataUrl:'data:image/png;base64,'+Buffer.from(png).toString('base64'),type:'image/png',name:'original.png',alt:'Original alt'}],createdAt:'2026-11-09T10:00:00.000Z'};
  state=normalizeState(await store.save({...state,posts:[initial]}));const post=state.posts[0],before=await repo.load('calendar-anchor-review'),mediaBefore=clone([...env.BUCKET.data]);requests.length=0;fault=true;
  const fields={'#post-tags':{value:'Keep label'},'#post-date':{value:local.slice(0,10)},'#post-time':{value:local.slice(11)},'#post-zone':{value:postZone},'#form-errors':{hidden:true},'#search':{value:''}};
  const timing=createEditorTiming();timing.open(post);let closes=0,retains=0,cleanups=0;const notices=[];
- const c=vm.createContext({store,state,normalizeState,validatePost,editedPostLabels,selectedVariantTexts,calendarTime,calendarPosts,planningStatus,startOfWeek,dateKey,addDays,zonedNow,displayTitle,CHANNELS,Date,Promise,crypto,structuredClone,
-  composerTiming:timing,composerMedia:clone(post.media),composerCover:post.cover,composerMissingMedia:false,composerBaseText:post.text,composerVariantTexts:clone(post.variantTexts),composerLabelState:{title:post.title,tags:post.tags,raw:'Keep label',rendered:'Keep label',baseline:'Keep label'},activeTextTarget:'base',composerIdeaFingerprint:null,editingId:post.id,composerRestoredWorkspace:false,saving:false,mediaLoading:false,initialEditor:'',view,range,anchor:new Date('2026-10-15T12:00'),calendarStatus:'review',
+ const c=vm.createContext({...preservationContext(),composerImages:createComposerMedia(),savedAltEdit:null,cancelSavedAlt(){},store,state,normalizeState,validatePost,editedPostLabels,selectedVariantTexts,calendarTime,calendarPosts,planningStatus,startOfWeek,dateKey,addDays,zonedNow,displayTitle,CHANNELS,Date,Promise,crypto,structuredClone,
+  composerTiming:timing,composerMedia:clone(post.mediaItems[0]),composerCover:post.cover,composerMissingMedia:false,composerBaseText:post.text,composerVariantTexts:clone(post.variantTexts),composerLabelState:{title:post.title,tags:post.tags,raw:'Keep label',rendered:'Keep label',baseline:'Keep label'},activeTextTarget:'base',composerIdeaFingerprint:null,editingId:post.id,composerRestoredWorkspace:false,saving:false,mediaLoading:false,initialEditor:'',view,range,anchor:new Date('2026-10-15T12:00'),calendarStatus:'review',
   $:s=>fields[s],$$:()=>[{value:'mastodon'}],setComposerBusy(){},focusComposerErrors(){},notify:x=>notices.push(x),currentZone:()=>calendarZone,closeComposer(){closes++},render(){},workspaceUI:{beforePostSave(){},afterPostSave(){cleanups++},retainNewerInput(){retains++}},
   days:['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'],dateLabel:(d,o)=>new Intl.DateTimeFormat('de-DE',o).format(d),esc:s=>String(s??'').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),icon:()=>'',platform:()=>'',scheduleNeedsReview:()=>false,postLabelDescription:()=>'',renderAgenda:posts=>posts.map(p=>p.id).join(',')});
+ c.composerImages.reset(post.mediaItems);c.composerMedia=c.composerImages.selected;
  for(const name of ['currentComposerRawTags','editorSnapshot','savePost','persist','visiblePeriod','periodPosts','renderMonth'])vm.runInContext(actual(name),c);
  c.initialEditor=c.editorSnapshot();
  return {c,fields,requests,store,repo,env,before,mediaBefore,ready,resolveWrite,notices,get closes(){return closes},get retains(){return retains},get cleanups(){return cleanups}};

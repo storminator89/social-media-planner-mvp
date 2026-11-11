@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { normalizeQueueRules, suggestQueueSlots, applyQueueSuggestion, duplicateTaktDraft } from '../../modules/workflows/queue.mjs';
 
 const now = '2026-11-09T07:00:00.000Z'; // Monday, 08:00 Berlin.
-const post = () => ({ id: 'p1', text: 'Eine gute Idee', channels: ['linkedin'], status: 'draft', scheduledAt: null, timeZone: 'Europe/Berlin', cover: null, media: null, createdAt: now, updatedAt: now });
+const post = () => ({ id: 'p1', text: 'Eine gute Idee', channels: ['linkedin'], status: 'draft', scheduledAt: null, timeZone: 'Europe/Berlin', cover: null, mediaItems:[], createdAt: now, updatedAt: now });
 const rule = (channelId = 'linkedin', overrides = {}) => ({ channelId, timezone: 'Europe/Berlin', slots: [{ weekday: 1, time: '09:00' }, { weekday: 1, time: '13:00' }, { weekday: 3, time: '09:00' }], ...overrides });
 const opts = overrides => ({ post: post(), posts: [], rules: [rule()], after: now, horizonDays: 14, ...overrides });
 const code = (fn, expected) => assert.throws(fn, error => error.code === expected);
@@ -102,11 +102,12 @@ test('absolute instants cannot be silently normalized from invalid dates', () =>
   code(() => suggestQueueSlots(opts({ after: '2026-11-09T24:00:00Z' })), 'INVALID_INSTANT');
 });
 test('safe duplication preserves variants and media but removes workflow and outcome evidence', () => {
-  const original = { ...post(), title: 'Redaktioneller Titel', tags: ['Kampagne'], variantTexts: { linkedin: '' }, status: 'scheduled', scheduledAt: '2026-11-09T09:00', media: { id: 'img', alt: 'Bild' }, review: { status: 'approved' }, deliveries: [{ status: 'published' }], publishedAt: now };
+  const original = { ...post(), title: 'Redaktioneller Titel', tags: ['Kampagne'], variantTexts: { linkedin: '' }, status: 'scheduled', scheduledAt: '2026-11-09T09:00', mediaItems: [{ id: 'img',url:'/api/planner/media/img',alt:'Bild',name:'image.png',type:'image/png' },{id:'img-second',url:'/api/planner/media/img-second',alt:'Zweites Bild',name:'second.png',type:'image/png'}], review: { status: 'approved' }, deliveries: [{ status: 'published' }], publishedAt: now };
   const copy = duplicateTaktDraft(original, { id: 'p2', now });
   assert.equal(copy.status, 'draft'); assert.equal(copy.scheduledAt, null); assert.equal(copy.variantTexts.linkedin, ''); assert.equal(copy.review, undefined); assert.equal(copy.deliveries, undefined); assert.equal(copy.publishedAt, undefined);
   assert.equal(copy.title, original.title); assert.deepEqual(copy.tags, original.tags); copy.tags.push('Neu'); assert.deepEqual(original.tags, ['Kampagne']);
-  copy.media.alt = 'Anders'; assert.equal(original.media.alt, 'Bild');
+  assert.deepEqual(copy.mediaItems,original.mediaItems);assert.notEqual(copy.mediaItems,original.mediaItems);assert.notEqual(copy.mediaItems[1],original.mediaItems[1]);
+  copy.mediaItems[0].alt = 'Anders'; assert.equal(original.mediaItems[0].alt, 'Bild');
 });
 test('duplicate IDs are rejected rather than overwriting the original', () => code(() => duplicateTaktDraft(post(), { id: 'p1', now }), 'NEW_ID_REQUIRED'));
 test('new-state duplicates explicitly clear canonical time and saved queue binding', () => {

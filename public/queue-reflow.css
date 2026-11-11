@@ -1,0 +1,10 @@
+.queue-reflow-dialog{width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto}
+.queue-reflow-list{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}
+.queue-reflow-list li{padding:14px;border:1px solid var(--border,#e5e3eb);border-radius:12px;display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
+.queue-reflow-list time{white-space:normal;overflow-wrap:anywhere;font-size:13px;color:var(--text-muted,#656274)}
+.queue-reflow-list strong{white-space:pre-wrap}
+.queue-reflow-list p{white-space:pre-wrap;font-size:14px;margin:4px 0;}
+.queue-reflow-dialog [data-reflow-status]{margin:12px 0;overflow-wrap:anywhere}
+.queue-reflow-dialog .settings-actions{display:flex;gap:8px;flex-wrap:wrap}
+.queue-reflow-dialog button{min-height:44px;white-space:normal}
+@media(max-width:600px){.queue-reflow-dialog{padding:18px}.queue-reflow-dialog .settings-actions>button{flex:1 1 120px}}

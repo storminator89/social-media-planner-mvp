@@ -13,7 +13,7 @@ const ready = source => {
 
 test('ideas are genuine unscheduled text records without channels or media', () => {
   const value = idea();
-  assert.equal(value.status, 'idea'); assert.deepEqual(value.channels, []); assert.deepEqual(value.variantTexts, {}); assert.equal(value.scheduledAt, null); assert.equal(value.media, null);
+  assert.equal(value.status, 'idea'); assert.deepEqual(value.channels, []); assert.deepEqual(value.variantTexts, {}); assert.equal(value.scheduledAt, null); assert.deepEqual(value.mediaItems, []);
 });
 test('quick capture permits title only or note only, not a blank idea', () => {
   assert.equal(idea({ text: '' }).text, ''); assert.equal(idea({ title: '' }).title, '');
@@ -57,9 +57,10 @@ test('title-only capture never silently becomes public-facing post text', () => 
   assert.equal(prepared.draft.text, '');
   code(() => commitIdeaDraft([source], prepared.draft, { sourceFingerprint: prepared.sourceFingerprint, now }), 'POST_TEXT_REQUIRED');
 });
-test('saving prepared text still requires a deliberate target selection', () => {
+test('scheduling prepared text still requires a deliberate target selection', () => {
   const source = idea(), prepared = prepareIdeaDraft(source);
-  code(() => commitIdeaDraft([source], prepared.draft, { sourceFingerprint: prepared.sourceFingerprint, now }), 'CHANNEL_REQUIRED');
+  assert.equal(commitIdeaDraft([source], prepared.draft, { sourceFingerprint: prepared.sourceFingerprint, now })[0].status, 'draft');
+  code(() => commitIdeaDraft([source], {...prepared.draft, status: 'scheduled'}, { sourceFingerprint: prepared.sourceFingerprint, now }), 'CHANNEL_REQUIRED');
 });
 test('conversion keeps the same ID and preserves title, tags and creation time', () => {
   const source = idea(), prepared = ready(source), unrelated = idea({ id: 'idea-2', title: 'Andere' });
@@ -111,7 +112,7 @@ test('draft conversion rejects hidden scheduling and unknown targets', () => {
 test('non-ideas or malformed scheduled/media ideas are not silently flattened', () => {
   code(() => prepareIdeaDraft({ ...idea(), status: 'scheduled' }), 'NOT_IDEA');
   code(() => ideaFingerprint({ ...idea(), scheduledAt: '2026-11-10T09:00' }), 'IDEA_HAS_SCHEDULE');
-  code(() => prepareIdeaDraft({ ...idea(), media: { id: 'img' } }), 'INVALID_IDEA_STATE');
+  code(() => prepareIdeaDraft({ ...idea(), mediaItems: [{ id: 'img',url:'/api/planner/media/img',alt:'Bild',name:'image.png',type:'image/png' }] }), 'INVALID_IDEA_STATE');
 });
 test('search combines title, note and tags literally, with Unicode normalization', () => {
   const first = idea({ title: 'Café', tags: ['Design'] }), second = idea({ id: 'idea-2', title: 'Anderes', tags: ['Team'] });

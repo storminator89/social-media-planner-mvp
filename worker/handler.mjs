@@ -44,9 +44,12 @@ export function createSitesHandler({assets={},providerStatus=handleProviderStatu
       // Permit only the authenticated static result document, never an API,
       // subresource, frame, mutation or foreign-Origin request. The document
       // reads readiness; the outcome query is not evidence of a connection.
-      const mastodonReturnDocument=request.method==='GET'&&['/mastodon.html','/mastodon-publish.html'].includes(url.pathname)&&
+      // Match only the exact root query emitted by these callback routers.
+      // Fragments are browser-only; never use them as authorization evidence.
+      const rootOAuthResult=url.pathname==='/'&&/^\?(linkedin|youtube|x)=(linked|cancelled|failed|unconfirmed)$/.test(url.search);
+      const oauthReturnDocument=request.method==='GET'&&(rootOAuthResult||['/mastodon.html','/mastodon-publish.html'].includes(url.pathname))&&
         request.headers.get('Sec-Fetch-Mode')==='navigate'&&request.headers.get('Sec-Fetch-Dest')==='document';
-      if((request.headers.get('Sec-Fetch-Site')==='cross-site'&&!mastodonReturnDocument)||(request.headers.has('Origin')&&request.headers.get('Origin')!==url.origin))return error(403,'CROSS_ORIGIN_REQUEST','Diese Anfrage ist nicht erlaubt.');
+      if((request.headers.get('Sec-Fetch-Site')==='cross-site'&&!oauthReturnDocument)||(request.headers.has('Origin')&&request.headers.get('Origin')!==url.origin))return error(403,'CROSS_ORIGIN_REQUEST','Diese Anfrage ist nicht erlaubt.');
       // Fail closed. Hosted schema installation is a deployment step, not a request side effect.
       if(!env.DB?.prepare||!env.DB?.batch)return error(503,'STORAGE_UNAVAILABLE','Der serverseitige Speicher ist noch nicht verfügbar.');
       try{
