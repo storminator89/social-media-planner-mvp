@@ -1,6 +1,6 @@
 # Takt · Social-Media-Planer
 
-Quell-Snapshot des Entwicklungsstands v89. Keine Zugangsdaten, Nutzerdaten oder Hosting-Konfiguration enthalten. Dieser Snapshot aktiviert keine Social-Media-Verbindung und veröffentlicht keine Beiträge.
+Quell-Snapshot des Entwicklungsstands v90. Keine Zugangsdaten, Nutzerdaten oder Hosting-Konfiguration enthalten. Dieser Snapshot aktiviert keine Social-Media-Verbindung und veröffentlicht keine Beiträge.
 
 ## Lokal starten
 
@@ -29,11 +29,11 @@ OAuth-Vorbereitung ist kein Nachweis einer funktionsfähigen Live-Verbindung. Au
 
 Dieser bereinigte Quell-Snapshot enthält zwei zuvor freigegebene synthetische Video-Fixtures. 60 weitere Binärfixtures und interne Dokumentation wurden bis zur gesonderten Prüfung ausgeschlossen. Deshalb ist die vollständige Testsuite aus diesem Quell-Snapshot noch nicht reproduzierbar. Nicht als vollständiges Backup bezeichnen.
 
-Die vollständige private v89-Quelle wurde getrennt geprüft. Dieser bereinigte öffentliche Snapshot lässt ungeklärte Testmedien und interne Dokumentation bewusst weg; dadurch sind Teile der Tests nicht reproduzierbar.
+Die vollständige private v90-Quelle wurde getrennt geprüft. Dieser bereinigte öffentliche Snapshot lässt ungeklärte Testmedien und interne Dokumentation bewusst weg; dadurch sind Teile der Tests nicht reproduzierbar.
 
 Die eingebauten Provider-Endpunkte und Test-Domains sind keine Zugangsdaten. Eigene Provider-Apps, sichere serverseitige Secrets und passende Berechtigungen sind für echte Verbindungen erforderlich.
 
-## Änderungen bis v89
+## Änderungen bis v90
 
 - Mehrkanal-Beiträge gemeinsam einplanen und verlustfrei in Entwürfe zurücknehmen.
 - Rein lesende Kanalstatusansicht mit getrennten Inhalten, Status und Terminen.
@@ -45,7 +45,7 @@ Die eingebauten Provider-Endpunkte und Test-Domains sind keine Zugangsdaten. Eig
 
 ## Prüfung und Grenzen
 
-Dieser Quellcheckpoint entspricht dem bereinigten App-Code des privaten v89-Stands. Generierte Build-Dateien sind nicht enthalten. Die beiden synthetischen Testmedien sind hashgleich zu den zuvor öffentlichen Dateien. Keine Datenbank, Medienbibliothek, Zugangsdaten, lokalen QA-Daten oder Hosting-Konfiguration enthalten. Kein vollständiges Backup und keine automatische Veröffentlichung von Beiträgen.
+Dieser Quellcheckpoint entspricht dem bereinigten App-Code des privaten v90-Stands. Generierte Build-Dateien sind nicht enthalten. Die beiden synthetischen Testmedien sind hashgleich zu den zuvor öffentlichen Dateien. Keine Datenbank, Medienbibliothek, Zugangsdaten, lokalen QA-Daten oder Hosting-Konfiguration enthalten. Kein vollständiges Backup und keine automatische Veröffentlichung von Beiträgen.
 
 Exportprüfung: Bedingter Hinweis bei Dateien, die der aktuelle Planungsimport ablehnen würde; vollständige Exportdaten bleiben unverändert.
 
@@ -53,4 +53,6 @@ CSV-Zeichencodierung: Striktes UTF-8 sowie UTF-16LE/BE mit BOM; JSON bleibt UTF-
 
 CSV-Fehler: Alle semantisch fehlerhaften Einträge werden vorab gemeinsam angezeigt. Strukturelle Fehler blockieren die ganze Datei; weiterhin kein Teilimport.
 
-Erneute Prüfung am 12. November 2026: Syntax und Build bestanden; Worker byteidentisch zum privaten v89-Build. Teilbackup-Tests: 4007/4217 bestanden, 210 Fehler durch ausgeschlossene Testartefakte. Tests nicht abgeschwächt.
+Medienbedienung: Gespeicherte Bilder direkt erreichbar, Suche nach Dateiname, Alttext und Ursprungsbeitrag; Auswahlfilter und stabile Auswahlreihenfolge. Veralteter YouTube-Hinweis entfernt, Bestätigungs- und Sichtbarkeitsschutz unverändert.
+
+Erneute Prüfung am 12. November 2026: Syntax und Build bestanden; Worker byteidentisch zum privaten v90-Build. Teilbackup-Tests: 4020/4230 bestanden, 210 Fehler durch ausgeschlossene Testartefakte. Tests nicht abgeschwächt.

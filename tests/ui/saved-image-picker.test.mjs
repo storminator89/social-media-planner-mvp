@@ -355,3 +355,41 @@ test('replacement retains exactly one selection and zero capacity cannot select'
 test('invalid middle selection rejects entire batch before callback',async()=>{
  let calls=0;const h=harness({catalog:available(item('a'),item('b'),item('c')),onChoose:async()=>{calls++;return true}});try{h.picker.open({intent:'add',remaining:10});for(let i=0;i<3;i++)await h.choose(i);h.catalog=available(item('a'),item('c'));await h.confirm();assert.equal(calls,0);assert.equal(h.picker.isOpen,true);}finally{h.restore()}
 });
+
+const searchOf=h=>h.nodes.find(node=>node.id==='saved-image-search');
+const selectionOf=h=>h.nodes.find(node=>node.dataset.savedImageAction==='selection');
+const resetOf=h=>h.nodes.find(node=>node.dataset.savedImageAction==='reset');
+const search=async(h,value)=>{searchOf(h).value=value;await searchOf(h).fire('input');};
+const visible=h=>h.cards.filter(card=>!card.hidden).map(card=>card.dataset.savedImageId);
+
+test('image search combines terms across filename, full alt and all source titles without extra requests',async()=>{
+ const h=harness({catalog:available(item('a',{media:image('a',{name:'Frühling.png',alt:'Äpfel im Garten'}),sourceTitles:['Start','Second','Unseen launch']}),item('b',{media:image('b',{name:'Haus.png',alt:'Blauer Himmel'})}))});
+ try{h.picker.open();await search(h,'fruhling GARTEN');assert.deepEqual(visible(h),['a']);await search(h,'unseen');assert.deepEqual(visible(h),['a']);await search(h,'HAUS himmel');assert.deepEqual(visible(h),['b']);assert.deepEqual(h.assignedSources,['/api/planner/media/a','/api/planner/media/b']);}finally{h.restore()}
+});
+test('selection survives search changes and applies in original selected order',async()=>{
+ let chosen;const h=harness({catalog:available(item('a'),item('b'),item('c')),onChoose:value=>{chosen=value;return true;}});
+ try{h.picker.open({intent:'add',remaining:3});await search(h,'b.png');await h.choose(1);await search(h,'a.png');await h.choose(0);assert.equal(h.apply.textContent,'2 Bilder übernehmen');await search(h,'no match');assert.deepEqual(visible(h),[]);assert.equal(h.empty.textContent,'Keine passenden Bilder.');await h.confirm();assert.deepEqual(chosen.map(x=>x.id),['b','a']);}finally{h.restore()}
+});
+test('selection filter intersects search and deselecting removes row without changing remaining order',async()=>{
+ const h=harness({catalog:available(item('a'),item('b'),item('c'))});
+ try{h.picker.open({intent:'add',remaining:3});await h.choose(1);await h.choose(0);await selectionOf(h).fire('click');assert.deepEqual(visible(h),['a','b']);assert.equal(selectionOf(h).getAttribute('aria-pressed'),'true');await search(h,'b.png');assert.deepEqual(visible(h),['b']);await h.choose(1);assert.deepEqual(visible(h),[]);assert.equal(h.apply.textContent,'1 Bilder übernehmen');await resetOf(h).fire('click');assert.deepEqual(visible(h),['a','b','c']);assert.equal(h.cards[0].getAttribute('aria-pressed'),'true');assert.equal(h.doc.activeElement,searchOf(h));}finally{h.restore()}
+});
+test('empty selection filter and reopen clear query/filter/selection without composer mutation',async()=>{
+ const h=harness();try{h.picker.open();await selectionOf(h).fire('click');assert.equal(h.empty.textContent,'Noch kein Bild ausgewählt.');await search(h,'absent');await h.cancel.fire('click');h.picker.open();assert.equal(searchOf(h).value,'');assert.equal(selectionOf(h).getAttribute('aria-pressed'),'false');assert.deepEqual(visible(h),['media-one']);assert.equal(h.apply.disabled,true);assert.equal(h.input.value,'Unveränderter Entwurf');}finally{h.restore()}
+});
+test('hidden rows cannot be selected and capacity is enforced across different queries',async()=>{
+ const h=harness({catalog:available(item('a'),item('b'))});try{h.picker.open({intent:'add',remaining:1});await search(h,'a.png');await h.choose(1);assert.equal(h.apply.disabled,true);await h.choose(0);await search(h,'b.png');assert.equal(h.cards[1].disabled,true);await h.choose(1);assert.equal(selectionOf(h).textContent,'Auswahl (1)');await search(h,'a.png');assert.equal(h.cards[0].disabled,false);await h.choose(0);assert.equal(h.apply.disabled,true);}finally{h.restore()}
+});
+test('pending adoption disables search and filter controls, cancel remains safe',async()=>{
+ const held=deferred();const h=harness({onChoose:()=>held.promise});try{h.picker.open();await h.choose();const pending=h.confirm();assert.equal(searchOf(h).disabled,true);assert.equal(selectionOf(h).disabled,true);assert.equal(resetOf(h).disabled,true);await selectionOf(h).fire('click');assert.equal(selectionOf(h).getAttribute('aria-pressed'),'false');await h.cancel.fire('click');held.resolve(true);await pending;h.picker.open();assert.equal(searchOf(h).disabled,false);}finally{h.restore()}
+});
+test('fresh catalog validation also covers selected images hidden by search',async()=>{
+ let calls=0;const h=harness({catalog:available(item('a'),item('b')),onChoose:()=>{calls++;return true;}});try{h.picker.open({intent:'add',remaining:2});await h.choose(0);await search(h,'b.png');h.catalog=available(item('b'));await h.confirm();assert.equal(calls,0);assert.match(h.status,/nicht mehr unverändert verfügbar/);assert.equal(h.picker.isOpen,true);}finally{h.restore()}
+});
+test('literal markup and regex-like searches are harmless; normalization does not mutate chosen media',async()=>{
+ let chosen;const alt='Café <script>.*</script>';const h=harness({catalog:available(item('safe',{media:image('safe',{alt})})),onChoose:value=>{chosen=value;return true;}});try{h.picker.open();await search(h,'CAFE <script>.*');assert.deepEqual(visible(h),['safe']);await h.choose();await h.confirm();assert.equal(chosen.alt,alt);}finally{h.restore()}
+});
+
+test('deselecting focused card in selection filter restores visible keyboard focus',async()=>{
+ const h=harness({catalog:available(item('a'),item('b'))});try{h.picker.open({intent:'add',remaining:2});await h.choose(0);await selectionOf(h).fire('click');h.cards[0].focus();await h.choose(0);assert.equal(h.cards[0].hidden,true);assert.equal(h.doc.activeElement,selectionOf(h));assert.equal(h.apply.disabled,true);}finally{h.restore()}
+});

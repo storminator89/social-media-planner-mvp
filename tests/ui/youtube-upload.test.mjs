@@ -141,3 +141,16 @@ test('history-only dialog heading never claims visibility approval, including lo
  h.controller.hide();
  h.controller.destroy();
 });
+
+// Google reversed the unverified-project private-only restriction on 2026-11-02.
+// https://developers.google.com/youtube/data/revision_history
+test('upload copy never relies on an unverified project to enforce privacy',async()=>{
+ const h=harness();h.controller.show();await flush();const html=renderYouTubeUpload(h.controller.snapshot);
+ assert.doesNotMatch(html,/ungeprüfter API-Projekte|auf privat beschränken/);
+ assert.match(html,/Erst deine Bestätigung überträgt ihn zu Google/);
+ assert.match(html,/Öffentlich: für alle sichtbar/);
+ assert.match(html,/Nicht gelistet: jeder mit dem Link/);
+ assert.match(html,/Privat: nur für dich und von dir freigegebene Personen/);
+ assert.match(html,/<option value="">Bitte auswählen<\/option>/);
+ assert.equal(h.calls.length,0);h.controller.destroy();
+});

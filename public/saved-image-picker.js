@@ -38,7 +38,8 @@ function readCatalog(getCatalog) {
 export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoose, fallbackFocus = () => {}}) {
  if (typeof getCatalog !== 'function' || typeof onChoose !== 'function') throw TypeError('getCatalog und onChoose müssen Funktionen sein.');
  let dialog = null, ui = null, opened = false, generation = 0, returnTarget = null;
- let catalog = null, selected = [], pending = null, rows = [], multiple = false, capacity = 1;
+ let catalog = null, selected = [], pending = null, rows = [], multiple = false, capacity = 1, onlySelected = false;
+ const searchKey = value => value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase('de');
  const active = token => opened && token === generation;
  const allowed = () => { try { return !!canOpen(); } catch { return false; } };
  const status = message => { ui.status.textContent = message; };
@@ -59,9 +60,26 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   if (fallback?.isConnected && !fallback.disabled) fallback.focus();
  }
 
+ function filterRows() {
+  const terms = searchKey((ui.search.value || '').slice(0, 200)).trim().split(/\s+/).filter(Boolean);
+  let count = 0;
+  for (const row of rows) {
+   const selectedRow = selected.some(item => item.id === row.item.id);
+   row.button.hidden = (onlySelected && !selectedRow) || !terms.every(term => row.search.includes(term));
+   if (!row.button.hidden) count++;
+  }
+  ui.count.textContent = `${count} / ${rows.length}`;
+  ui.empty.hidden = count > 0;
+  ui.empty.textContent = !catalog?.available ? UNAVAILABLE : !rows.length ? 'Keine wiederverwendbaren Bilder in den geladenen Beiträgen.' : onlySelected && !selected.length ? 'Noch kein Bild ausgewählt.' : 'Keine passenden Bilder.';
+  ui.reset.hidden = !terms.length && !onlySelected;
+  ui.selected.textContent = `Auswahl (${selected.length})`;
+  ui.selected.setAttribute('aria-pressed', String(onlySelected));
+ }
+
  function renderState() {
   dialog.setAttribute('aria-busy', String(!!pending));
   ui.apply.disabled = !!pending || !selected.length;
+  ui.search.disabled = !!pending; ui.selected.disabled = !!pending; ui.reset.disabled = !!pending;
   ui.apply.textContent = pending ? 'Bild wird übernommen …' : multiple ? `${selected.length} Bilder übernehmen` : 'Bild übernehmen';
   for (const row of rows) {
    const index = selected.findIndex(item => item.id === row.item.id);
@@ -69,6 +87,7 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    row.button.setAttribute('aria-pressed', String(index >= 0));
    row.mark.textContent = index >= 0 ? (multiple ? String(index + 1) : 'Ausgewählt') : 'Auswählen';
   }
+  filterRows();
  }
 
  function renderCatalog() {
@@ -102,16 +121,18 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    card.append(preview, details);
    const token = generation;
    card.addEventListener('click', () => {
-    if (!active(token) || pending) return;
+    if (!active(token) || pending || card.hidden || card.disabled) return;
     const index = selected.findIndex(value => value.id === item.id);
     if (multiple) {
      if (index >= 0) selected.splice(index, 1);
      else if (selected.length < capacity) selected.push(item);
     } else selected = [item];
+    const focusedCard = document.activeElement === card;
     status(multiple ? `${selected.length} Bilder ausgewählt.` : 'Bild ausgewählt. Mit „Bild übernehmen“ bestätigst du die Auswahl.');
     renderState();
+    if (card.hidden && focusedCard) ui.selected.focus();
    });
-   rows.push({item, button: card, mark});
+   rows.push({item, button: card, mark, search: searchKey([item.media.name, item.media.alt, ...item.sourceTitles].join(' '))});
    ui.list.append(card);
   }
   renderState();
@@ -175,8 +196,19 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   const title = element('h2', '', 'Bild aus der Planung wählen');
   title.id = 'saved-image-picker-title'; title.tabIndex = -1;
   const intro = element('p', '', 'Wähle ein gespeichertes Bild aus den geladenen Beiträgen. Es wird erst mit „Bild übernehmen“ in deinen aktuellen Beitrag übernommen.');
-  intro.id = 'saved-image-picker-intro';
-  header.append(title, intro);
+  intro.id = 'saved-image-picker-intro'; intro.className = 'sr-only';
+  const toolbar = element('div', 'saved-image-toolbar');
+  const search = element('input', 'saved-image-search');
+  search.type = 'search'; search.id = 'saved-image-search'; search.maxLength = 200;
+  search.placeholder = 'Bilder suchen'; search.setAttribute('aria-label', 'Bilder nach Name, Beschreibung oder Beitrag suchen');
+  const selectedFilter = element('button', 'button subtle', 'Auswahl (0)');
+  selectedFilter.type = 'button'; selectedFilter.dataset.savedImageAction = 'selection'; selectedFilter.setAttribute('aria-pressed', 'false');
+  const reset = element('button', 'button subtle', 'Zurücksetzen');
+  reset.type = 'button'; reset.dataset.savedImageAction = 'reset'; reset.hidden = true;
+  const count = element('span', 'saved-image-count'); count.setAttribute('role', 'status'); count.setAttribute('aria-live', 'polite');
+  count.setAttribute('aria-label', 'Gefundene Bilder / verfügbare Bilder');
+  toolbar.append(search, selectedFilter, reset, count);
+  header.append(title, intro, toolbar);
   const body = element('div', 'saved-image-body');
   const notice = element('p', 'saved-image-notice');
   const empty = element('p', 'saved-image-empty');
@@ -193,7 +225,10 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   applyButton.type = 'button'; applyButton.dataset.savedImageAction = 'apply';
   actions.append(cancel, applyButton); footer.append(statusNode, actions);
   dialog.append(header, body, footer);
-  ui = {title, intro, notice, empty, list, status: statusNode, cancel, apply: applyButton};
+  ui = {title, intro, notice, empty, list, search, selected: selectedFilter, reset, count, status: statusNode, cancel, apply: applyButton};
+  search.addEventListener('input', () => { if (opened && !pending) filterRows(); });
+  selectedFilter.addEventListener('click', () => { if (opened && !pending) { onlySelected = !onlySelected; filterRows(); } });
+  reset.addEventListener('click', () => { if (opened && !pending) { search.value = ''; onlySelected = false; filterRows(); search.focus(); } });
   cancel.addEventListener('click', () => dismiss());
   applyButton.addEventListener('click', apply);
   dialog.addEventListener('cancel', event => { event.preventDefault(); dismiss(); });
@@ -215,7 +250,7 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    returnTarget = document.activeElement;
    generation++;
    catalog = readCatalog(getCatalog);
-   selected = []; pending = null;
+   selected = []; pending = null; onlySelected = false; ui.search.value = '';
    status(''); renderCatalog();
    try { dialog.showModal(); } catch { returnTarget = null; ui.list.replaceChildren(); rows = []; return false; }
    opened = true;

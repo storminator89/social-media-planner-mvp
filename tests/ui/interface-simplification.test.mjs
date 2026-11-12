@@ -15,9 +15,9 @@ test('global tools remain discoverable without enclosing recovery warnings',()=>
  for(const id of ['planning-clock-notice','workspace-status','workspace-missing-media','form-errors','composer-file-drop-error','schedule-binding-status','media-editor'])assert.deepEqual(inDetails(id),[],id);
 });
 test('primary composing controls and save buttons stay outside advanced disclosures',()=>{
- for(const id of ['composer-channels','post-text','character-hint','add-media','add-video','post-date','post-time','save-draft','schedule-post','mastodon-handoff'])assert.deepEqual(inDetails(id),[],id);
+ for(const id of ['composer-channels','post-text','character-hint','add-media','add-video','choose-saved-image','post-date','post-time','save-draft','schedule-post','mastodon-handoff'])assert.deepEqual(inDetails(id),[],id);
  assert.deepEqual(inDetails('post-tags'),['composer-labels']);
- for(const id of ['add-media-batch','choose-saved-image'])assert.deepEqual(inDetails(id),['media-options']);
+ assert.deepEqual(inDetails('add-media-batch'),['media-options']);
  assert.deepEqual(inDetails('continue-composer'),['composer-actions']);
  assert.match(app,/\$\('#composer-labels'\)\.open=!!post\?\.tags\?\.length/);
  assert.match(app,/\$\('#composer-labels'\)\.open=!!payload.rawTags/);
