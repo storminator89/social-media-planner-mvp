@@ -9,9 +9,9 @@ export function emptyPostingSchedule(timezone = 'UTC') {
 /** A local edit session. Only an explicit save invokes persistence, never retries. */
 export function createPostingTimesController({getState,saveState,onChange=()=>{},newId=()=>crypto.randomUUID()}) {
   let disposed=false, generation=0, base=null, channelId=null, draft=null, original=null;
-  let busy=false, blocked=false, error='', message='', confirmation=null;
+  let busy=false, blocked=false, error='', message='', confirmation=null, copyPreview=null;
   const dirty=()=>base!==null&&!same(draft,original);
-  const snapshot=()=>({open:base!==null,channelId,draft:copy(draft),dirty:dirty(),busy,blocked,error,message,confirmation:copy(confirmation),channels:copy(base?.channels||[])});
+  const snapshot=()=>({open:base!==null,channelId,draft:copy(draft),dirty:dirty(),busy,blocked,error,message,confirmation:copy(confirmation),copyPreview:copy(copyPreview),channels:copy(base?.channels||[])});
   const emit=()=>{if(!disposed)onChange(snapshot());};
   function open(id) {
     if(disposed||busy)return false;
@@ -19,12 +19,35 @@ export function createPostingTimesController({getState,saveState,onChange=()=>{}
     const state=getState(), channel=state.channels?.find(c=>c.id===id);
     if(![2,3].includes(state.schemaVersion)||!Number.isSafeInteger(state.revision)||!channel)throw Error('Lade zuerst einen bestätigten Planungsstand.');
     base=copy(state);channelId=id;original=copy(channel.postingSchedule);draft=copy(original);
-    blocked=false;error='';message='';confirmation=null;generation++;emit();return true;
+    blocked=false;error='';message='';confirmation=null;copyPreview=null;generation++;emit();return true;
   }
   function patch(fields) {
     if(disposed||busy||blocked||!base)return false;
     draft={...(draft||emptyPostingSchedule(base.settings.timezone)),...copy(fields)};
-    error='';message='';confirmation=null;emit();return true;
+    error='';message='';confirmation=null;copyPreview=null;emit();return true;
+  }
+  function previewCopy(sourceId) {
+    if(disposed||busy||blocked||!base)return false;
+    copyPreview=null;
+    try {
+      if(getState().revision!==base.revision)throw Object.assign(Error('Die Planung wurde inzwischen geändert. Lade sie neu.'),{code:'REVISION_CONFLICT'});
+      const source=base.channels.find(c=>c.id===sourceId);
+      if(!source||source.id===channelId)throw Error('Wähle einen anderen Kanal.');
+      const schedule=normalizePostingSchedule(source.postingSchedule);
+      if(!schedule?.slots.length)throw Error('Dieser Kanal hat keine Wochenzeiten.');
+      const target=draft||emptyPostingSchedule(base.settings.timezone);
+      copyPreview={sourceId,sourceName:source.name||source.id,timezone:target.timezone,slots:copy(schedule.slots)};
+      error='';emit();return true;
+    } catch(e){error=e.message;if(e.code==='REVISION_CONFLICT')blocked=true;emit();return false;}
+  }
+  function cancelCopy(){copyPreview=null;emit();}
+  function applyCopy() {
+    if(disposed||busy||blocked||!base||!copyPreview)return false;
+    const target=draft||emptyPostingSchedule(base.settings.timezone);
+    // Copy wall-clock slots only. Destination zone, pause and DST/gap policy stay intact.
+    // Preserve matching destination IDs so unchanged bindings remain valid.
+    const slots=copyPreview.slots.map(slot=>({id:target.slots.find(s=>s.weekday===slot.weekday&&s.time===slot.time)?.id||newId(),weekday:slot.weekday,time:slot.time}));
+    return patch({slots});
   }
   function addSlot() {
     if(disposed||busy||blocked||!base)return;
@@ -34,13 +57,13 @@ export function createPostingTimesController({getState,saveState,onChange=()=>{}
   }
   function updateSlot(id,fields) {if(draft)patch({slots:draft.slots.map(slot=>slot.id===id?{...slot,...copy(fields),id:slot.id}:slot)});}
   function removeSlot(id) {if(draft)patch({slots:draft.slots.filter(slot=>slot.id!==id)});}
-  function clear(){if(disposed||busy||blocked||!base)return;draft=null;error='';message='';confirmation=null;emit();}
+  function clear(){if(disposed||busy||blocked||!base)return;draft=null;error='';message='';confirmation=null;copyPreview=null;emit();}
   function close({discard=false}={}) {
     if(disposed||busy||dirty()&&!discard)return false;
-    generation++;base=null;draft=null;original=null;channelId=null;confirmation=null;emit();return true;
+    generation++;base=null;draft=null;original=null;channelId=null;confirmation=null;copyPreview=null;emit();return true;
   }
   async function save({confirmed=false}={}) {
-    if(disposed||busy||blocked||!base||!dirty())return false;
+    if(disposed||busy||blocked||!base||!dirty()||copyPreview)return false;
     let proposal;
     try {
       if(getState().revision!==base.revision)throw Object.assign(Error('Die Planung wurde inzwischen geändert. Kopiere deine Zeiten vor dem Neuladen.'),{code:'REVISION_CONFLICT'});
@@ -65,7 +88,7 @@ export function createPostingTimesController({getState,saveState,onChange=()=>{}
       return false;
     } finally {if(!disposed&&epoch===generation){busy=false;emit();}}
   }
-  return {get snapshot(){return snapshot();},open,patch,addSlot,updateSlot,removeSlot,clear,close,save,
+  return {get snapshot(){return snapshot();},open,patch,previewCopy,cancelCopy,applyCopy,addSlot,updateSlot,removeSlot,clear,close,save,
     exportDraft:()=>JSON.stringify({channelId,postingSchedule:draft},null,2),
     destroy(){if(disposed)return;disposed=true;generation++;base=null;}};
 }

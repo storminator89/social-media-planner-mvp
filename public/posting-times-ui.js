@@ -12,18 +12,19 @@ export function postingTimesStatus(s){
   return s.draft.paused?'Gespeicherter Stand · Vorschläge pausiert.':'Gespeicherter Stand.';
 }
 export function createPostingTimesUI({dialog,openButton,getState,saveState,isBusy=()=>false,onSaved=()=>{},fallbackFocus=()=>null}) {
-  let disposed=false,returnFocus=null,guardReturnFocus=null,pendingClose=false,pendingChannel=null,lastChannel=null;
+  let disposed=false,returnFocus=null,guardReturnFocus=null,pendingClose=false,pendingChannel=null,lastChannel=null,copyExpanded=false,copySource=null;
   const controller=createPostingTimesController({getState,saveState,onChange:updateStatus});
   const find=selector=>dialog.querySelector(selector);
   const selectZones=selected=>[...new Set([selected,'UTC','Europe/Berlin',...(Intl.supportedValuesOf?.('timeZone')||[])])].sort();
   function render(){
-    if(disposed)return;const s=controller.snapshot;if(!s.open)return;
-    const selected=s.channels.find(c=>c.id===s.channelId),d=s.draft||emptyPostingSchedule(getState().settings.timezone);
+    if(disposed)return;copyExpanded=find('.times-copy-source')?.open??copyExpanded;copySource=find('[data-times-source]')?.value??copySource;const s=controller.snapshot;if(!s.open)return;
+    const sources=s.channels.filter(c=>c.id!==s.channelId&&c.postingSchedule?.slots?.length),d=s.draft||emptyPostingSchedule(getState().settings.timezone);
     dialog.innerHTML=`<header class="posting-times-head"><div><span class="eyebrow">DEIN WOCHENRHYTHMUS</span><h2 id="posting-times-title" tabindex="-1">Posting-Zeiten</h2></div><button type="button" class="icon-button" data-times="close" aria-label="Posting-Zeiten schließen">×</button></header>
       <div class="posting-times-body">
       <div class="times-settings-grid"><label class="times-field">Kanal<select data-times-field="channel">${s.channels.map(c=>`<option value="${esc(c.id)}" ${c.id===s.channelId?'selected':''}>${esc(c.name)} · ${esc(postingScheduleSummary(c.postingSchedule))}</option>`).join('')}</select></label>
       <label class="times-field">Zeitzone<select data-times-field="timezone">${selectZones(d.timezone).map(z=>`<option ${z===d.timezone?'selected':''}>${esc(z)}</option>`).join('')}</select></label></div>
       <div data-times-guard hidden role="alert"></div>
+      ${sources.length?`<details class="times-copy-source" ${s.copyPreview||copyExpanded?'open':''}><summary>Von Kanal übernehmen</summary><label class="times-field">Quelle<select data-times-source>${sources.map(c=>`<option value="${esc(c.id)}" ${(s.copyPreview?.sourceId||copySource)===c.id?'selected':''}>${esc(c.name||c.id)}</option>`).join('')}</select></label><button type="button" class="button subtle" data-times="preview-copy">Vorschau</button>${s.copyPreview?`<div class="times-copy-preview" role="status"><strong>${esc(s.copyPreview.timezone)}</strong><ul>${s.copyPreview.slots.map(slot=>`<li>${weekdays.find(([day])=>day===slot.weekday)?.[1]} · ${esc(slot.time)}</li>`).join('')}</ul><p>Ersetzt die Wochenzeiten. Termine bleiben unverändert.</p><div class="times-guard-actions"><button type="button" class="button subtle" data-times="cancel-copy">Abbrechen</button><button type="button" class="button primary" data-times="apply-copy">Übernehmen</button></div></div>`:''}</details>`:''}
       <div class="times-section-heading"><h3>Wöchentliche Posting-Zeiten</h3>${d.slots.length?'<button type="button" class="button subtle" data-times="add">+ Zeit hinzufügen</button>':''}</div>
       <div class="times-slots">${d.slots.map((slot,i)=>`<div class="times-slot" data-slot="${esc(slot.id)}"><label><span class="times-slot-label">Wochentag ${i+1}</span><select data-slot-field="weekday">${weekdays.map(([day,label])=>`<option value="${day}" ${day===slot.weekday?'selected':''}>${label}</option>`).join('')}</select></label><label><span class="times-slot-label">Uhrzeit ${i+1}</span><input type="time" value="${esc(slot.time)}" data-slot-field="time"></label><button type="button" class="times-remove" data-times="remove" aria-label="Wochenzeit ${i+1} entfernen">×</button></div>`).join('')||'<div class="times-empty"><span class="times-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></svg></span><h4>Noch keine Posting-Zeiten</h4><button type="button" class="button primary" data-times="add">+ Erste Zeit hinzufügen</button></div>'}</div>
       <label class="times-pause"><input type="checkbox" data-times-field="paused" ${d.paused?'checked':''}><span>Neue Vorschläge pausieren</span></label>
@@ -37,12 +38,13 @@ export function createPostingTimesUI({dialog,openButton,getState,saveState,isBus
   function updateStatus(){
     if(disposed||!dialog.open&&!controller.snapshot.open)return;
     const s=controller.snapshot,status=find('[data-times-status]');if(!status)return;
+    if(!s.copyPreview)find('.times-copy-preview')?.remove?.();
     status.textContent=postingTimesStatus(s);
     const error=find('[data-times-error]');error.hidden=!s.error;error.textContent=s.error;
     const confirm=find('[data-times-confirm]');confirm.hidden=!s.confirmation;
     confirm.textContent=s.confirmation?`${s.confirmation.affected.length} ${s.confirmation.affected.length===1?'bestehender Termin passt':'bestehende Termine passen'} danach nicht mehr zu diesen Regeln. Die Uhrzeiten bleiben unverändert.`:'';
     for(const control of dialog.querySelectorAll('button,input,select'))control.disabled=s.busy||(s.blocked&&!['close'].includes(control.dataset.times));
-    find('[data-times="save"]').disabled=s.busy||s.blocked||!s.dirty;
+    find('[data-times="save"]').disabled=s.busy||s.blocked||!s.dirty||!!s.copyPreview;
     find('[data-times="save"]').textContent=s.confirmation?'Trotzdem Zeiten speichern':'Zeiten speichern';
     find('[data-times-copy-wrap]').hidden=!s.blocked;if(s.blocked)find('#times-copy').value=controller.exportDraft();
     dialog.setAttribute('aria-busy',String(s.busy));
@@ -64,6 +66,9 @@ export function createPostingTimesUI({dialog,openButton,getState,saveState,isBus
     if(action==='keep'){find('[data-times-guard]').hidden=true;pendingClose=false;pendingChannel=null;(guardReturnFocus?.isConnected?guardReturnFocus:find('[data-times-field="channel"]'))?.focus();guardReturnFocus=null;return;}
     if(action==='discard'){controller.close({discard:true});if(pendingClose){dialog.close();restoreFocus();}else if(pendingChannel){controller.open(pendingChannel);lastChannel=pendingChannel;render();}pendingClose=false;pendingChannel=null;return;}
     if(controller.snapshot.blocked||isBusy())return;
+    if(action==='preview-copy'){controller.previewCopy(find('[data-times-source]').value);render();find('[data-times="apply-copy"]')?.focus();}
+    if(action==='cancel-copy'){controller.cancelCopy();render();find('[data-times="preview-copy"]')?.focus();}
+    if(action==='apply-copy'){controller.applyCopy();render();find('[data-times="save"]')?.focus();}
     if(action==='add'){controller.addSlot();render();find('.times-slot:last-child input')?.focus();}
     if(action==='remove'){const id=button.closest('[data-slot]').dataset.slot;controller.removeSlot(id);render();find('[data-times="add"]').focus();}
     if(action==='clear'){controller.clear();render();find('[data-times="add"]').focus();}
@@ -71,6 +76,7 @@ export function createPostingTimesUI({dialog,openButton,getState,saveState,isBus
   }
   function change(event){
     if(disposed||controller.snapshot.busy||controller.snapshot.blocked)return;
+    if(event.target.dataset.timesSource!==undefined){copySource=event.target.value;controller.cancelCopy();return;}
     const field=event.target.dataset.timesField,slot=event.target.dataset.slotField;
     if(field==='channel'){const id=event.target.value;if(controller.snapshot.dirty){event.target.value=controller.snapshot.channelId;guard(id);}else{controller.open(id);lastChannel=id;render();find('[data-times-field="channel"]').focus();}return;}
     if(field){controller.patch({[field]:field==='paused'?event.target.checked:field==='minimumGapMinutes'?Number(event.target.value===''?NaN:event.target.value):event.target.value});}
