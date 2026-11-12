@@ -1,3 +1,4 @@
+import {decodeImportText} from './import-text.js';
 import {PlannerClientError} from './data-client/client.mjs';
 import {IMPORT_MAX_BYTES,parsePlanningExport,previewPlanningImport,applyPlanningImport} from './planner-import.js';
 import {parseDraftCSV,csvDraftState,validateCSVImportTimes} from './planner-csv.js';
@@ -46,8 +47,8 @@ export function createPlannerImportUI({dialog,getState,canOpen,save,decodeImage=
   }catch(error){if(generation===epoch){preview=null;confirm.disabled=true;if(source?.format!=='csv')reset();status.textContent=error.message||'Datei nicht lesbar. Nichts importiert.';}}
  }
  input.onchange=async()=>{if(busy||attempted)return;decodeController?.abort();images=[];reset();source=null;if(csvOptions)csvOptions.hidden=true;if(zoneField)zoneField.hidden=true;if(zone)zone.value='';const generation=++epoch,file=input.files?.[0];if(!file)return;status.textContent='Prüfen …';
-  try{if(file.size>IMPORT_MAX_BYTES)throw Error('Datei ist größer als 1 MB.');const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());if(generation!==epoch||!dialog.open)return;
-   const format=/\.csv$/i.test(file.name||'')?'csv':'json';source={text,format};if(csvOptions)csvOptions.hidden=format!=='csv';await prepare(generation);
+  try{if(file.size>IMPORT_MAX_BYTES)throw Error('Datei ist größer als 1 MB.');const format=/\.csv$/i.test(file.name||'')?'csv':'json';const text=decodeImportText(await file.arrayBuffer(),{format});if(generation!==epoch||!dialog.open)return;
+   source={text,format};if(csvOptions)csvOptions.hidden=format!=='csv';await prepare(generation);
   }catch(error){if(generation===epoch){preview=null;confirm.disabled=true;if(source?.format!=='csv')reset();status.textContent=error.message||'Datei nicht lesbar. Nichts importiert.';}}
  };
  if(channel)channel.onchange=async()=>{if(busy||attempted||source?.format!=='csv')return;reset();status.textContent='Prüfen …';await prepare(++epoch);};

@@ -7,7 +7,7 @@ test('concise copy preserves public/mastodon-publish.html',()=>assert.equal(crea
 test('concise copy preserves public/mastodon-publish.js',()=>assert.equal(createHash('sha256').update(read('public/mastodon-publish.js')).digest('hex'),'dfd106e1e358fe73cfcf439d84b7a4a2a33f90857af7f0db4b0a8b0ab2293256'));
 test('concise copy preserves public/mastodon.js',()=>assert.equal(createHash('sha256').update(read('public/mastodon.js')).digest('hex'),'c4c070e8802f96b0455c39ff9666952f7e46ce06e829d277bb7fb490ba0b10db'));
 test('archive-rejecting carousel import pins public/planner-import.js',()=>assert.equal(createHash('sha256').update(read('public/planner-import.js')).digest('hex'),'a8256b6e6467104ec8debe452b18cf5419c82c596254d4704c3169a66c20d52f'));
-test('reviewed CSV time and saved-image import UI remains pinned',()=>assert.equal(createHash('sha256').update(read('public/planner-import-ui.js')).digest('hex'),'e1c9b06f5159204d28061c0fdb8d0b10aff9712e6bafe7680cba97c2b3c5e67c'));
+test('reviewed CSV time, saved-image and strict encoding import UI remains pinned',()=>assert.equal(createHash('sha256').update(read('public/planner-import-ui.js')).digest('hex'),'7db915f55b9f7e571914bc1dd9e990c56ed30fcd3e3ccdfcbb32add8b14eb128'));
 test('reviewed carousel migration preserves public/mastodon-handoff.js',()=>assert.equal(createHash('sha256').update(read('public/mastodon-handoff.js')).digest('hex'),'570912c7a98d1fb757eeb7d7d39c95b80a5aa44217d558fb32d93af8e829bd45'));
 // v71 explicit channel media: pinned changed import/handoff guards and unsupported workspace safety.
 // Offline video-v3 review: sticky protocol upgrades and typed video restoration retain legacy image recovery.
