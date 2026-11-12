@@ -1,5 +1,6 @@
 import {IMPORT_MAX_BYTES} from './planner-import.js';
 import {normalizeState,validatePost,zonedInstant,isTimeZone} from './model.js';
+import {resolveSavedImage,savedImageIdentity} from './saved-images.js';
 import {parseIdeaTags} from './workflows/ideas.mjs';
 
 const fail=message=>{throw Error(message);};
@@ -25,7 +26,7 @@ function records(source,delimiter){
  return rows;
 }
 
-export function parseDraftCSV(text){
+export function parseDraftCSV(text,{allowEmptyText=false}={}){
  if(typeof text!=='string'||new TextEncoder().encode(text).length>IMPORT_MAX_BYTES)fail('Datei ist größer als 1 MB.');
  const source=text.replace(/^\uFEFF/,'');
  if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(source))fail('CSV enthält unzulässige Steuerzeichen.');
@@ -46,36 +47,41 @@ export function parseDraftCSV(text){
    postingTime=time.replace(' ','T');
    try{zonedInstant(postingTime,'UTC');}catch{fail(`${label}: Datum oder Uhrzeit ist ungültig.`);}
   }
-  const body=get('Text');if(!body.trim())fail(`${label}: Text fehlt.`);
+  const body=get('Text');if(!body.trim()&&!allowEmptyText)fail(`${label}: Text fehlt.`);
   let tags;try{tags=parseIdeaTags(get('Tags'));}catch(error){fail(`${label}: ${error.message}`);}
   return {text:body,tags,...(postingTime?{postingTime}:{})};
  });
 }
 
-export async function csvDraftState(current,text,channelId,{now=new Date().toISOString(),timezone=null}={}){
+export async function csvDraftState(current,text,channelId,{now=new Date().toISOString(),timezone=null,images=[]}={}){
  const state=normalizeState(structuredClone(current));
  if(!state.channels.some(c=>c.id===channelId&&c.enabled))fail('Aktiven Kanal wählen.');
  if(typeof now!=='string'||!Number.isFinite(Date.parse(now))||new Date(now).toISOString()!==now)fail('Importzeit ungültig.');
- const entries=parseDraftCSV(text),occurrences=new Map(),existing=new Map(state.posts.map(p=>[p.id,p]));
+ if(!Array.isArray(images))fail('Ungültige Bildauswahl.');
+ const entries=parseDraftCSV(text,{allowEmptyText:true});if(images.length>entries.length)fail('Bildauswahl passt nicht zur CSV.');
+ const occurrences=new Map(),existing=new Map(state.posts.map(p=>[p.id,p]));
  let zone=null;
  if(entries.some(entry=>entry.postingTime)){
   if(!isTimeZone(timezone))fail('Zeitzone für die CSV-Termine wählen.');
   zone=new Intl.DateTimeFormat('en',{timeZone:timezone}).resolvedOptions().timeZone;
  }
  const posts=[];
- for(const entry of entries){
+ for(const [index,entry] of entries.entries()){
+  const media=images[index]==null?null:resolveSavedImage(current,images[index]);
+  if(!entry.text.trim()&&!media)fail(`Eintrag ${index+1}: Text oder gespeichertes Bild wählen.`);
   let instant=null;
   if(entry.postingTime){try{instant=zonedInstant(entry.postingTime,zone).toISOString();}catch(error){fail(`Eintrag ${posts.length+1}: ${error.message}`);}}
   // The original draft identity is unchanged. Timed rows are distinct imports,
   // never instructions to change a previously imported draft or appointment.
   const identity=instant?['takt-csv-scheduled-1',channelId,entry.text,entry.tags,entry.postingTime,zone,instant]:['takt-csv-draft-1',channelId,entry.text,entry.tags];
+  if(media)identity.push('saved-image-1',savedImageIdentity(media));
   const bytes=new TextEncoder().encode(JSON.stringify(identity));
   const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
   const occurrence=(occurrences.get(digest)||0)+1;occurrences.set(digest,occurrence);
   // Stable IDs make a repeated confirmed/uncertain import detectable after reload.
   // Repeated rows within one file remain distinct. Existing edited rows conflict.
   const id=`${instant?'csv-time':'csv'}-${digest}-${occurrence}`,prior=existing.get(id);
-  const post={id,title:'',text:entry.text,tags:entry.tags,channels:[channelId],variantTexts:{},status:instant?'scheduled':'draft',scheduleBinding:null,scheduledAt:entry.postingTime??null,scheduledInstant:null,timeZone:instant?zone:prior?.timeZone||state.settings.timezone,cover:null,mediaItems:[],createdAt:prior?.createdAt||now,updatedAt:prior?.updatedAt||now};
+  const post={id,title:'',text:entry.text,tags:entry.tags,channels:[channelId],variantTexts:{},status:instant?'scheduled':'draft',scheduleBinding:null,scheduledAt:entry.postingTime??null,scheduledInstant:null,timeZone:instant?zone:prior?.timeZone||state.settings.timezone,cover:null,mediaItems:media?[media]:[],createdAt:prior?.createdAt||now,updatedAt:prior?.updatedAt||now};
   // Existing IDs still pass the strict duplicate/conflict comparison. Their
   // already elapsed times must not prevent a no-op reimport after reload.
   const errors=validatePost(post,new Date(prior?0:now));if(errors.length)fail(`Eintrag ${posts.length+1}: ${errors.join(' ')}`);posts.push(post);

@@ -70,7 +70,8 @@ export function validatePost(post, now = new Date()) {
   try{if(Object.hasOwn(post,'media'))throw Error('Veraltetes Bildfeld.');for(const media of allReferencedMediaItems(post))if(!media.alt.trim())errors.push(media.type.startsWith('video/')?'Ergänze eine Beschreibung für das Video.':'Ergänze einen Alternativtext für jedes Bild.');}catch(error){errors.push(error.message)}
   if(post.status==='idea')return [...new Set([...errors,...validateIdea(post)])];
   try{normalizeEditorialMetadata(post)}catch(error){errors.push(error.message)}
-  if (!post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
+  let imageDraft=false;try{imageDraft=post.status==='draft'&&post.channels?.length>0&&post.channels.every(id=>effectiveMediaItems(post,id).length>0&&effectiveMediaItems(post,id).every(item=>item.type.startsWith('image/')));}catch{/* invalid media already reported */}
+  if (!imageDraft && !post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
   if (!Array.isArray(post.channels) || (post.status !== 'draft' && !post.channels.length)) errors.push('Wähle mindestens einen Kanal.');
   if (post.status === 'draft' && Array.isArray(post.channels) && !post.channels.length && post.mediaItems?.length) errors.push('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.');
   for (const result of channelTextChecks(post,CHANNELS)) {

@@ -10,3 +10,8 @@ body[data-editorial-view="drafts"] .csv-drafts-entry{display:inline-flex}
 @media(max-width:600px){#planner-import-dialog{width:calc(100vw - 24px);padding:18px}#planner-import-dialog input,#planner-import-dialog select{font-size:16px}#planner-import-dialog [data-import-list]{max-height:180px}}
 
 #planner-import-dialog [data-csv-zone-field]{margin-top:12px}
+
+#planner-import-dialog [data-import-list]:has(.csv-media-row){padding-left:0;list-style:none}
+#planner-import-dialog .csv-media-row{display:grid;gap:8px}
+#planner-import-dialog .csv-media-row select{display:block;max-width:100%;min-width:0;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:8px;background:white}
+#planner-import-dialog .csv-media-row img{width:64px;height:64px;object-fit:contain;border-radius:8px;background:var(--surface,#f8f8fa)}
