@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createDemoState,validatePost,CHANNELS} from '../../public/model.js';
+import {imageOnlyPlanningAllowed} from '../../public/image-only-planning.js';
+import {channelTextReview} from '../../public/channel-text-review.js';
+import {savedMastodonText} from '../../public/mastodon-handoff.js';
+import {batchDraftProblem} from '../../public/draft-batch-ui.js';
+const now=new Date('2030-01-01T00:00:00Z');
+const image=(id='one',extra={})=>({id,url:'/api/planner/media/'+id,name:'image.png',type:'image/png',alt:'Blue square',...extra});
+const post=(patch={})=>({...createDemoState(now).posts[0],id:'image-plan',channels:['mastodon'],text:'',variantTexts:{},status:'scheduled',scheduledAt:'2030-04-06T09:00',scheduledInstant:null,scheduleBinding:null,timeZone:'Europe/Berlin',cover:null,mediaItems:[image()],...patch});
+test('Mastodon image-only editorial plan accepted without claiming publishing',()=>{const p=post();assert.deepEqual(validatePost(p,now),[]);assert.equal(imageOnlyPlanningAllowed(p,'mastodon'),true);assert.match(channelTextReview(p,CHANNELS).items[0].reason,/nur Planung/);assert.equal(channelTextReview(p,CHANNELS).problemCount,0);assert.throws(()=>savedMastodonText({revision:1,posts:[p]},{id:p.id,revision:1}),/nur Text/);});
+for(const channel of ['linkedin','instagram','bluesky','unknown'])test(`${channel} has no new capability assumption`,()=>{const p=post({channels:[channel]});assert.equal(imageOnlyPlanningAllowed(p,channel),false);assert.ok(validatePost(p,now).length);});
+for(const mediaItems of [[],[image('one',{alt:''})],[image('one',{type:'video/mp4'})],[{...image(),url:'https://example.com/image.png'}]])test('missing, undescribed, video or external media cannot replace text '+JSON.stringify(mediaItems),()=>{assert.equal(imageOnlyPlanningAllowed(post({mediaItems}),'mastodon'),false);assert.ok(validatePost(post({mediaItems}),now).length);});
+test('mixed channels use effective text/media, never another channel image',()=>{const p=post({channels:['mastodon','linkedin'],variantTexts:{linkedin:'LinkedIn caption'},channelMediaItems:{mastodon:[image()],linkedin:[]}});assert.deepEqual(validatePost(p,now),[]);p.variantTexts.linkedin='';assert.match(validatePost(p,now).join(' '),/LinkedIn: Ergänze/);assert.doesNotMatch(validatePost(p,now).join(' '),/Mastodon: Ergänze/);p.mediaItems=[];p.channelMediaItems={mastodon:[],linkedin:[image()]};assert.match(validatePost(p,now).join(' '),/Mastodon: Ergänze/);});
+test('removing last image invalidates next save even if previously planned',()=>{const p=post();assert.deepEqual(validatePost(p,now),[]);p.mediaItems=[];assert.match(validatePost(p,now).join(' '),/Mastodon: Ergänze/);});
+test('time, alt and existing text length guards remain',()=>{assert.match(validatePost(post({scheduledAt:'2029-04-06T09:00'}),now).join(' '),/Zukunft/);assert.match(validatePost(post({text:'X'.repeat(501)}),now).join(' '),/maximal 500/);assert.match(validatePost(post({mediaItems:[image('one',{alt:''})]}),now).join(' '),/Alternativtext/);});
+test('batch remains conservative and points to individual planning',()=>{const channels=createDemoState(now).channels.map(c=>({...c,postingSchedule:{slots:[{}],paused:false}}));const p=post({status:'draft',scheduledAt:null});assert.equal(batchDraftProblem(p,channels),'Bildbeitrag einzeln planen');});
+
+test('whitespace beyond channel limit is still a text-review problem',()=>{const p=post({text:' '.repeat(501)});const review=channelTextReview(p,CHANNELS);assert.equal(review.problemCount,1);assert.equal(review.items[0].imageOnly,false);assert.match(review.items[0].reason,/Zeichen zu lang/);assert.match(validatePost(p,now).join(' '),/maximal 500/);});

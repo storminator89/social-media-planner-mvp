@@ -1,3 +1,4 @@
+import {imageOnlyPlanningAllowed} from './image-only-planning.js';
 import {normalizeMediaItems,normalizeChannelMediaItems,effectiveMediaItems,allReferencedMediaItems} from './workflows/media-items.mjs';
 export {normalizeMediaItems,normalizeChannelMediaItems,effectiveMediaItems,allReferencedMediaItems} from './workflows/media-items.mjs';
 import { normalizeEditorialMetadata, validateIdea } from './ideas.js';
@@ -25,7 +26,7 @@ export function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate
 export function startOfWeek(date) { const d = new Date(date); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
 export function localDateTime(date, time = '10:00') { return `${dateKey(date)}T${time}`; }
 export function postDate(post) { return post.scheduledAt ? new Date(post.scheduledAt) : null; }
-export function displayTitle(post) { const text = (post.text.trim()||(post.channels||[]).map(id=>effectiveText(post,id)).find(t=>t?.trim())||'').trim().split('\n')[0]; return text.length > 68 ? `${text.slice(0,65)}…` : text || 'Neuer Entwurf'; }
+export function displayTitle(post) { const text = (post.text.trim()||(post.channels||[]).map(id=>effectiveText(post,id)).find(t=>t?.trim())||'').trim().split('\n')[0]; return text.length > 68 ? `${text.slice(0,65)}…` : text || ((post.channels||[]).some(id=>imageOnlyPlanningAllowed(post,id))?'Bildbeitrag':'Neuer Entwurf'); }
 export function characterCount(text) { return Array.from(text).length; }
 /** Validate the UI projection only. The adapter must still verify that a fixed
  * UTC instant came from its confirmed snapshot or its bounded Undo cache. */
@@ -71,13 +72,14 @@ export function validatePost(post, now = new Date()) {
   if(post.status==='idea')return [...new Set([...errors,...validateIdea(post)])];
   try{normalizeEditorialMetadata(post)}catch(error){errors.push(error.message)}
   let imageDraft=false;try{imageDraft=post.status==='draft'&&post.channels?.length>0&&post.channels.every(id=>effectiveMediaItems(post,id).length>0&&effectiveMediaItems(post,id).every(item=>item.type.startsWith('image/')));}catch{/* invalid media already reported */}
-  if (!imageDraft && !post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
+  const imagePlan=post.status==='scheduled'&&post.channels?.length>0&&post.channels.some(id=>imageOnlyPlanningAllowed(post,id));
+  if (!imageDraft && !imagePlan && !post.text?.trim() && !(post.channels||[]).some(id=>effectiveText(post,id)?.trim())) errors.push('Schreibe zuerst einen Beitrag.');
   if (!Array.isArray(post.channels) || (post.status !== 'draft' && !post.channels.length)) errors.push('Wähle mindestens einen Kanal.');
   if (post.status === 'draft' && Array.isArray(post.channels) && !post.channels.length && post.mediaItems?.length) errors.push('Ein Bild braucht mindestens einen Zielkanal. Wähle zuerst einen Kanal.');
   for (const result of channelTextChecks(post,CHANNELS)) {
     if (result.unknown) errors.push('Ein ausgewählter Kanal ist ungültig.');
     else if(post.status==='scheduled') {
-      if(result.empty) errors.push(`${result.name}: Ergänze einen Beitragstext.`);
+      if(result.empty&&!imageOnlyPlanningAllowed(post,result.channelId)) errors.push(`${result.name}: Ergänze einen Beitragstext.`);
       if(result.overLimit) errors.push(`${result.name}: maximal ${result.limit.toLocaleString('de-DE')} Zeichen (${result.count.toLocaleString('de-DE')} vorhanden).`);
     }
   }

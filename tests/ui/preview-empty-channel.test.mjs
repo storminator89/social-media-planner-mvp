@@ -1,3 +1,4 @@
+import {imageOnlyPlanningAllowed} from '../../public/image-only-planning.js';
 import {videoContext} from './video-context.mjs';
 import {createComposerMedia} from '../../public/composer-media.js';
 import test from 'node:test';
@@ -11,7 +12,7 @@ const app=readFileSync(new URL('../../public/app.js',import.meta.url),'utf8');
 const start=app.indexOf('function renderPreview('),end=app.indexOf('\nfunction ',start+1);
 function harness(post){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,{value:'',dataset:{},classList:{toggle(){}},set innerHTML(value){this.html=value;if(id==='#preview-channel')this.value=/value="([^"]*)"/.exec(value)?.[1]||''},get innerHTML(){return this.html}});return elements.get(id)};
- const context={...videoContext(),composerImages:createComposerMedia(),updateDraftSplitAvailability(){},CHANNELS,characterCount,editorPost:()=>post,$,hasTextVariant,effectiveText,inheritedChannels,updateVisualPresentation,queuePanel:null,activeTextTarget:'base',composerBaseText:post.text,composerMedia:null,composerCover:null,cover:()=>'',renderTimingStatus(){},updateVariantSummary(){},workspaceRestoring:false,saving:false,workspaceUI:null};
+ const context={imageOnlyPlanningAllowed,...videoContext(),composerImages:createComposerMedia(),updateDraftSplitAvailability(){},CHANNELS,characterCount,editorPost:()=>post,$,hasTextVariant,effectiveText,inheritedChannels,updateVisualPresentation,queuePanel:null,activeTextTarget:'base',composerBaseText:post.text,composerMedia:null,composerCover:null,cover:()=>'',renderTimingStatus(){},updateVariantSummary(){},workspaceRestoring:false,saving:false,workspaceUI:null};
  vm.runInNewContext(app.slice(start,end)+';this.render=renderPreview;',context);return {context,$};
 }
 test('channel-less draft shows base text without inventing Instagram selection',()=>{

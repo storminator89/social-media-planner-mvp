@@ -1,3 +1,4 @@
+import {imageOnlyPlanningAllowed} from './image-only-planning.js';
 import {CHANNELS,displayTitle,validatePost,normalizeMediaItems,effectiveMediaItems} from './model.js';
 import {channelTextChecks} from './variants.js';
 
@@ -11,7 +12,7 @@ export function batchDraftProblem(post,channels){
     if(!channel.postingSchedule?.slots?.length)return 'Posting-Zeiten fehlen';
     if(channel.postingSchedule.paused)return 'Posting-Zeiten pausiert';
   }
-  for(const check of channelTextChecks(post,CHANNELS))if(!check?.valid)return check?.empty?'Kanaltext fehlt':'Kanaltext prüfen';
+  for(const check of channelTextChecks(post,CHANNELS))if(!check?.valid)return check?.empty?(imageOnlyPlanningAllowed(post,check.channelId)?'Bildbeitrag einzeln planen':'Kanaltext fehlt'):'Kanaltext prüfen';
   if(!Array.isArray(post.mediaItems)||Object.hasOwn(post,'media'))return 'Bilder prüfen';
   for(const id of post.channels){
     let media;try{media=effectiveMediaItems(post,id);normalizeMediaItems(media);}catch{return 'Bilder prüfen';}

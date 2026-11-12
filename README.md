@@ -1,6 +1,6 @@
 # Takt · Social-Media-Planer
 
-Quell-Snapshot des Entwicklungsstands v86. Keine Zugangsdaten, Nutzerdaten oder Hosting-Konfiguration enthalten. Dieser Snapshot aktiviert keine Social-Media-Verbindung und veröffentlicht keine Beiträge.
+Quell-Snapshot des Entwicklungsstands v87. Keine Zugangsdaten, Nutzerdaten oder Hosting-Konfiguration enthalten. Dieser Snapshot aktiviert keine Social-Media-Verbindung und veröffentlicht keine Beiträge.
 
 ## Lokal starten
 
@@ -29,11 +29,11 @@ OAuth-Vorbereitung ist kein Nachweis einer funktionsfähigen Live-Verbindung. Au
 
 Dieser bereinigte Quell-Snapshot enthält zwei zuvor freigegebene synthetische Video-Fixtures. 60 weitere Binärfixtures und interne Dokumentation wurden bis zur gesonderten Prüfung ausgeschlossen. Deshalb ist die vollständige Testsuite aus diesem Quell-Snapshot noch nicht reproduzierbar. Nicht als vollständiges Backup bezeichnen.
 
-Die vollständige private v86-Quelle wurde getrennt geprüft. Dieser bereinigte öffentliche Snapshot lässt ungeklärte Testmedien und interne Dokumentation bewusst weg; dadurch sind Teile der Tests nicht reproduzierbar.
+Die vollständige private v87-Quelle wurde getrennt geprüft. Dieser bereinigte öffentliche Snapshot lässt ungeklärte Testmedien und interne Dokumentation bewusst weg; dadurch sind Teile der Tests nicht reproduzierbar.
 
 Die eingebauten Provider-Endpunkte und Test-Domains sind keine Zugangsdaten. Eigene Provider-Apps, sichere serverseitige Secrets und passende Berechtigungen sind für echte Verbindungen erforderlich.
 
-## Änderungen bis v86
+## Änderungen bis v87
 
 - Mehrkanal-Beiträge gemeinsam einplanen und verlustfrei in Entwürfe zurücknehmen.
 - Rein lesende Kanalstatusansicht mit getrennten Inhalten, Status und Terminen.
@@ -41,12 +41,12 @@ Die eingebauten Provider-Endpunkte und Test-Domains sind keine Zugangsdaten. Eig
 
 - Wochenzeiten zwischen Kanälen kopieren, mit Vorschau und explizitem Speichern; Zielzeitzone und bestehende Termine bleiben erhalten.
 
-- CSV-Import mit Auswahl vorhandener Bilder je Zeile und Bild-only-Entwürfen; keine externen Bild-URLs. Bild-only-Planung bleibt textpflichtig.
+- CSV-Import mit Auswahl vorhandener Bilder je Zeile und Bild-only-Entwürfen; keine externen Bild-URLs. Bild-only-Planung ist für Mastodon einzeln und im CSV-Import möglich, ausschließlich als lokale Planung; Medien-Publishing bleibt gesperrt.
 
 ## Prüfung und Grenzen
 
-Dieser Quellcheckpoint entspricht dem bereinigten App-Code des privaten v86-Stands. Generierte Build-Dateien sind nicht enthalten. Die beiden synthetischen Testmedien sind hashgleich zu den zuvor öffentlichen Dateien. Keine Datenbank, Medienbibliothek, Zugangsdaten, lokalen QA-Daten oder Hosting-Konfiguration enthalten. Kein vollständiges Backup und keine automatische Veröffentlichung von Beiträgen.
+Dieser Quellcheckpoint entspricht dem bereinigten App-Code des privaten v87-Stands. Generierte Build-Dateien sind nicht enthalten. Die beiden synthetischen Testmedien sind hashgleich zu den zuvor öffentlichen Dateien. Keine Datenbank, Medienbibliothek, Zugangsdaten, lokalen QA-Daten oder Hosting-Konfiguration enthalten. Kein vollständiges Backup und keine automatische Veröffentlichung von Beiträgen.
 
 Exportprüfung: Bedingter Hinweis bei Dateien, die der aktuelle Planungsimport ablehnen würde; vollständige Exportdaten bleiben unverändert.
 
-Erneute Prüfung am 12. November 2026: Syntax und Build bestanden; Worker byteidentisch zum privaten v86-Build. Teilbackup-Tests: 3961/4171 bestanden, 210 Fehler durch ausgeschlossene Testartefakte. Tests nicht abgeschwächt.
+Erneute Prüfung am 12. November 2026: Syntax und Build bestanden; Worker byteidentisch zum privaten v87-Build. Teilbackup-Tests: 3976/4186 bestanden, 210 Fehler durch ausgeschlossene Testartefakte. Tests nicht abgeschwächt.

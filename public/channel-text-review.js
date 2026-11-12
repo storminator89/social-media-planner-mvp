@@ -1,3 +1,4 @@
+import {imageOnlyPlanningAllowed} from './image-only-planning.js';
 import {channelTextChecks,effectiveText} from './variants.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -9,11 +10,12 @@ export function channelTextReview(post,definitions){
   const items=channelTextChecks(post,definitions).map(check=>{
     const text=effectiveText(post,check.channelId)||'';
     const excess=check.overLimit?check.count-check.limit:0;
-    const reason=check.unknown?'Kanal nicht erkannt':check.empty?'Text fehlt':excess?`${number(excess)} Zeichen zu lang`:'Textlänge passt';
-    return {...check,text,source:check.custom?'Eigener Text':'Basistext',reason};
+    const imageOnly=check.empty&&!check.overLimit&&imageOnlyPlanningAllowed(post,check.channelId);
+    const reason=imageOnly?'Bildbeitrag · nur Planung':check.unknown?'Kanal nicht erkannt':excess?`${number(excess)} Zeichen zu lang`:check.empty?'Text fehlt':'Textlänge passt';
+    return {...check,valid:check.valid||imageOnly,imageOnly,text,source:check.custom?'Eigener Text':'Basistext',reason};
   });
   const problems=items.filter(item=>!item.valid);
-  return {items,problemCount:problems.length,summary:!items.length?'Keine Kanäle ausgewählt.':problems.length?problems.map(item=>`${item.name}: ${item.reason}`).join(' · '):'Keine leeren oder zu langen Kanaltexte.'};
+  return {items,problemCount:problems.length,summary:!items.length?'Keine Kanäle ausgewählt.':problems.length?problems.map(item=>`${item.name}: ${item.reason}`).join(' · '):items.some(item=>item.imageOnly)?'Bildbeitrag · nur Planung':'Keine leeren oder zu langen Kanaltexte.'};
 }
 
 export function renderChannelTextReview(post,definitions){
