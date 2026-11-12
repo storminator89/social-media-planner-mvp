@@ -1,7 +1,7 @@
 import {decodeImportText} from './import-text.js';
 import {PlannerClientError} from './data-client/client.mjs';
 import {IMPORT_MAX_BYTES,parsePlanningExport,previewPlanningImport,applyPlanningImport} from './planner-import.js';
-import {parseDraftCSV,csvDraftState,validateCSVImportTimes} from './planner-csv.js';
+import {inspectDraftCSV,csvDraftState,validateCSVImportTimes} from './planner-csv.js';
 import {savedImageCatalog,decodeSavedImage} from './saved-images.js';
 import {isTimeZone,zonedInstant} from './model.js';
 export function createPlannerImportUI({dialog,getState,canOpen,save,decodeImage=decodeSavedImage}){
@@ -32,7 +32,10 @@ export function createPlannerImportUI({dialog,getState,canOpen,save,decodeImage=
  }
  async function prepare(generation){
   try{const snapshot=structuredClone(getState()),csv=source.format==='csv';
-   if(csv){const rows=parseDraftCSV(source.text,{allowEmptyText:true});renderCSVRows(rows,snapshot);const timed=rows.filter(row=>row.postingTime).length;if(zoneField)zoneField.hidden=!timed;
+   if(csv){const inspected=inspectDraftCSV(source.text,{allowEmptyText:true});if(inspected.issues.length){
+    reset();if(zoneField)zoneField.hidden=true;status.textContent=inspected.issues.length===1?`Eintrag ${inspected.issues[0].entry} prüfen · nichts importiert`:`${inspected.issues.length} Einträge prüfen · nichts importiert`;
+    for(const issue of inspected.issues){const item=document.createElement('li');item.textContent=issue.message;list.append(item);}return;
+   }const rows=inspected.entries;renderCSVRows(rows,snapshot);const timed=rows.filter(row=>row.postingTime).length;if(zoneField)zoneField.hidden=!timed;
     if(!channel?.value||(timed&&!zone?.value)){status.textContent=timed?`${rows.length-timed} ${rows.length-timed===1?'Entwurf':'Entwürfe'} · ${timed} ${timed===1?'Termin':'Termine'}`:`${rows.length} ${rows.length===1?'Entwurf':'Entwürfe'}`;return;}
    }
    const imported=csv?await csvDraftState(snapshot,source.text,channel.value,{timezone:zone?.value||null,images}):parsePlanningExport(source.text);

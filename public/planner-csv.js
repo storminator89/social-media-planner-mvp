@@ -26,7 +26,7 @@ function records(source,delimiter){
  return rows;
 }
 
-export function parseDraftCSV(text,{allowEmptyText=false}={}){
+export function inspectDraftCSV(text,{allowEmptyText=false}={}){
  if(typeof text!=='string'||new TextEncoder().encode(text).length>IMPORT_MAX_BYTES)fail('Datei ist größer als 1 MB.');
  const source=text.replace(/^\uFEFF/,'');
  if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(source))fail('CSV enthält unzulässige Steuerzeichen.');
@@ -36,11 +36,13 @@ export function parseDraftCSV(text,{allowEmptyText=false}={}){
  const headers=rows.shift();
  if(!headers?.includes('Text')||new Set(headers).size!==headers.length||headers.some(h=>!HEADERS.includes(h)))fail('CSV-Spalten ungültig. Erlaubt: Text, Tags, Image URL, Posting Time. Text ist Pflicht.');
  if(!rows.length)fail('CSV enthält noch keine Beiträge.');
- return rows.map((cells,index)=>{
+ const entries=[],issues=[];
+ rows.forEach((cells,index)=>{
+  try{
   const label=`Eintrag ${index+1}`;
   if(cells.length!==headers.length)fail(`${label}: Die Spaltenzahl stimmt nicht mit der Kopfzeile überein.`);
   const get=name=>cells[headers.indexOf(name)]??'';
-  if(get('Image URL').trim())fail(`${label}: Bilder nicht unterstützt.`);
+  if(get('Image URL').trim())fail(`${label}: Bilder per URL nicht unterstützt.`);
   const time=get('Posting Time');let postingTime;
   if(time.trim()){
    if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(time))fail(`${label}: Posting Time muss YYYY-MM-DD HH:mm verwenden.`);
@@ -49,8 +51,18 @@ export function parseDraftCSV(text,{allowEmptyText=false}={}){
   }
   const body=get('Text');if(!body.trim()&&!allowEmptyText)fail(`${label}: Text fehlt.`);
   let tags;try{tags=parseIdeaTags(get('Tags'));}catch(error){fail(`${label}: ${error.message}`);}
-  return {text:body,tags,...(postingTime?{postingTime}:{})};
+  entries.push({text:body,tags,...(postingTime?{postingTime}:{})});
+  }catch(error){issues.push({entry:index+1,message:error.message});}
  });
+ // Never expose a partial import: original row order and occurrence-based IDs
+ // must remain intact until every semantic row error has been corrected.
+ return {entries:issues.length?[]:entries,issues,total:rows.length};
+}
+
+export function parseDraftCSV(text,options){
+ const result=inspectDraftCSV(text,options);
+ if(result.issues.length)fail(result.issues[0].message);
+ return result.entries;
 }
 
 export async function csvDraftState(current,text,channelId,{now=new Date().toISOString(),timezone=null,images=[]}={}){
