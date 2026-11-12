@@ -1,3 +1,4 @@
+import {preparePlanningExport} from './planning-export.js';
 import {renderDraftGroups,restoreDraftCardFocus} from './draft-groups.js';
 import {createIdeaReuse} from './idea-reuse.js';
 import {captureWorkspaceChannelMedia,projectWorkspaceChannelMedia} from './workspace-channel-media.js';
@@ -554,7 +555,14 @@ function showInfo(title,html){$('#info-title').textContent=title;$('#info-conten
 function showChannels(){showInfo('Deine Planungsziele',`${CHANNELS.map(c=>`<div class="info-channel">${platform(c.id)}<span><strong>${c.name}</strong><small>${esc(c.handle)}</small></span><span class="demo-chip">${c.id==='mastodon'?'Planungsziel':'Beispielprofil'}</span></div>`).join('')}`)}
 function showSettings(){const cloud=config.storageMode==='server'&&!localFallback;showInfo('Dein Arbeitsbereich',`<p>${cloud?'':'Speicher nicht verfügbar. Speichern gesperrt.'}</p><h3>Planungszeitzone</h3><select id="settings-timezone" class="settings-zone" aria-label="Standardzeitzone"></select><div class="settings-actions"><button class="button subtle" data-action="connections">Verbindungen ansehen</button><button class="button subtle" data-action="save-timezone">Zeitzone speichern</button><button class="button subtle" data-action="export">${icon('download')}Planung exportieren</button><button class="button subtle" data-action="import-planning">Planung importieren</button></div>`);populateZoneSelect($('#settings-timezone'),currentZone())}
 function showHelp(){showInfo('Tastenkürzel',`<ul class="keyboard-list"><li>Neuen Beitrag öffnen <kbd>N</kbd></li><li>Suche fokussieren <kbd>/</kbd></li><li>Dialog schließen <kbd>Esc</kbd></li></ul>`)}
-function exportData(){const blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`takt-planung-${dateKey(new Date())}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Planung exportiert. Kein vollständiges Backup: Medien-Dateien, Arbeitsfassungen und Kontozugriffe sind nicht enthalten.')}
+function exportData(){
+ const prepared=preparePlanningExport(state),filename=`takt-planung-${dateKey(new Date())}.json`;
+ const download=()=>{const blob=new Blob([prepared.text],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Planung exportiert. Kein vollständiges Backup: Medien-Dateien, Arbeitsfassungen und Kontozugriffe sind nicht enthalten.')};
+ if(prepared.importable){download();return;}
+ showInfo('Nur Export',`<p>Diese Datei lässt sich nicht wieder importieren.</p><details><summary>Grund anzeigen</summary><p>${esc(prepared.reason)}</p></details><div class="settings-actions"><button type="button" class="button subtle" data-action="close-info">Abbrechen</button><button type="button" class="button primary" id="download-planning-export">Trotzdem herunterladen</button></div>`);
+ $('#info-content [data-action="close-info"]').focus();
+ $('#download-planning-export').onclick=event=>{if(!$('#info-dialog').open||event.currentTarget.disabled)return;event.currentTarget.disabled=true;download();$('#info-dialog').close();};
+}
 async function saveTimezone(){const timezone=$('#settings-timezone').value;if(!isTimeZone(timezone))return;if(await persist({...state,settings:{...state.settings,timezone}})){$('#info-dialog').close();notify(`Zeitzone für neue Beiträge: ${timezone}`)}}
 function canChooseSavedText(){return !saving&&!mediaLoading&&!workspacePlannerReading&&!workspaceRestoring&&!splitPending&&$('#composer').open&&!$('#post-text').disabled&&!$('#post-text').readOnly&&!document.querySelector('dialog[open]:not(#composer):not(#saved-text-picker):not(#post-template-picker)');}
 function openSavedTexts(mode='saved'){
