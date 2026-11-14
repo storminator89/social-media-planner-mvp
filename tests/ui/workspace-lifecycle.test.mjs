@@ -424,7 +424,7 @@ test('add, reorder and remove keep the same workspace ID and never retire a chec
 for(const index of [0,4,9])test(`confirmed omitted slot ${index} never permits safe close`,async t=>{
  const items=Array.from({length:10},(_,i)=>image(i));items[index]={kind:'local_omitted',alt:'Missing image alt',name:'local.png',type:'image/png'};
  const h=harness(t,{capture:()=>carousel(items)});await h.ui.init();h.ui.editorOpened({});h.behavior.capture=()=>carousel(items,{text:'edited'});h.ui.captureChanged();await h.ui.controller.save();assert.equal(h.ui.controller.snapshot.dirty,false);assert.equal(h.ui.canCloseSafely,false);assert.equal(h.ui.hasUnsavedLocalInput,true);
- await h.action('copy-local');assert.match(h.content.innerHTML,/keine lokalen Mediendateien/);assert.match(h.content.innerHTML,/Missing image alt/);assert.equal(h.calls.discard.length,0);
+ await h.action('copy-local');assert.match(h.content.innerHTML,/Ohne lokale Dateien/);assert.match(h.content.innerHTML,/Missing image alt/);assert.equal(h.calls.discard.length,0);
 });
 test('ten saved images resume together without creating a new workspace',async t=>{
  const w=carouselWorkspace(Array.from({length:10},(_,i)=>image(i)));const h=harness(t,{read:async()=>clone(w)});await h.selected();await h.action('restore-source');assert.equal(h.calls.restore.length,1);assert.equal(h.calls.restore[0][1].mediaItems.length,10);assert.equal(h.calls.read.length,2);assert.equal(h.calls.refresh.length,2);assert.equal(h.ui.controller.snapshot.workspaceId,wid);assert.equal(h.ui.canCloseSafely,true);

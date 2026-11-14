@@ -393,3 +393,46 @@ test('literal markup and regex-like searches are harmless; normalization does no
 test('deselecting focused card in selection filter restores visible keyboard focus',async()=>{
  const h=harness({catalog:available(item('a'),item('b'))});try{h.picker.open({intent:'add',remaining:2});await h.choose(0);await selectionOf(h).fire('click');h.cards[0].focus();await h.choose(0);assert.equal(h.cards[0].hidden,true);assert.equal(h.doc.activeElement,selectionOf(h));assert.equal(h.apply.disabled,true);}finally{h.restore()}
 });
+
+test('photo-first cards keep metadata behind an explicit reversible toggle and reset on reopen', async () => {
+ const chosen = [];
+ const h = harness({onChoose: async media => { chosen.push(media); return true; }});
+ try {
+  h.picker.open();
+  const toggle = h.nodes.find(node => node.dataset.savedImageAction === 'details');
+  const metadata = h.nodes.find(node => node.className === 'saved-image-metadata');
+  assert.equal(metadata.hidden, true);
+  assert.equal(toggle.getAttribute('aria-pressed'), 'false');
+  assert.match(h.cards[0].getAttribute('aria-label'), /media-one.png: Ein Garten/);
+  await toggle.fire('click');
+  assert.equal(metadata.hidden, false);
+  assert.equal(toggle.getAttribute('aria-pressed'), 'true');
+  assert.match(metadata.textContent, /Beitrag eins/);
+  assert.match(metadata.textContent, /Bildbeschreibung: Ein Garten/);
+  assert.equal(chosen.length, 0);
+  await h.choose(); await toggle.fire('click');
+  assert.equal(metadata.hidden, true);
+  assert.equal(h.cards[0].getAttribute('aria-pressed'), 'true');
+  await toggle.fire('click'); h.picker.close(); h.picker.open();
+  assert.equal(toggle.getAttribute('aria-pressed'), 'false');
+  assert.equal(h.nodes.filter(node => node.className === 'saved-image-metadata').at(-1).hidden, true);
+ } finally { h.restore(); }
+});
+
+test('hidden metadata remains searchable and detail toggling is locked during adoption', async () => {
+ const held = deferred(); const h = harness({catalog: available(item(), item('media-two', {sourceTitles:['Sommerfest']})), onChoose: () => held.promise});
+ try {
+  h.picker.open();
+  const search = h.nodes.find(node => node.id === 'saved-image-search');
+  const toggle = h.nodes.find(node => node.dataset.savedImageAction === 'details');
+  search.value = 'Sommerfest'; await search.fire('input');
+  assert.equal(h.cards[0].hidden, true); assert.equal(h.cards[1].hidden, false);
+  await h.choose(1); const pending = h.confirm();
+  assert.equal(toggle.disabled, true); await toggle.fire('click');
+  assert.equal(toggle.getAttribute('aria-pressed'), 'false');
+  held.resolve(false); await pending;
+  assert.equal(toggle.disabled, false);
+  assert.match(h.status, /bisherige Auswahl bleibt erhalten/);
+  assert.equal(h.cards[1].getAttribute('aria-pressed'), 'true');
+ } finally { h.restore(); }
+});

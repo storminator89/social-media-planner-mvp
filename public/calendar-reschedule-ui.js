@@ -36,7 +36,7 @@ export function createCalendarRescheduler({container,dialog,getContext,getPost,i
     date.value=day||original.local.slice(0,10);date.setAttribute('aria-label',`Neuer Tag · ${source.zone}`);
     find('[data-reschedule-original]').textContent=original.local.replace('T',' · ')+' · '+source.zone;
     find('[data-reschedule-binding]').hidden=!post.scheduleBinding;
-    confirm.textContent=post.scheduleBinding?'Bindung lösen & verschieben':'Verschieben';
+    confirm.textContent='Im Editor prüfen';
     error.hidden=true;error.textContent='';if(!dialog.open)dialog.showModal();date.focus();
   }
   function apply(source,day,{releaseBinding=false}={}){

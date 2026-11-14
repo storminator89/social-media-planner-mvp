@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const html=readFileSync('public/index.html','utf8'),app=readFileSync('public/app.js','utf8');
+test('text tools collapsed but primary editor outside',()=>{const block=html.match(/<details id="composer-text-tools"[\s\S]*?<\/details>/)[0];assert.ok(!block.includes(' open'));for(const id of ['choose-post-template','choose-saved-text','visual-mode'])assert.ok(block.includes(`id="${id}"`));assert.ok(!block.includes('id="post-text"'));assert.ok(html.includes('</details><textarea id="post-text"'));});
+test('timezone selector retains handler and visible timezone status',()=>{assert.ok(app.includes("zoneField=document.createElement('details')"));assert.ok(app.includes('<summary>Zeitzone ändern</summary>'));assert.ok(app.includes("$('#post-zone').addEventListener('change'"));assert.ok(html.includes('<p id="schedule-timezone"></p>'));});
+test('video tools keep loss warning and remove action outside disclosure',()=>{const block=app.match(/<details class="ui-disclosure composer-video-tools">[\s\S]*?<\/details>/)[0];for(const text of ['Original herunterladen','preserve-video-original','trim-video-start','(ohne Ton)','trim-video-tail'])assert.ok(block.includes(text));assert.ok(!block.includes('data-action="remove-media"'));assert.ok(app.includes('</details><button type="button" class="icon-button" data-action="remove-media"'));});

@@ -38,7 +38,7 @@ function readCatalog(getCatalog) {
 export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoose, fallbackFocus = () => {}}) {
  if (typeof getCatalog !== 'function' || typeof onChoose !== 'function') throw TypeError('getCatalog und onChoose müssen Funktionen sein.');
  let dialog = null, ui = null, opened = false, generation = 0, returnTarget = null;
- let catalog = null, selected = [], pending = null, rows = [], multiple = false, capacity = 1, onlySelected = false;
+ let catalog = null, selected = [], pending = null, rows = [], multiple = false, capacity = 1, onlySelected = false, showDetails = false;
  const searchKey = value => value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase('de');
  const active = token => opened && token === generation;
  const allowed = () => { try { return !!canOpen(); } catch { return false; } };
@@ -79,12 +79,15 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
  function renderState() {
   dialog.setAttribute('aria-busy', String(!!pending));
   ui.apply.disabled = !!pending || !selected.length;
+  ui.details.disabled = !!pending;
+  ui.details.setAttribute('aria-pressed', String(showDetails));
   ui.search.disabled = !!pending; ui.selected.disabled = !!pending; ui.reset.disabled = !!pending;
   ui.apply.textContent = pending ? 'Bild wird übernommen …' : multiple ? `${selected.length} Bilder übernehmen` : 'Bild übernehmen';
   for (const row of rows) {
    const index = selected.findIndex(item => item.id === row.item.id);
    row.button.disabled = !!pending || (multiple && index < 0 && selected.length >= capacity);
    row.button.setAttribute('aria-pressed', String(index >= 0));
+   row.metadata.hidden = !showDetails;
    row.mark.textContent = index >= 0 ? (multiple ? String(index + 1) : 'Ausgewählt') : 'Auswählen';
   }
   filterRows();
@@ -102,9 +105,10 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    card.type = 'button';
    card.dataset.savedImageId = item.id;
    card.setAttribute('aria-pressed', 'false');
+   card.setAttribute('aria-label', `${item.media.name || 'Bild ohne Dateinamen'}: ${item.media.alt}`);
    const preview = element('span', 'saved-image-thumbnail');
    const image = element('img');
-   image.alt = ''; // The image description is already visible in the card.
+   image.alt = ''; // The card's accessible name includes the image description.
    image.loading = 'lazy'; image.decoding = 'async'; image.draggable = false;
    const failed = element('span', 'saved-image-preview-failed', 'Vorschau nicht verfügbar');
    failed.hidden = true;
@@ -113,9 +117,12 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    preview.append(image, failed);
    const details = element('span', 'saved-image-details');
    details.append(element('strong', 'saved-image-name', item.media.name || 'Bild ohne Dateinamen'));
-   details.append(element('span', 'saved-image-source', item.sourceTitles.length ? `Aus: ${item.sourceTitles.slice(0,2).join(' · ')}${item.sourceTitles.length>2?' · …':''}` : 'Aus einem geladenen Beitrag'));
-   details.append(element('span', 'saved-image-usage', item.usageCount === 1 ? 'In 1 Beitrag verwendet' : `In ${item.usageCount} Beiträgen verwendet`));
-   details.append(element('span', 'saved-image-alt', item.media.alt ? `Bildbeschreibung: ${item.media.alt}` : 'Keine Bildbeschreibung gespeichert'));
+   const metadata = element('span', 'saved-image-metadata');
+   metadata.hidden = !showDetails;
+   metadata.append(element('span', 'saved-image-source', item.sourceTitles.length ? `Aus: ${item.sourceTitles.slice(0,2).join(' · ')}${item.sourceTitles.length>2?' · …':''}` : 'Aus einem geladenen Beitrag'));
+   metadata.append(element('span', 'saved-image-usage', item.usageCount === 1 ? 'In 1 Beitrag verwendet' : `In ${item.usageCount} Beiträgen verwendet`));
+   metadata.append(element('span', 'saved-image-alt', item.media.alt ? `Bildbeschreibung: ${item.media.alt}` : 'Keine Bildbeschreibung gespeichert'));
+   details.append(metadata);
    const mark = element('span', 'saved-image-mark', 'Auswählen');
    details.append(mark);
    card.append(preview, details);
@@ -128,11 +135,11 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
      else if (selected.length < capacity) selected.push(item);
     } else selected = [item];
     const focusedCard = document.activeElement === card;
-    status(multiple ? `${selected.length} Bilder ausgewählt.` : 'Bild ausgewählt. Mit „Bild übernehmen“ bestätigst du die Auswahl.');
+    status(multiple ? `${selected.length} Bilder ausgewählt.` : 'Bild ausgewählt.');
     renderState();
     if (card.hidden && focusedCard) ui.selected.focus();
    });
-   rows.push({item, button: card, mark, search: searchKey([item.media.name, item.media.alt, ...item.sourceTitles].join(' '))});
+   rows.push({item, button: card, mark, metadata, search: searchKey([item.media.name, item.media.alt, ...item.sourceTitles].join(' '))});
    ui.list.append(card);
   }
   renderState();
@@ -207,7 +214,9 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   reset.type = 'button'; reset.dataset.savedImageAction = 'reset'; reset.hidden = true;
   const count = element('span', 'saved-image-count'); count.setAttribute('role', 'status'); count.setAttribute('aria-live', 'polite');
   count.setAttribute('aria-label', 'Gefundene Bilder / verfügbare Bilder');
-  toolbar.append(search, selectedFilter, reset, count);
+  const detailsToggle = element('button', 'button subtle', 'Bilddetails');
+  detailsToggle.type = 'button'; detailsToggle.dataset.savedImageAction = 'details'; detailsToggle.setAttribute('aria-pressed', 'false');
+  toolbar.append(search, selectedFilter, detailsToggle, reset, count);
   header.append(title, intro, toolbar);
   const body = element('div', 'saved-image-body');
   const notice = element('p', 'saved-image-notice');
@@ -225,7 +234,8 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
   applyButton.type = 'button'; applyButton.dataset.savedImageAction = 'apply';
   actions.append(cancel, applyButton); footer.append(statusNode, actions);
   dialog.append(header, body, footer);
-  ui = {title, intro, notice, empty, list, search, selected: selectedFilter, reset, count, status: statusNode, cancel, apply: applyButton};
+  ui = {title, intro, notice, empty, list, search, details: detailsToggle, selected: selectedFilter, reset, count, status: statusNode, cancel, apply: applyButton};
+  detailsToggle.addEventListener('click', () => { if (opened && !pending) { showDetails = !showDetails; renderState(); } });
   search.addEventListener('input', () => { if (opened && !pending) filterRows(); });
   selectedFilter.addEventListener('click', () => { if (opened && !pending) { onlySelected = !onlySelected; filterRows(); } });
   reset.addEventListener('click', () => { if (opened && !pending) { search.value = ''; onlySelected = false; filterRows(); search.focus(); } });
@@ -250,7 +260,7 @@ export function createSavedImagePicker({getCatalog, canOpen = () => true, onChoo
    returnTarget = document.activeElement;
    generation++;
    catalog = readCatalog(getCatalog);
-   selected = []; pending = null; onlySelected = false; ui.search.value = '';
+   selected = []; pending = null; onlySelected = false; showDetails = false; ui.search.value = '';
    status(''); renderCatalog();
    try { dialog.showModal(); } catch { returnTarget = null; ui.list.replaceChildren(); rows = []; return false; }
    opened = true;

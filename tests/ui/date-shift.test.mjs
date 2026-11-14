@@ -45,3 +45,32 @@ test('50 maximum, and zero eligible still explains exclusions',t=>{const h=harne
 test('calendar and list wire only visible IDs, context and atomic adapter methods',async()=>{const {readFile}=await import('node:fs/promises');const app=await readFile(new URL('../../public/app.js',import.meta.url),'utf8');assert.match(app,/case'date-shift':dateShiftUI\?\.open\(periodPosts\(relevantPosts\(\)\)\.map\(post=>post.id\)\)/);assert.match(app,/\['calendar','list'\]\.includes\(view\)/);assert.match(app,/getContext:\(\)=>\(\{view,channel,query,postTag,calendarStatus,range,anchor:dateKey\(anchor\),zone:currentZone\(\)\}\)/);assert.match(app,/store\.previewDateShift\(ui,options\)/);assert.match(app,/store\.shiftDates\(ui,preview\)/);});
 
 test('explicit plus sign is accepted as a positive whole day offset',t=>{const h=harness(t);h.open();h.choose(0);h.choose(1);h.nodes.days.value='+1';h.nodes.days.fire('input');assert.equal(h.nodes.preview.disabled,false);h.preview();assert.equal(h.prepares,1);assert.equal(h.nodes.confirm.disabled,false);});
+
+
+test('date shift keeps post bodies folded and titles compact without losing full text',t=>{
+ const h=harness(t);const long='📅'.repeat(100)+'<img src=x>';h.state.posts[0].text=long;h.open();
+ const row=h.nodes.list.children[0],disclosure=row.querySelectorAll('details')[0];
+ assert.equal(disclosure.open,false);assert.equal(disclosure.children[0].tagName,'summary');
+ assert.equal(disclosure.children[0].textContent,'Beitragstext');assert.equal(disclosure.children[1].textContent,long);
+ assert.equal(Array.from(row.querySelectorAll('strong')[0].textContent).length,80);
+ assert.ok(row.querySelectorAll('strong')[0].textContent.endsWith('…'));
+ assert.equal(h.nodes.confirm.hidden,true);assert.equal(h.nodes.preview.hidden,false);
+ h.choose(0);h.choose(1);h.preview();
+ assert.equal(h.nodes.confirm.hidden,false);assert.equal(h.nodes.preview.hidden,true);
+ for(const item of h.nodes.list.children){
+  const folded=item.querySelectorAll('details')[0];assert.equal(folded.open,false);
+  assert.match(folded.textContent,/<img src=x>/);
+  assert.equal(item.querySelectorAll('time').length,2);
+  assert.equal(folded.querySelectorAll('time').length,0);
+ }
+ assert.equal(h.writes,0);h.nodes.back.onclick();
+ assert.equal(h.nodes.confirm.hidden,true);assert.equal(h.nodes.preview.hidden,false);
+ assert.equal(h.writes,0);
+});
+
+test('date shift saving keeps confirmation stable but removes it after success',async t=>{
+ const d=deferred(),h=harness(t,{save:()=>d.promise});h.open();h.choose(0);h.choose(1);h.preview();
+ const p=h.confirm();assert.equal(h.nodes.confirm.hidden,false);assert.equal(h.nodes.confirm.disabled,true);assert.equal(h.nodes.preview.hidden,true);
+ d.resolve({revision:8});await p;assert.equal(h.nodes.confirm.hidden,true);assert.equal(h.nodes.preview.hidden,true);
+ assert.match(h.nodes.status.textContent,/Termine verschoben/);assert.equal(h.writes,1);
+});

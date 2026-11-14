@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../../public/'+p,import.meta.url),'utf8');
+test('settings keeps import export available in native disclosure',()=>{const s=read('app.js').split('function showSettings()')[1].split('\n')[0];assert.match(s,/<details class="settings-transfer"><summary>Import und Export<\/summary>/);for(const a of ['export','import-planning','save-timezone','connections'])assert.ok(s.includes(`data-action="${a}"`));});
+test('mastodon audience and final approval remain outside optional content warning',()=>{const s=read('mastodon-publish.html');const details=s.match(/<details class="publish-options">([\s\S]*?)<\/details>/)[1];assert.ok(details.includes('id="spoiler"'));assert.ok(details.includes('id="sensitive"'));assert.ok(!details.includes('id="visibility"'));assert.ok(!details.includes('id="publish"'));assert.match(s,/sendest du genau diesen Beitrag sofort an kanoa.de/);});
+test('youtube tags are optional but audience and plan remain directly available',()=>{const s=read('youtube-upload.js');const options=s.split('<details class="youtube-options">')[1].split('</details>')[0];assert.ok(options.includes('name="tagsText"'));assert.ok(!options.includes('name="privacyStatus"'));for(const label of ['1. Video','2. Angaben','3. Prüfen und bestätigen'])assert.ok(s.includes(label));});

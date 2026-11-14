@@ -154,3 +154,29 @@ test('upload copy never relies on an unverified project to enforce privacy',asyn
  assert.match(html,/<option value="">Bitte auswählen<\/option>/);
  assert.equal(h.calls.length,0);h.controller.destroy();
 });
+
+test('history-only view omits unavailable composition and keeps read controls',async()=>{
+ const h=harness();h.controller.setReadiness(null);h.controller.show();await flush();
+ const html=renderYouTubeUpload(h.controller.snapshot);
+ assert.match(html,/YouTube-Verlauf/);assert.match(html,/Nur Verlauf · Upload derzeit nicht verfügbar/);
+ assert.match(html,/youtube-history-title/);assert.match(html,/data-yt="load"/);
+ assert.doesNotMatch(html,/youtube-compose|youtube-file|youtube-metadata|Uploadplan prüfen|MP4 oder WebM/);
+ assert.match(html,/Eine Veröffentlichungsbestätigung liegt damit nicht vor/);
+ assert.equal(h.calls.length,0);h.controller.destroy();
+});
+test('history-only view retains uncertain file-save warning and manual recovery',async()=>{
+ const operation=upload();operation.nextAction='manual_reconciliation_no_reupload';
+ const h=harness();h.controller.setReadiness(null);h.controller.show();await flush();
+ const html=renderYouTubeUpload({...h.controller.snapshot,mediaReviewNotice:true,selected:operation,uploads:[operation]});
+ assert.match(html,/bestätigt nicht, dass die frühere unklare Speicherung fehlgeschlagen ist/);
+ assert.match(html,/Ausgang manuell klären/);assert.match(html,/kein neuer Upload und keine neue Sitzung als Ersatz/);
+ assert.match(html,/Nur gespeicherten Status prüfen/);assert.doesNotMatch(html,/youtube-compose/);
+ assert.equal(h.calls.length,0);h.controller.destroy();
+});
+test('history-only read failures remain visible without a disabled form',async()=>{
+ const h=harness({list:async()=>{throw Error()},listMedia:async()=>{throw Error()}});
+ h.controller.setReadiness(null);h.controller.show();await flush();const html=renderYouTubeUpload(h.controller.snapshot);
+ assert.match(html,/role="alert"/);assert.match(html,/Uploadverlauf konnte nicht zuverlässig gelesen werden/);
+ assert.match(html,/Verlauf derzeit nicht bestätigt/);assert.doesNotMatch(html,/youtube-compose/);
+ h.controller.destroy();
+});

@@ -12,7 +12,7 @@ test('workspace overview labels confirmed recovery without claiming every edit i
  assert.doesNotMatch(ui,/Änderungen im Beitragseditor werden separat gesichert/);
 });
 test('workspace presentation retains recovery and uncertainty boundaries',()=>{
- for(const message of ['Das Original wird nicht überschrieben.','Lokale Mediendateien fehlen.','Bewusst die aktuellen Mediendaten übernehmen','Das Verwerfen dieser Arbeitsfassung ist noch unklar. Es wird nichts erneut gesendet.','Die Gesamtgrenze ist erreicht. Verwerfen gibt keinen neuen Gesamtplatz frei.','Wiederaufnahme: 30 Tage']) assert.ok(ui.includes(message),message);
+ for(const message of ['Das Original wird nicht überschrieben.','Lokale Mediendateien fehlen.','Aktuelle Mediendaten übernehmen','Das Verwerfen dieser Arbeitsfassung ist noch unklar. Es wird nichts erneut gesendet.','Die Gesamtgrenze ist erreicht. Verwerfen gibt keinen neuen Gesamtplatz frei.','Wiederaufnahme: 30 Tage']) assert.ok(ui.includes(message),message);
  for(const action of ['restore-source','restore-copy','reconcile-discard','copy-server','discard-confirm'])assert.ok(ui.includes(action));
 });
 test('dialog keeps labelled title, accessible close action and bounded small-screen layout',()=>{

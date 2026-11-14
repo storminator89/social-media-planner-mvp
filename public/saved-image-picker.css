@@ -39,3 +39,8 @@
 .saved-image-toolbar [aria-pressed="true"]{background:var(--purple-light,#f0edfb);color:var(--purple,#7360d5);border-color:var(--purple,#7360d5)}
 .saved-image-alt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .saved-image-source{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Photo-first by default; source and full description remain one toggle away. */
+.saved-image-metadata{display:flex;flex-direction:column;gap:7px;min-width:0}
+.saved-image-metadata .saved-image-alt{display:block;overflow:visible}
+.saved-image-metadata .saved-image-source{white-space:normal;overflow:visible}

@@ -18,7 +18,7 @@ export function createDateShiftUI({dialog,getState,getContext,canOpen,prepare,sa
   const inside=el=>el===dialog||dialog.contains?.(el);
   function controls(){
     for(const input of list.querySelectorAll('input'))input.disabled=busy||locked||!!problem(rows.find(row=>row.id===input.value))||selected.size>=50&&!input.checked;
-    offset.disabled=busy||locked||!!preview;next.hidden=!!preview;next.disabled=busy||locked||selected.size<2||selected.size>50||!validDays();confirm.disabled=busy||locked||!preview;back.hidden=!preview;back.disabled=busy||locked;close.disabled=busy;dialog.setAttribute('aria-busy',String(busy));
+    offset.disabled=busy||locked||!!preview;next.hidden=!!preview||busy;next.disabled=busy||locked||selected.size<2||selected.size>50||!validDays();confirm.hidden=!preview&&!busy;confirm.disabled=busy||locked||!preview;back.hidden=!preview;back.disabled=busy||locked;close.disabled=busy;dialog.setAttribute('aria-busy',String(busy));
   }
   function discard(){const captured=owned;preview=null;owned=null;if(owns){owns=false;cancel(captured);}}
   function fail(message){discard();locked=true;status.textContent=message;controls();return false;}
@@ -28,17 +28,22 @@ export function createDateShiftUI({dialog,getState,getContext,canOpen,prepare,sa
     const restore=sameContext()&&(inside(document.activeElement)||document.activeElement===opener),target=opener?.isConnected&&!opener.disabled?opener:fallbackFocus?.();
     discard();rows=[];selected.clear();generation++;expectedCloses++;dialog.close();if(restore&&target?.isConnected&&!target.disabled)target.focus();return true;
   }
+  const compactTitle=value=>{const characters=Array.from(value);return characters.length>80?characters.slice(0,79).join('')+'…':value;};
+  function postText(value){
+    const details=document.createElement('details'),summary=document.createElement('summary'),body=document.createElement('p');
+    details.className='ui-disclosure';summary.textContent='Beitragstext';body.textContent=value;details.append(summary,body);return details;
+  }
   function selection(){
     list.replaceChildren();
     for(const row of rows){
-      const item=document.createElement('li'),label=document.createElement('label'),input=document.createElement('input'),title=document.createElement('strong'),detail=document.createElement('p'),text=document.createElement('p');
+      const item=document.createElement('li'),label=document.createElement('label'),input=document.createElement('input'),title=document.createElement('strong'),detail=document.createElement('p');
       input.type='checkbox';input.value=row.id;input.checked=selected.has(row.id);
-      title.textContent=row.title||row.text.split('\n')[0];text.textContent=row.variantTexts?.[row.channels[0]]??row.text;
+      const body=row.variantTexts?.[row.channels[0]]??row.text;title.textContent=compactTitle(row.title||row.text.split('\n')[0]);title.title=row.title||row.text.split('\n')[0];
       detail.textContent=[row.channels.map(id=>getState().channels.find(c=>c.id===id)?.name||id).join(' · '),row.scheduledAt,row.timeZone,problem(row)].filter(Boolean).join(' · ');
-      label.append(input,title);item.append(label,detail,text);list.append(item);
-      input.addEventListener('change',()=>{if(busy||locked||preview||!checkState())return;if(problem(row)||input.checked&&selected.size>=50){input.checked=false;return;}input.checked?selected.add(row.id):selected.delete(row.id);status.textContent=`${selected.size} von höchstens 50 ausgewählt`;controls();});
+      label.append(input,title);item.append(label,detail,postText(body));list.append(item);
+      input.addEventListener('change',()=>{if(busy||locked||preview||!checkState())return;if(problem(row)||input.checked&&selected.size>=50){input.checked=false;return;}input.checked?selected.add(row.id):selected.delete(row.id);status.textContent=`${selected.size}/50 ausgewählt`;controls();});
     }
-    status.textContent=`${selected.size} ausgewählt · 2 bis 50 feste Termine wählen`;controls();
+    status.textContent=`${selected.size}/50 ausgewählt${selected.size<2?' · Mindestens 2':''}`;controls();
   }
   function timeNode(label,value){
     if(!value?.instant||!value.local||!value.timezone||scheduleLocalTime(value.instant,value.timezone)!==value.local)throw Error('Unvollständiger Termin');
@@ -59,7 +64,7 @@ export function createDateShiftUI({dialog,getState,getContext,canOpen,prepare,sa
       for(const [index,entry] of candidate.entries.entries()){
         const row=rows.find(row=>row.id===postIds[index]);
         if(entry.postId!==row.id||entry.channelId!==row.channels[0]||typeof entry.text!=='string'||entry.from?.instant!==row.scheduledInstant||entry.from?.timezone!==row.timeZone||entry.to?.timezone!==row.timeZone)throw Error('Ungültige Vorschau');
-        const item=document.createElement('li'),title=document.createElement('strong'),text=document.createElement('p'),channel=document.createElement('p');title.textContent=entry.title||entry.text.split('\n')[0];text.textContent=entry.text;channel.textContent=getState().channels.find(c=>c.id===entry.channelId)?.name||entry.channelId;item.append(title,channel,text,timeNode('Bisher',entry.from),timeNode('Neu',entry.to));items.push(item);
+        const item=document.createElement('li'),title=document.createElement('strong'),channel=document.createElement('p');title.textContent=compactTitle(entry.title||entry.text.split('\n')[0]);title.title=entry.title||entry.text.split('\n')[0];channel.textContent=getState().channels.find(c=>c.id===entry.channelId)?.name||entry.channelId;item.append(title,channel,timeNode('Bisher',entry.from),timeNode('Neu',entry.to),postText(entry.text));items.push(item);
       }
       list.replaceChildren(...items);preview=candidate;status.textContent=`${postIds.length} Termine · ${days>0?'+':''}${days} Kalendertage · Alles gemeinsam speichern`;controls();confirm.focus();
     }catch(error){discard();const known=/^(SHIFT_|DST_GAP$|DST_AMBIGUOUS$|PAST_TIME$|SLOT_TAKEN$|EXISTING_SCHEDULE_INVALID$|INVALID_SCHEDULE$)/.test(error?.code||'');if(known){status.textContent=error.message;controls();status.focus();}else fail('Vorschau nicht bestätigt. Neu laden und Termine prüfen.');}
